@@ -16,6 +16,7 @@ export function PaymentForm() {
   const registrationId = params.get("registration");
   const [method, setMethod] = useState<"card" | "upi">("card");
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [card, setCard] = useState({ number: "", name: "", expiry: "", cvv: "", upi: "" });
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -32,6 +33,7 @@ export function PaymentForm() {
     }
     if (registrationId) {
       try {
+        setIsSubmitting(true);
         const supabase = createClient();
         const { error: updateError } = await supabase.from("registrations").update({ payment_status: "paid" }).eq("id", registrationId);
 
@@ -50,6 +52,8 @@ export function PaymentForm() {
         console.error("[LockInTalks payment] Unexpected payment update error:", submitError);
         setError("Payment was accepted in demo mode, but the registration status could not be updated.");
         return;
+      } finally {
+        setIsSubmitting(false);
       }
     }
 
@@ -83,7 +87,9 @@ export function PaymentForm() {
           <div className="mt-6"><Input placeholder="student@upi" value={card.upi} onChange={(e) => setCard({ ...card, upi: e.target.value })} /></div>
         )}
         {error && <p className="mt-4 rounded-[8px] border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
-        <Button type="submit" className="mt-6 w-full">Pay {competition.fee}</Button>
+        <Button type="submit" className="mt-6 w-full" disabled={isSubmitting}>
+          {isSubmitting ? "Confirming..." : `Pay ${competition.fee}`}
+        </Button>
       </div>
       <aside className="glass rounded-[8px] p-6">
         <CheckCircle2 className="mb-5 text-[#d4af37]" size={34} />

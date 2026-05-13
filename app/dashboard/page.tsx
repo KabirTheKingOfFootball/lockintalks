@@ -29,17 +29,25 @@ export default async function DashboardPage() {
     return <SetupWarning title="Dashboard unavailable" message="The dashboard could not connect to Supabase. Check your Vercel function logs for the exact server error." />;
   }
 
+  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
+
+  if (claimsError) {
+    console.error(`[LockInTalks dashboard] Failed to validate Supabase claims: ${claimsError.message}`);
+  }
+
+  const userId = claimsData?.claims?.sub;
+
+  if (!userId) {
+    redirect("/login");
+  }
+
   const {
     data: { user },
     error: userError
   } = await supabase.auth.getUser();
 
   if (userError) {
-    console.error(`[LockInTalks dashboard] Failed to read Supabase user: ${userError.message}`);
-  }
-
-  if (!user) {
-    redirect("/login");
+    console.error(`[LockInTalks dashboard] Failed to read Supabase user profile: ${userError.message}`);
   }
 
   let registrations: RegistrationRow[] = [];
@@ -49,7 +57,7 @@ export default async function DashboardPage() {
     const { data, error: registrationsError } = await supabase
       .from("registrations")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
     if (registrationsError) {
@@ -63,11 +71,12 @@ export default async function DashboardPage() {
     return <SetupWarning title="Dashboard unavailable" message="The dashboard could not load registrations right now. Check that supabase/schema.sql has been run in your Supabase project." />;
   }
 
-  const displayName = typeof user.user_metadata.full_name === "string" ? user.user_metadata.full_name : "LockIn Speaker";
+  const displayName = typeof user?.user_metadata.full_name === "string" ? user.user_metadata.full_name : "LockIn Speaker";
+  const email = user?.email || (typeof claimsData.claims.email === "string" ? claimsData.claims.email : "");
 
   return (
     <MotionShell>
-      <DashboardClient user={{ name: displayName, email: user.email || "" }} registrations={registrations} dataError={dataError} />
+      <DashboardClient user={{ name: displayName, email }} registrations={registrations} dataError={dataError} />
     </MotionShell>
   );
 }

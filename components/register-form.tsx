@@ -11,6 +11,7 @@ import { SupabaseConfigError } from "@/lib/supabase/env";
 export function RegisterForm({ competition }: { competition: Competition }) {
   const router = useRouter();
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({ student: "", age: "", guardian: "", email: "", city: "" });
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -31,6 +32,7 @@ export function RegisterForm({ competition }: { competition: Competition }) {
       return;
     }
     try {
+      setIsSubmitting(true);
       const supabase = createClient();
       const {
         data: { user },
@@ -76,6 +78,8 @@ export function RegisterForm({ competition }: { competition: Competition }) {
 
       console.error("[LockInTalks registration] Unexpected registration error:", submitError);
       setError("Registration is temporarily unavailable. Please check the Supabase setup.");
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -91,7 +95,9 @@ export function RegisterForm({ competition }: { competition: Competition }) {
         <label className="grid gap-2 text-sm font-bold text-white/80 sm:col-span-2">City / Country<Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} /></label>
       </div>
       {error && <p className="mt-4 rounded-[8px] border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
-      <Button type="submit" className="mt-6 w-full sm:w-auto">Continue to Payment</Button>
+      <Button type="submit" className="mt-6 w-full sm:w-auto" disabled={isSubmitting}>
+        {isSubmitting ? "Saving registration..." : "Continue to Payment"}
+      </Button>
     </form>
   );
 }

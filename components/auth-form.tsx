@@ -11,6 +11,7 @@ import { SupabaseConfigError } from "@/lib/supabase/env";
 export function AuthForm({ mode, initialError = "" }: { mode: "login" | "signup"; initialError?: string }) {
   const router = useRouter();
   const [error, setError] = useState(initialError);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const isSignup = mode === "signup";
   const title = useMemo(() => (isSignup ? "Create your speaker account" : "Welcome back, champion"), [isSignup]);
@@ -33,6 +34,7 @@ export function AuthForm({ mode, initialError = "" }: { mode: "login" | "signup"
     }
 
     try {
+      setIsSubmitting(true);
       const supabase = createClient();
       const result = isSignup
         ? await supabase.auth.signUp({
@@ -67,6 +69,8 @@ export function AuthForm({ mode, initialError = "" }: { mode: "login" | "signup"
 
       console.error(`[LockInTalks auth form] Unexpected ${mode} error:`, submitError);
       setError("Authentication is temporarily unavailable. Please check the Supabase configuration.");
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -101,7 +105,9 @@ export function AuthForm({ mode, initialError = "" }: { mode: "login" | "signup"
         </label>
       </div>
       {error && <p className="mt-4 rounded-[8px] border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
-      <Button type="submit" className="mt-6 w-full">{isSignup ? "Create Account" : "Login"}</Button>
+      <Button type="submit" className="mt-6 w-full" disabled={isSubmitting}>
+        {isSubmitting ? "Please wait..." : isSignup ? "Create Account" : "Login"}
+      </Button>
     </form>
   );
 }
