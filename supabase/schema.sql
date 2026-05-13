@@ -1,5 +1,6 @@
 -- LockInTalks Supabase setup
 -- Paste this into Supabase Dashboard > SQL Editor > New query, then click Run.
+-- This table works with Supabase Auth. Each registration belongs to auth.users.id.
 
 create table if not exists public.registrations (
   id uuid primary key default gen_random_uuid(),
@@ -16,6 +17,12 @@ create table if not exists public.registrations (
   created_at timestamptz not null default now()
 );
 
+create index if not exists registrations_user_id_idx
+on public.registrations (user_id);
+
+create index if not exists registrations_created_at_idx
+on public.registrations (created_at desc);
+
 alter table public.registrations enable row level security;
 
 drop policy if exists "Users can read own registrations" on public.registrations;
@@ -23,19 +30,19 @@ create policy "Users can read own registrations"
 on public.registrations
 for select
 to authenticated
-using ((select auth.uid()) = user_id);
+using (auth.uid() = user_id);
 
 drop policy if exists "Users can create own registrations" on public.registrations;
 create policy "Users can create own registrations"
 on public.registrations
 for insert
 to authenticated
-with check ((select auth.uid()) = user_id);
+with check (auth.uid() = user_id);
 
 drop policy if exists "Users can update own registrations" on public.registrations;
 create policy "Users can update own registrations"
 on public.registrations
 for update
 to authenticated
-using ((select auth.uid()) = user_id)
-with check ((select auth.uid()) = user_id);
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);

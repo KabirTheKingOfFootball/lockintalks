@@ -10,7 +10,15 @@ type DashboardUser = {
   email: string;
 };
 
-export function DashboardClient({ user, registrations }: { user: DashboardUser; registrations: RegistrationRow[] }) {
+export function DashboardClient({
+  user,
+  registrations,
+  dataError
+}: {
+  user: DashboardUser;
+  registrations: RegistrationRow[];
+  dataError?: string;
+}) {
   const latestRegistration = registrations[0];
   const paidRegistrations = registrations.filter((registration) => registration.payment_status === "paid");
 
@@ -19,6 +27,11 @@ export function DashboardClient({ user, registrations }: { user: DashboardUser; 
       <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-[#d4af37]">Dashboard</p>
       <h1 className="text-4xl font-black sm:text-6xl">Welcome, {user.name.split(" ")[0]}.</h1>
       <p className="mt-4 text-white/62">{user.email}</p>
+      {dataError && (
+        <div className="mt-6 rounded-[8px] border border-red-400/30 bg-red-500/10 p-4 text-sm leading-6 text-red-100">
+          Could not load registrations: {dataError}. If this mentions relation registrations, run supabase/schema.sql in Supabase SQL Editor.
+        </div>
+      )}
       <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         <Card><Award className="mb-4 text-[#d4af37]" /><h2 className="font-black">Registered Competitions</h2><p className="mt-3 text-sm text-white/62">{latestRegistration?.competition_name || "No registrations yet."}</p></Card>
         <Card><CalendarClock className="mb-4 text-[#d4af37]" /><h2 className="font-black">Upcoming Events</h2><p className="mt-3 text-sm text-white/62">{latestRegistration ? "Check your email for live room details." : "Choose a competition to start."}</p></Card>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getCompetitionBySlug } from "@/lib/registrations";
 import { createClient } from "@/lib/supabase/client";
+import { SupabaseConfigError } from "@/lib/supabase/env";
 
 export function PaymentForm() {
   const router = useRouter();
@@ -30,11 +31,24 @@ export function PaymentForm() {
       return;
     }
     if (registrationId) {
-      const supabase = createClient();
-      const { error: updateError } = await supabase.from("registrations").update({ payment_status: "paid" }).eq("id", registrationId);
+      try {
+        const supabase = createClient();
+        const { error: updateError } = await supabase.from("registrations").update({ payment_status: "paid" }).eq("id", registrationId);
 
-      if (updateError) {
-        setError(updateError.message);
+        if (updateError) {
+          console.error(`[LockInTalks payment] Registration payment update failed: ${updateError.message}`);
+          setError(updateError.message);
+          return;
+        }
+      } catch (submitError) {
+        if (submitError instanceof SupabaseConfigError) {
+          console.error(`[LockInTalks payment] ${submitError.message}`);
+          setError(submitError.message);
+          return;
+        }
+
+        console.error("[LockInTalks payment] Unexpected payment update error:", submitError);
+        setError("Payment was accepted in demo mode, but the registration status could not be updated.");
         return;
       }
     }

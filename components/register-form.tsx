@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Competition } from "@/data/competitions";
 import { createClient } from "@/lib/supabase/client";
+import { SupabaseConfigError } from "@/lib/supabase/env";
 
 export function RegisterForm({ competition }: { competition: Competition }) {
   const router = useRouter();
@@ -29,40 +30,53 @@ export function RegisterForm({ competition }: { competition: Competition }) {
       setError("Please enter a valid guardian email.");
       return;
     }
-    const supabase = createClient();
-    const {
-      data: { user },
-      error: userError
-    } = await supabase.auth.getUser();
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+        error: userError
+      } = await supabase.auth.getUser();
 
-    if (userError || !user) {
-      router.push("/login");
-      return;
+      if (userError || !user) {
+        console.warn(`[LockInTalks registration] User not authenticated: ${userError?.message || "No active session"}`);
+        router.push("/login");
+        return;
+      }
+
+      const { data, error: insertError } = await supabase
+        .from("registrations")
+        .insert({
+          user_id: user.id,
+          competition_slug: competition.slug,
+          competition_name: competition.name,
+          student_name: form.student.trim(),
+          student_age: age,
+          guardian_name: form.guardian.trim(),
+          guardian_email: form.email.trim(),
+          city_country: form.city.trim(),
+          entry_fee: competition.fee,
+          payment_status: "pending"
+        })
+        .select("id")
+        .single();
+
+      if (insertError) {
+        console.error(`[LockInTalks registration] Insert failed: ${insertError.message}`);
+        setError(`${insertError.message}. If this mentions registrations, run supabase/schema.sql in Supabase SQL Editor.`);
+        return;
+      }
+
+      router.push(`/payment?competition=${competition.slug}&registration=${data.id}`);
+    } catch (submitError) {
+      if (submitError instanceof SupabaseConfigError) {
+        console.error(`[LockInTalks registration] ${submitError.message}`);
+        setError(submitError.message);
+        return;
+      }
+
+      console.error("[LockInTalks registration] Unexpected registration error:", submitError);
+      setError("Registration is temporarily unavailable. Please check the Supabase setup.");
     }
-
-    const { data, error: insertError } = await supabase
-      .from("registrations")
-      .insert({
-        user_id: user.id,
-        competition_slug: competition.slug,
-        competition_name: competition.name,
-        student_name: form.student.trim(),
-        student_age: age,
-        guardian_name: form.guardian.trim(),
-        guardian_email: form.email.trim(),
-        city_country: form.city.trim(),
-        entry_fee: competition.fee,
-        payment_status: "pending"
-      })
-      .select("id")
-      .single();
-
-    if (insertError) {
-      setError(insertError.message);
-      return;
-    }
-
-    router.push(`/payment?competition=${competition.slug}&registration=${data.id}`);
   }
 
   return (

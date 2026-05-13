@@ -6,10 +6,11 @@ import { Lock, Mail, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
+import { SupabaseConfigError } from "@/lib/supabase/env";
 
-export function AuthForm({ mode }: { mode: "login" | "signup" }) {
+export function AuthForm({ mode, initialError = "" }: { mode: "login" | "signup"; initialError?: string }) {
   const router = useRouter();
-  const [error, setError] = useState("");
+  const [error, setError] = useState(initialError);
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const isSignup = mode === "signup";
   const title = useMemo(() => (isSignup ? "Create your speaker account" : "Welcome back, champion"), [isSignup]);
@@ -31,30 +32,42 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       return;
     }
 
-    const supabase = createClient();
-    const result = isSignup
-      ? await supabase.auth.signUp({
-          email: form.email,
-          password: form.password,
-          options: {
-            data: {
-              full_name: form.name.trim()
-            },
-            emailRedirectTo: `${window.location.origin}/dashboard`
-          }
-        })
-      : await supabase.auth.signInWithPassword({
-          email: form.email,
-          password: form.password
-        });
+    try {
+      const supabase = createClient();
+      const result = isSignup
+        ? await supabase.auth.signUp({
+            email: form.email,
+            password: form.password,
+            options: {
+              data: {
+                full_name: form.name.trim()
+              },
+              emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`
+            }
+          })
+        : await supabase.auth.signInWithPassword({
+            email: form.email,
+            password: form.password
+          });
 
-    if (result.error) {
-      setError(result.error.message);
-      return;
+      if (result.error) {
+        console.error(`[LockInTalks auth form] ${mode} failed: ${result.error.message}`);
+        setError(result.error.message);
+        return;
+      }
+
+      router.push("/dashboard");
+      router.refresh();
+    } catch (submitError) {
+      if (submitError instanceof SupabaseConfigError) {
+        console.error(`[LockInTalks auth form] ${submitError.message}`);
+        setError(submitError.message);
+        return;
+      }
+
+      console.error(`[LockInTalks auth form] Unexpected ${mode} error:`, submitError);
+      setError("Authentication is temporarily unavailable. Please check the Supabase configuration.");
     }
-
-    router.push("/dashboard");
-    router.refresh();
   }
 
   return (
