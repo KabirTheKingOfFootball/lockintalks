@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Lock, Mail, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { createClient } from "@/lib/supabase/client";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
@@ -13,8 +14,10 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const isSignup = mode === "signup";
   const title = useMemo(() => (isSignup ? "Create your speaker account" : "Welcome back, champion"), [isSignup]);
 
-  function submit(event: React.FormEvent<HTMLFormElement>) {
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError("");
+
     if (isSignup && form.name.trim().length < 2) {
       setError("Please enter the student's name.");
       return;
@@ -27,15 +30,38 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       setError("Password must be at least 6 characters.");
       return;
     }
-    localStorage.setItem("lockintalks-user", JSON.stringify({ name: form.name || "LockIn Speaker", email: form.email }));
+
+    const supabase = createClient();
+    const result = isSignup
+      ? await supabase.auth.signUp({
+          email: form.email,
+          password: form.password,
+          options: {
+            data: {
+              full_name: form.name.trim()
+            },
+            emailRedirectTo: `${window.location.origin}/dashboard`
+          }
+        })
+      : await supabase.auth.signInWithPassword({
+          email: form.email,
+          password: form.password
+        });
+
+    if (result.error) {
+      setError(result.error.message);
+      return;
+    }
+
     router.push("/dashboard");
+    router.refresh();
   }
 
   return (
     <form onSubmit={submit} className="glass mx-auto w-full max-w-md rounded-[8px] p-6 sm:p-8">
       <p className="mb-2 text-xs font-bold uppercase tracking-[0.28em] text-[#d4af37]">{isSignup ? "Sign up" : "Login"}</p>
       <h1 className="text-3xl font-black">{title}</h1>
-      <p className="mt-3 text-sm leading-6 text-white/60">Demo authentication with validation, ready to connect to a secure server-side auth provider.</p>
+      <p className="mt-3 text-sm leading-6 text-white/60">Secure email and password authentication powered by Supabase sessions.</p>
       <div className="mt-7 grid gap-4">
         {isSignup && (
           <label className="grid gap-2 text-sm font-bold text-white/80">

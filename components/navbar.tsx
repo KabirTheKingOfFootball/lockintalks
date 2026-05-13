@@ -31,6 +31,7 @@ export function Navbar() {
           ))}
         </div>
         <div className="hidden items-center gap-3 md:flex">
+          <ButtonLink href="/logout" variant="ghost">Logout</ButtonLink>
           <ButtonLink href="/login" variant="ghost">Login</ButtonLink>
           <ButtonLink href="/signup">Register Now</ButtonLink>
         </div>
@@ -48,7 +49,8 @@ export function Navbar() {
             ))}
             <div className="mt-2 grid grid-cols-2 gap-3">
               <ButtonLink href="/login" variant="glass">Login</ButtonLink>
-              <ButtonLink href="/signup">Register</ButtonLink>
+              <ButtonLink href="/logout" variant="glass">Logout</ButtonLink>
+              <ButtonLink href="/signup" className="col-span-2">Register</ButtonLink>
             </div>
           </div>
         </div>

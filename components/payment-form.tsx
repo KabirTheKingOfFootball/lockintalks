@@ -3,20 +3,24 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, CreditCard, Smartphone } from "lucide-react";
-import { competitions } from "@/data/competitions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getCompetitionBySlug } from "@/lib/registrations";
+import { createClient } from "@/lib/supabase/client";
 
 export function PaymentForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const competition = competitions.find((item) => item.slug === params.get("competition")) || competitions[0];
+  const competition = getCompetitionBySlug(params.get("competition"));
+  const registrationId = params.get("registration");
   const [method, setMethod] = useState<"card" | "upi">("card");
   const [error, setError] = useState("");
   const [card, setCard] = useState({ number: "", name: "", expiry: "", cvv: "", upi: "" });
 
-  function submit(event: React.FormEvent<HTMLFormElement>) {
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError("");
+
     if (method === "card" && (card.number.replace(/\s/g, "").length < 12 || card.name.trim().length < 2 || card.cvv.length < 3)) {
       setError("Please enter valid card details for this demo checkout.");
       return;
@@ -25,8 +29,18 @@ export function PaymentForm() {
       setError("Please enter a valid UPI ID.");
       return;
     }
-    localStorage.setItem("lockintalks-registration", JSON.stringify({ competition: competition.name, paid: competition.fee, date: new Date().toISOString() }));
+    if (registrationId) {
+      const supabase = createClient();
+      const { error: updateError } = await supabase.from("registrations").update({ payment_status: "paid" }).eq("id", registrationId);
+
+      if (updateError) {
+        setError(updateError.message);
+        return;
+      }
+    }
+
     router.push("/payment/success");
+    router.refresh();
   }
 
   return (

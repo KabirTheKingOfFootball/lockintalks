@@ -5,14 +5,17 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Competition } from "@/data/competitions";
+import { createClient } from "@/lib/supabase/client";
 
 export function RegisterForm({ competition }: { competition: Competition }) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [form, setForm] = useState({ student: "", age: "", guardian: "", email: "", city: "" });
 
-  function submit(event: React.FormEvent<HTMLFormElement>) {
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError("");
+
     const age = Number(form.age);
     if (!form.student.trim() || !form.guardian.trim() || !form.city.trim()) {
       setError("Please complete all required fields.");
@@ -26,8 +29,40 @@ export function RegisterForm({ competition }: { competition: Competition }) {
       setError("Please enter a valid guardian email.");
       return;
     }
-    localStorage.setItem("lockintalks-pending-registration", JSON.stringify({ ...form, competition: competition.name, fee: competition.fee }));
-    router.push(`/payment?competition=${competition.slug}`);
+    const supabase = createClient();
+    const {
+      data: { user },
+      error: userError
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      router.push("/login");
+      return;
+    }
+
+    const { data, error: insertError } = await supabase
+      .from("registrations")
+      .insert({
+        user_id: user.id,
+        competition_slug: competition.slug,
+        competition_name: competition.name,
+        student_name: form.student.trim(),
+        student_age: age,
+        guardian_name: form.guardian.trim(),
+        guardian_email: form.email.trim(),
+        city_country: form.city.trim(),
+        entry_fee: competition.fee,
+        payment_status: "pending"
+      })
+      .select("id")
+      .single();
+
+    if (insertError) {
+      setError(insertError.message);
+      return;
+    }
+
+    router.push(`/payment?competition=${competition.slug}&registration=${data.id}`);
   }
 
   return (
