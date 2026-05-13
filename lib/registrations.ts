@@ -11,7 +11,13 @@ export type RegistrationRow = {
   guardian_email: string;
   city_country: string;
   entry_fee: string;
-  payment_status: "pending" | "paid";
+  payment_status: "pending" | "payment_created" | "paid" | "failed" | "cancelled";
+  razorpay_order_id: string | null;
+  razorpay_payment_id: string | null;
+  razorpay_signature: string | null;
+  payment_amount: number | null;
+  payment_currency: string | null;
+  paid_at: string | null;
   created_at: string;
 };
 

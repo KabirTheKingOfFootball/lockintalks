@@ -58,3 +58,13 @@ export function requireSupabaseEnv() {
 
   return env;
 }
+
+export function requireSupabaseServiceRoleKey() {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!key) {
+    throw new SupabaseConfigError("Missing SUPABASE_SERVICE_ROLE_KEY. Add it in Vercel for server-only payment verification updates.");
+  }
+
+  return key;
+}

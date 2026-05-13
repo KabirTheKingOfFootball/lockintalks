@@ -21,7 +21,7 @@ export const competitions: Competition[] = [
     category: "Debate Battles",
     ageGroup: "10-16 years",
     date: "June 22, 2026",
-    fee: "$19",
+    fee: "₹499",
     summary: "Fast-paced argument rounds for sharp thinkers who love strategy, evidence, and stage presence.",
     description:
       "A bracket-style debate tournament designed for young speakers who can think clearly, listen carefully, and respond with confidence under pressure.",
@@ -37,7 +37,7 @@ export const competitions: Competition[] = [
     category: "Storytelling",
     ageGroup: "7-13 years",
     date: "July 5, 2026",
-    fee: "$15",
+    fee: "₹399",
     summary: "A creative stage for original stories, expressive delivery, and memorable characters.",
     description:
       "Students perform a polished story with emotion, structure, and voice control while learning how to keep an audience hooked online.",
@@ -53,7 +53,7 @@ export const competitions: Competition[] = [
     category: "Motivational Speaking",
     ageGroup: "12-18 years",
     date: "July 19, 2026",
-    fee: "$21",
+    fee: "₹599",
     summary: "TED-style short talks for teens ready to inspire action and lead with presence.",
     description:
       "A premium speech challenge focused on purpose, clarity, stage confidence, and a message that can move a global youth audience.",
@@ -69,7 +69,7 @@ export const competitions: Competition[] = [
     category: "Extempore",
     ageGroup: "9-17 years",
     date: "August 3, 2026",
-    fee: "$12",
+    fee: "₹349",
     summary: "Think fast, speak clear, and turn surprise topics into winning moments.",
     description:
       "A high-energy online format where students receive surprise prompts and deliver concise, structured speeches after a short preparation window.",

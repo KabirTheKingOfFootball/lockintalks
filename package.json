@@ -16,6 +16,7 @@
     "framer-motion": "^12.38.0",
     "lucide-react": "latest",
     "next": "latest",
+    "razorpay": "^2.9.6",
     "react": "latest",
     "react-dom": "latest",
     "tailwind-merge": "latest"

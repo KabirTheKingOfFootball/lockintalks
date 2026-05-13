@@ -2,93 +2,210 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle2, CreditCard, Smartphone } from "lucide-react";
+import { CheckCircle2, CreditCard, Landmark, Smartphone, WalletCards, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { getCompetitionBySlug } from "@/lib/registrations";
-import { createClient } from "@/lib/supabase/client";
-import { SupabaseConfigError } from "@/lib/supabase/env";
+
+type PaymentStep = "idle" | "creating" | "checkout" | "verifying" | "success" | "failed";
+
+type CreateOrderResponse = {
+  error?: string;
+  keyId: string;
+  orderId: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  registrationId: string;
+  prefill?: {
+    name?: string;
+    email?: string;
+  };
+};
+
+type RazorpaySuccessResponse = {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+};
+
+type RazorpayFailureResponse = {
+  error?: {
+    description?: string;
+    reason?: string;
+  };
+};
+
+type RazorpayCheckoutOptions = {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  prefill?: {
+    name?: string;
+    email?: string;
+  };
+  theme: {
+    color: string;
+  };
+  modal: {
+    ondismiss: () => void;
+  };
+  handler: (response: RazorpaySuccessResponse) => void;
+};
+
+type RazorpayCheckout = {
+  open: () => void;
+  on: (event: "payment.failed", callback: (response: RazorpayFailureResponse) => void) => void;
+};
+
+declare global {
+  interface Window {
+    Razorpay?: new (options: RazorpayCheckoutOptions) => RazorpayCheckout;
+  }
+}
+
+const paymentMethods: Array<{ icon: LucideIcon; label: string }> = [
+  { icon: Smartphone, label: "UPI" },
+  { icon: CreditCard, label: "Cards" },
+  { icon: Landmark, label: "Netbanking" },
+  { icon: WalletCards, label: "Wallets" }
+];
 
 export function PaymentForm() {
   const router = useRouter();
   const params = useSearchParams();
   const competition = getCompetitionBySlug(params.get("competition"));
   const registrationId = params.get("registration");
-  const [method, setMethod] = useState<"card" | "upi">("card");
   const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [card, setCard] = useState({ number: "", name: "", expiry: "", cvv: "", upi: "" });
+  const [step, setStep] = useState<PaymentStep>("idle");
 
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function startPayment() {
     setError("");
 
-    if (method === "card" && (card.number.replace(/\s/g, "").length < 12 || card.name.trim().length < 2 || card.cvv.length < 3)) {
-      setError("Please enter valid card details for this demo checkout.");
+    if (!registrationId) {
+      setError("Missing registration id. Please register for a competition before paying.");
       return;
     }
-    if (method === "upi" && !card.upi.includes("@")) {
-      setError("Please enter a valid UPI ID.");
-      return;
-    }
-    if (registrationId) {
-      try {
-        setIsSubmitting(true);
-        const supabase = createClient();
-        const { error: updateError } = await supabase.from("registrations").update({ payment_status: "paid" }).eq("id", registrationId);
 
-        if (updateError) {
-          console.error(`[LockInTalks payment] Registration payment update failed: ${updateError.message}`);
-          setError(updateError.message);
-          return;
-        }
-      } catch (submitError) {
-        if (submitError instanceof SupabaseConfigError) {
-          console.error(`[LockInTalks payment] ${submitError.message}`);
-          setError(submitError.message);
-          return;
-        }
+    try {
+      setStep("creating");
+      await loadRazorpayScript();
 
-        console.error("[LockInTalks payment] Unexpected payment update error:", submitError);
-        setError("Payment was accepted in demo mode, but the registration status could not be updated.");
-        return;
-      } finally {
-        setIsSubmitting(false);
+      if (!window.Razorpay) {
+        throw new Error("Razorpay Checkout did not load. Please refresh and try again.");
       }
-    }
 
-    router.push("/payment/success");
-    router.refresh();
+      const orderResponse = await fetch("/api/payments/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ registrationId })
+      });
+      const order = (await orderResponse.json()) as CreateOrderResponse;
+
+      if (!orderResponse.ok || order.error) {
+        throw new Error(order.error || "Could not create payment order.");
+      }
+
+      setStep("checkout");
+      const checkout = new window.Razorpay({
+        key: order.keyId,
+        amount: order.amount,
+        currency: order.currency,
+        name: order.name,
+        description: order.description,
+        order_id: order.orderId,
+        prefill: order.prefill,
+        theme: {
+          color: "#D4AF37"
+        },
+        modal: {
+          ondismiss: async () => {
+            setStep("failed");
+            setError("Payment was cancelled. You can try again when ready.");
+            await markPaymentFailed(registrationId, "cancelled");
+          }
+        },
+        handler: async (response) => {
+          await verifyPayment(order.registrationId, response);
+        }
+      });
+
+      checkout.on("payment.failed", async (response) => {
+        console.warn(`[LockInTalks Razorpay Checkout] Payment failed: ${response.error?.reason || response.error?.description || "Unknown reason"}`);
+        setStep("failed");
+        setError(response.error?.description || "Payment failed. Please try again.");
+        await markPaymentFailed(registrationId, "failed");
+      });
+
+      checkout.open();
+    } catch (paymentError) {
+      console.error("[LockInTalks Razorpay Checkout] Could not start payment:", paymentError);
+      setStep("failed");
+      setError(paymentError instanceof Error ? paymentError.message : "Could not start Razorpay payment.");
+    }
   }
 
+  async function verifyPayment(currentRegistrationId: string, response: RazorpaySuccessResponse) {
+    try {
+      setStep("verifying");
+      const verifyResponse = await fetch("/api/payments/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          registrationId: currentRegistrationId,
+          razorpay_order_id: response.razorpay_order_id,
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_signature: response.razorpay_signature
+        })
+      });
+      const result = (await verifyResponse.json()) as { ok?: boolean; error?: string };
+
+      if (!verifyResponse.ok || !result.ok) {
+        throw new Error(result.error || "Payment verification failed.");
+      }
+
+      setStep("success");
+      router.push("/payment/success");
+      router.refresh();
+    } catch (verifyError) {
+      console.error("[LockInTalks Razorpay Checkout] Payment verification failed:", verifyError);
+      setStep("failed");
+      setError(verifyError instanceof Error ? verifyError.message : "Payment verification failed.");
+    }
+  }
+
+  const isBusy = step === "creating" || step === "checkout" || step === "verifying";
+
   return (
-    <form onSubmit={submit} className="grid gap-6 lg:grid-cols-[1fr_0.55fr]">
+    <div className="grid gap-6 lg:grid-cols-[1fr_0.55fr]">
       <div className="glass rounded-[8px] p-6 sm:p-8">
-        <h1 className="text-3xl font-black">Payment</h1>
-        <p className="mt-3 text-sm text-white/62">Demo-safe checkout UI with a secure integration structure for production providers.</p>
-        <div className="mt-7 grid grid-cols-2 gap-3">
-          <button type="button" onClick={() => setMethod("card")} className={`focus-ring rounded-[8px] border p-4 text-left transition ${method === "card" ? "border-[#d4af37] bg-[#d4af37]/12" : "border-white/12 bg-white/[0.05]"}`}>
-            <CreditCard className="mb-3 text-[#d4af37]" /> <span className="font-bold">Card</span>
-          </button>
-          <button type="button" onClick={() => setMethod("upi")} className={`focus-ring rounded-[8px] border p-4 text-left transition ${method === "upi" ? "border-[#d4af37] bg-[#d4af37]/12" : "border-white/12 bg-white/[0.05]"}`}>
-            <Smartphone className="mb-3 text-[#d4af37]" /> <span className="font-bold">UPI</span>
-          </button>
-        </div>
-        {method === "card" ? (
-          <div className="mt-6 grid gap-4">
-            <Input inputMode="numeric" placeholder="Card number" value={card.number} onChange={(e) => setCard({ ...card, number: e.target.value })} />
-            <Input placeholder="Name on card" value={card.name} onChange={(e) => setCard({ ...card, name: e.target.value })} />
-            <div className="grid grid-cols-2 gap-4">
-              <Input placeholder="MM / YY" value={card.expiry} onChange={(e) => setCard({ ...card, expiry: e.target.value })} />
-              <Input inputMode="numeric" placeholder="CVV" value={card.cvv} onChange={(e) => setCard({ ...card, cvv: e.target.value })} />
+        <h1 className="text-3xl font-black">Secure Payment</h1>
+        <p className="mt-3 text-sm leading-6 text-white/62">
+          Razorpay Checkout supports UPI, cards, netbanking, and wallets. LockInTalks confirms your registration only after server-side signature verification.
+        </p>
+        <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {paymentMethods.map(({ icon: Icon, label }) => (
+            <div key={label} className="rounded-[8px] border border-white/12 bg-white/[0.05] p-4 text-center">
+              <Icon className="mx-auto mb-3 text-[#d4af37]" />
+              <span className="text-sm font-bold">{label}</span>
             </div>
-          </div>
-        ) : (
-          <div className="mt-6"><Input placeholder="student@upi" value={card.upi} onChange={(e) => setCard({ ...card, upi: e.target.value })} /></div>
+          ))}
+        </div>
+        {step !== "idle" && (
+          <p className="mt-5 rounded-[8px] border border-[#d4af37]/30 bg-[#d4af37]/10 p-3 text-sm text-[#f7dc83]">
+            {step === "creating" && "Creating secure Razorpay order..."}
+            {step === "checkout" && "Razorpay Checkout is open. Complete payment in the secure popup."}
+            {step === "verifying" && "Verifying payment securely on the server..."}
+            {step === "success" && "Payment verified successfully."}
+            {step === "failed" && "Payment was not completed."}
+          </p>
         )}
         {error && <p className="mt-4 rounded-[8px] border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
-        <Button type="submit" className="mt-6 w-full" disabled={isSubmitting}>
-          {isSubmitting ? "Confirming..." : `Pay ${competition.fee}`}
+        <Button type="button" onClick={startPayment} className="mt-6 w-full" disabled={isBusy}>
+          {isBusy ? "Processing..." : `Pay ${competition.fee}`}
         </Button>
       </div>
       <aside className="glass rounded-[8px] p-6">
@@ -98,9 +215,42 @@ export function PaymentForm() {
           <p><span className="font-bold text-white">Competition:</span> {competition.name}</p>
           <p><span className="font-bold text-white">Date:</span> {competition.date}</p>
           <p><span className="font-bold text-white">Entry fee:</span> {competition.fee}</p>
-          <p><span className="font-bold text-white">Platform:</span> Online</p>
+          <p><span className="font-bold text-white">Gateway:</span> Razorpay Checkout</p>
         </div>
       </aside>
-    </form>
+    </div>
   );
+}
+
+async function loadRazorpayScript() {
+  if (window.Razorpay) return;
+
+  await new Promise<void>((resolve, reject) => {
+    const existingScript = document.querySelector<HTMLScriptElement>('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+
+    if (existingScript) {
+      existingScript.addEventListener("load", () => resolve(), { once: true });
+      existingScript.addEventListener("error", () => reject(new Error("Could not load Razorpay Checkout.")), { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Could not load Razorpay Checkout."));
+    document.body.appendChild(script);
+  });
+}
+
+async function markPaymentFailed(registrationId: string, status: "failed" | "cancelled") {
+  try {
+    await fetch("/api/payments/failed", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ registrationId, status })
+    });
+  } catch (error) {
+    console.warn("[LockInTalks Razorpay Checkout] Could not record failed payment status:", error);
+  }
 }
