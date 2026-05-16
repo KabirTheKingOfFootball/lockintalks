@@ -2,6 +2,60 @@
 -- Paste this into Supabase Dashboard > SQL Editor > New query, then click Run.
 -- This table works with Supabase Auth. Each registration belongs to auth.users.id.
 
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text,
+  role text not null default 'user' check (role in ('user', 'admin')),
+  created_at timestamptz not null default now()
+);
+
+alter table public.profiles enable row level security;
+
+drop policy if exists "Users can read own profile" on public.profiles;
+create policy "Users can read own profile"
+on public.profiles
+for select
+to authenticated
+using (auth.uid() = id);
+
+create table if not exists public.competitions (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  name text not null,
+  category text not null,
+  age_group text not null,
+  event_date text not null,
+  fee_label text not null,
+  fee_amount integer not null default 0,
+  summary text not null,
+  description text not null,
+  image_url text,
+  status text not null default 'draft' check (status in ('draft', 'published', 'archived')),
+  rules text[] not null default '{}',
+  schedule text[] not null default '{}',
+  prizes text[] not null default '{}',
+  judges text[] not null default '{}',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.competitions enable row level security;
+
+drop policy if exists "Anyone can read published competitions" on public.competitions;
+create policy "Anyone can read published competitions"
+on public.competitions
+for select
+to anon, authenticated
+using (status = 'published');
+
+drop policy if exists "Admins can manage competitions" on public.competitions;
+create policy "Admins can manage competitions"
+on public.competitions
+for all
+to authenticated
+using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'))
+with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+
 create table if not exists public.registrations (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -70,3 +124,48 @@ for update
 to authenticated
 using (auth.uid() = user_id)
 with check (auth.uid() = user_id and payment_status <> 'paid');
+
+insert into storage.buckets (id, name, public)
+values ('competition-images', 'competition-images', true)
+on conflict (id) do update set public = true;
+
+drop policy if exists "Anyone can read competition images" on storage.objects;
+create policy "Anyone can read competition images"
+on storage.objects
+for select
+to anon, authenticated
+using (bucket_id = 'competition-images');
+
+drop policy if exists "Admins can upload competition images" on storage.objects;
+create policy "Admins can upload competition images"
+on storage.objects
+for insert
+to authenticated
+with check (
+  bucket_id = 'competition-images'
+  and exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+);
+
+drop policy if exists "Admins can update competition images" on storage.objects;
+create policy "Admins can update competition images"
+on storage.objects
+for update
+to authenticated
+using (
+  bucket_id = 'competition-images'
+  and exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+)
+with check (
+  bucket_id = 'competition-images'
+  and exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+);
+
+drop policy if exists "Admins can delete competition images" on storage.objects;
+create policy "Admins can delete competition images"
+on storage.objects
+for delete
+to authenticated
+using (
+  bucket_id = 'competition-images'
+  and exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
+);

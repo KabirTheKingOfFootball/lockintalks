@@ -42,3 +42,19 @@ Copy `.env.example` to `.env.local` and replace secrets before deploying.
 5. Redeploy on Vercel.
 
 Razorpay payments use a secure order and verification flow. The browser opens Checkout, but registrations are marked `paid` only after `/api/payments/verify` validates the Razorpay signature on the server.
+
+## Admin Panel
+
+Admin routes live under `/admin`. They are protected by Supabase Auth plus a `profiles.role = 'admin'` authorization check. To make a user an admin:
+
+1. Sign up normally on the website.
+2. In Supabase, open **Authentication > Users** and copy that user's UUID and email.
+3. In **SQL Editor**, run:
+
+```sql
+insert into public.profiles (id, email, role)
+values ('USER_UUID_HERE', 'admin@example.com', 'admin')
+on conflict (id) do update set role = 'admin', email = excluded.email;
+```
+
+The admin panel can create, edit, delete, and upload images for competitions, manage registration payment statuses, search/filter participants, view analytics, and export registrations as CSV.
