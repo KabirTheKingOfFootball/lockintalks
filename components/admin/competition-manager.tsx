@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useMemo, useState } from "react";
-import { ImagePlus, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { Eye, EyeOff, ImagePlus, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import type { AdminCompetition } from "@/lib/admin/competitions";
@@ -86,7 +86,9 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
   }
 
   async function deleteCompetition(id: string) {
-    if (!confirm("Delete this competition?")) return;
+    const competition = competitions.find((item) => item.id === id);
+    const typedName = prompt(`Type DELETE ${competition?.name || "competition"} to permanently delete this competition.`);
+    if (typedName !== `DELETE ${competition?.name || "competition"}`) return;
     setBusy(true);
     setError("");
 
@@ -99,6 +101,37 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
     } catch (deleteError) {
       console.error("[LockInTalks admin UI] Competition delete failed:", deleteError);
       setError(deleteError instanceof Error ? deleteError.message : "Could not delete competition.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function updateStatus(competition: AdminCompetition, status: "draft" | "published" | "archived") {
+    const body = {
+      ...competition,
+      status,
+      rules: competition.rules.join("\n"),
+      schedule: competition.schedule.join("\n"),
+      prizes: competition.prizes.join("\n"),
+      judges: competition.judges.join("\n")
+    };
+    setBusy(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const response = await fetch(`/api/admin/competitions/${competition.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not update status.");
+      setCompetitions((current) => current.map((item) => (item.id === competition.id ? result.competition : item)));
+      setMessage(`Competition ${status === "published" ? "published" : status === "draft" ? "unpublished" : "closed"}.`);
+    } catch (statusError) {
+      console.error("[LockInTalks admin UI] Competition status update failed:", statusError);
+      setError(statusError instanceof Error ? statusError.message : "Could not update status.");
     } finally {
       setBusy(false);
     }
@@ -142,8 +175,8 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
             <Input placeholder="Fee amount in paise" type="number" value={form.fee_amount} onChange={(event) => setForm({ ...form, fee_amount: Number(event.target.value) })} />
             <select className="focus-ring min-h-12 rounded-[8px] border border-white/15 bg-[#071b3b] px-4 text-sm text-white" value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
               <option value="draft">Draft</option>
-              <option value="published">Published</option>
-              <option value="archived">Archived</option>
+              <option value="published">Live</option>
+              <option value="archived">Closed</option>
             </select>
           </div>
           <Input placeholder="Image URL" value={form.image_url} onChange={(event) => setForm({ ...form, image_url: event.target.value })} />
@@ -176,12 +209,17 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
               <div className="flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-xl font-black">{competition.name}</h3>
-                  <span className="rounded-full border border-[#d4af37]/30 px-3 py-1 text-xs font-bold uppercase text-[#d4af37]">{competition.status}</span>
+                  <span className="rounded-full border border-[#d4af37]/30 px-3 py-1 text-xs font-bold uppercase text-[#d4af37]">{competition.status === "published" ? "live" : competition.status === "archived" ? "closed" : "draft"}</span>
                 </div>
                 <p className="mt-2 text-sm text-white/58">{competition.category} • {competition.age_group} • {competition.fee_label}</p>
                 <p className="mt-2 text-sm leading-6 text-white/65">{competition.summary}</p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button type="button" variant="glass" className="gap-2" onClick={() => editCompetition(competition)}><Pencil size={16} /> Edit</Button>
+                  <Button type="button" variant="glass" className="gap-2" onClick={() => updateStatus(competition, competition.status === "published" ? "draft" : "published")}>
+                    {competition.status === "published" ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {competition.status === "published" ? "Unpublish" : "Publish"}
+                  </Button>
+                  <Button type="button" variant="glass" className="gap-2" onClick={() => updateStatus(competition, "archived")}>Close</Button>
                   <Button type="button" variant="glass" className="gap-2" onClick={() => deleteCompetition(competition.id)}><Trash2 size={16} /> Delete</Button>
                   <label className="focus-ring inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-full border border-white/15 px-5 py-2.5 text-sm font-bold text-white/80 hover:border-[#d4af37]/50">
                     <ImagePlus size={16} /> Upload Image

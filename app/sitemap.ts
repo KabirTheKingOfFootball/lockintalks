@@ -3,7 +3,7 @@ import { competitions } from "@/data/competitions";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://lockintalks.com";
-  const routes = ["", "/competitions", "/login", "/signup", "/contact", "/dashboard"].map((route) => ({
+  const routes = ["", "/about", "/faq", "/competitions", "/login", "/signup", "/contact", "/dashboard"].map((route) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date()
   }));

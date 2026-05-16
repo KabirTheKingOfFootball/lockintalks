@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Award, BadgeCheck, Globe2, Mic2, ShieldCheck, Sparkles, Trophy, Users, Zap } from "lucide-react";
+import { ArrowRight, Award, BadgeCheck, Crown, Globe2, Mic2, ShieldCheck, Sparkles, Trophy, Users, Zap } from "lucide-react";
 import { competitions } from "@/data/competitions";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -100,6 +100,22 @@ export default function HomePage() {
         </div>
       </Section>
 
+      <Section eyebrow="Why LockInTalks?" title="Built for first-time speakers and future finalists.">
+        <div className="grid gap-5 lg:grid-cols-3">
+          {[
+            ["Beginner-friendly", "Students get a clear path from signup to stage, with simple steps and supportive judging."],
+            ["Real recognition", "Certificates, badges, and winner showcases make progress visible for students and parents."],
+            ["Championship energy", "Events feel exciting without becoming chaotic, with rules, schedules, and score criteria upfront."]
+          ].map(([title, text]) => (
+            <Card key={title}>
+              <BadgeCheck className="mb-4 text-[#d4af37]" />
+              <h3 className="text-xl font-black">{title}</h3>
+              <p className="mt-3 text-sm leading-6 text-white/62">{text}</p>
+            </Card>
+          ))}
+        </div>
+      </Section>
+
       <Section eyebrow="Competition Categories" title="Pick your stage. Build your edge.">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {categories.map((category) => (
@@ -128,15 +144,32 @@ export default function HomePage() {
 
       <Section eyebrow="Featured Competitions" title="Current championship tracks.">
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-          {competitions.map((competition) => (
+          {competitions.filter((competition) => competition.featured).map((competition) => (
             <Card key={competition.slug}>
               <div className={`mb-5 h-28 rounded-[8px] bg-gradient-to-br ${competition.accent} p-4 text-[#071b3b]`}>
                 <Mic2 size={28} />
                 <p className="mt-5 text-lg font-black">{competition.category}</p>
               </div>
               <h3 className="text-lg font-black">{competition.name}</h3>
-              <p className="mt-2 text-sm text-white/58">{competition.ageGroup} • {competition.fee}</p>
+              <p className="mt-2 text-sm text-white/58">{competition.ageGroup} • {competition.fee} • {competition.slotsRemaining} slots</p>
               <ButtonLink href={`/competitions/${competition.slug}`} variant="glass" className="mt-5 w-full">View Details</ButtonLink>
+            </Card>
+          ))}
+        </div>
+      </Section>
+
+      <Section eyebrow="Winner Showcase" title="A future wall of young voices.">
+        <div className="grid gap-5 md:grid-cols-3">
+          {[
+            ["Debate Champion", "Coming soon", "Sharp reasoning and calm rebuttals."],
+            ["Storytelling Star", "Coming soon", "Original stories with unforgettable delivery."],
+            ["Motivation Medalist", "Coming soon", "Talks that move students to action."]
+          ].map(([title, name, text]) => (
+            <Card key={title} className="text-center">
+              <Crown className="mx-auto mb-4 text-[#d4af37]" />
+              <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#d4af37]">{title}</p>
+              <h3 className="mt-3 text-2xl font-black">{name}</h3>
+              <p className="mt-3 text-sm leading-6 text-white/62">{text}</p>
             </Card>
           ))}
         </div>

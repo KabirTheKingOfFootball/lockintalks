@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Award, CalendarDays, Gavel, Mic2, Trophy, Users } from "lucide-react";
+import { Award, CalendarDays, Gavel, Mic2, Trophy, Users, ClipboardCheck, Clock3 } from "lucide-react";
 import { competitions, getCompetition } from "@/data/competitions";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MotionShell } from "@/components/motion-shell";
+import { Countdown } from "@/components/countdown";
+import { StatusBadge } from "@/components/status-badge";
 
 export function generateStaticParams() {
   return competitions.map((competition) => ({ slug: competition.slug }));
@@ -35,13 +37,17 @@ export default async function CompetitionDetailsPage({ params }: { params: Promi
       <section className="mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[1fr_0.42fr] lg:px-8">
         <div>
           <div className={`mb-8 rounded-[8px] bg-gradient-to-br ${competition.accent} p-8 text-[#071b3b]`}>
-            <Mic2 size={42} />
+            <div className="flex items-start justify-between gap-4">
+              <Mic2 size={42} />
+              <StatusBadge status={competition.status} className="border-[#071b3b]/20 bg-[#071b3b]/10 text-[#071b3b]" />
+            </div>
             <p className="mt-10 text-sm font-black uppercase tracking-[0.3em]">{competition.category}</p>
             <h1 className="mt-2 text-4xl font-black sm:text-6xl">{competition.name}</h1>
           </div>
           <p className="text-xl leading-9 text-white/74">{competition.description}</p>
           <div className="mt-8 grid gap-5 md:grid-cols-2">
             <Info title="Rules" icon={<Gavel />} items={competition.rules} />
+            <Info title="Judging Criteria" icon={<ClipboardCheck />} items={competition.criteria} />
             <Info title="Schedule" icon={<CalendarDays />} items={competition.schedule} />
             <Info title="Prize Information" icon={<Trophy />} items={competition.prizes} />
             <Info title="Judges" icon={<Users />} items={competition.judges} />
@@ -55,7 +61,9 @@ export default async function CompetitionDetailsPage({ params }: { params: Promi
               <p><span className="font-bold text-white">Age group:</span> {competition.ageGroup}</p>
               <p><span className="font-bold text-white">Date:</span> {competition.date}</p>
               <p><span className="font-bold text-white">Entry fee:</span> {competition.fee}</p>
+              <p className="flex items-center gap-2"><Clock3 size={16} className="text-[#d4af37]" /> {competition.slotsRemaining} slots remaining</p>
             </div>
+            <div className="mt-5"><Countdown targetIso={competition.dateIso} /></div>
             <ButtonLink href={`/register/${competition.slug}`} className="mt-7 w-full">Register for this competition</ButtonLink>
           </Card>
         </aside>

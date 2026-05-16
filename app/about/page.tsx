@@ -1,0 +1,38 @@
+import type { Metadata } from "next";
+import Image from "next/image";
+import { Globe2, HeartHandshake, Trophy } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { MotionShell } from "@/components/motion-shell";
+
+export const metadata: Metadata = {
+  title: "About",
+  description: "The LockInTalks mission: helping young speakers build confidence through online public speaking competitions."
+};
+
+export default function AboutPage() {
+  return (
+    <MotionShell className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+      <div className="grid gap-10 lg:grid-cols-[0.8fr_1fr] lg:items-center">
+        <Image src="/lockintalks-logo.png" alt="LockInTalks logo" width={520} height={520} className="mx-auto rounded-full drop-shadow-[0_0_45px_rgba(212,175,55,0.35)]" />
+        <div>
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-[#d4af37]">Mission</p>
+          <h1 className="text-4xl font-black sm:text-6xl">Helping young voices become brave, clear, and ready.</h1>
+          <p className="mt-6 text-lg leading-8 text-white/68">LockInTalks exists to make public speaking feel exciting, structured, and achievable for kids and teenagers. We combine competition energy with thoughtful learning so every student leaves stronger than they arrived.</p>
+        </div>
+      </div>
+      <div className="mt-12 grid gap-5 md:grid-cols-3">
+        {[
+          [HeartHandshake, "Supportive by design", "Clear rules, age groups, and guidance reduce stress for students and parents."],
+          [Trophy, "Recognition matters", "Students build a portfolio of effort, certificates, and competition milestones."],
+          [Globe2, "Online and global", "The stage is accessible from anywhere with a camera, microphone, and courage."]
+        ].map(([Icon, title, text]) => (
+          <Card key={String(title)}>
+            <Icon className="mb-4 text-[#d4af37]" />
+            <h2 className="text-xl font-black">{String(title)}</h2>
+            <p className="mt-3 text-sm leading-6 text-white/62">{String(text)}</p>
+          </Card>
+        ))}
+      </div>
+    </MotionShell>
+  );
+}

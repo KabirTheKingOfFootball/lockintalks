@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Award, CalendarClock, CreditCard, FileBadge } from "lucide-react";
+import { Award, CalendarClock, CreditCard, FileBadge, Lightbulb, ListChecks, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { ButtonLink } from "@/components/ui/button";
+import { StatusBadge } from "@/components/status-badge";
 import type { RegistrationRow } from "@/lib/registrations";
 
 type DashboardUser = {
@@ -27,6 +29,28 @@ export function DashboardClient({
       <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-[#d4af37]">Dashboard</p>
       <h1 className="text-4xl font-black sm:text-6xl">Welcome, {user.name.split(" ")[0]}.</h1>
       <p className="mt-4 text-white/62">{user.email}</p>
+      <div className="mt-8 grid gap-5 lg:grid-cols-[1fr_0.8fr]">
+        <Card>
+          <Sparkles className="mb-4 text-[#d4af37]" />
+          <h2 className="text-2xl font-black">Your speaker launchpad</h2>
+          <p className="mt-3 text-sm leading-6 text-white/62">
+            Start by choosing one competition, complete payment, and use the prep checklist before your live online round.
+          </p>
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+            <ButtonLink href="/competitions">Find a competition</ButtonLink>
+            <ButtonLink href="/contact" variant="glass">Ask for help</ButtonLink>
+          </div>
+        </Card>
+        <Card>
+          <ListChecks className="mb-4 text-[#d4af37]" />
+          <h2 className="text-xl font-black">Before your round</h2>
+          <ul className="mt-4 grid gap-3 text-sm leading-6 text-white/65">
+            <li>Check your camera, microphone, and internet.</li>
+            <li>Practice a 30-second intro with a timer.</li>
+            <li>Keep water, notes, and a quiet room ready.</li>
+          </ul>
+        </Card>
+      </div>
       {dataError && (
         <div className="mt-6 rounded-[8px] border border-red-400/30 bg-red-500/10 p-4 text-sm leading-6 text-red-100">
           Could not load registrations: {dataError}. If this mentions relation registrations, run supabase/schema.sql in Supabase SQL Editor.
@@ -48,11 +72,19 @@ export function DashboardClient({
                   <p className="font-bold">{registration.competition_name}</p>
                   <p className="text-sm text-white/58">{registration.student_name} • {registration.entry_fee}</p>
                 </div>
-                <span className="rounded-full border border-[#d4af37]/30 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-[#d4af37]">{registration.payment_status}</span>
+                <StatusBadge status={registration.payment_status} />
               </div>
             ))}
           </div>
         </section>
+      )}
+      {registrations.length === 0 && (
+        <Card className="mt-10 text-center">
+          <Lightbulb className="mx-auto mb-4 text-[#d4af37]" />
+          <h2 className="text-2xl font-black">No registrations yet</h2>
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/62">Explore the live competition tracks and lock in your first stage. Your events, payment status, and certificates will appear here.</p>
+          <ButtonLink href="/competitions" className="mt-5">Explore Competitions</ButtonLink>
+        </Card>
       )}
       <Link href="/competitions" className="mt-8 inline-flex text-sm font-bold text-[#d4af37]">Explore more competitions</Link>
     </div>

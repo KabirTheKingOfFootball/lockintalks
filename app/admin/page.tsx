@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { AnalyticsCards } from "@/components/admin/analytics-cards";
+import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { checkAdmin } from "@/lib/admin/auth";
 import { getAdminCompetitions } from "@/lib/admin/competitions";
@@ -30,7 +31,15 @@ export default async function AdminPage() {
       {competitionError && <AdminError message={competitionError} />}
       {registrationsResult.error && <AdminError message={registrationsResult.error.message} />}
       <AnalyticsCards competitions={competitions} registrations={registrations} />
-      <div className="mt-8 grid gap-5 lg:grid-cols-2">
+      <div className="mt-8 grid gap-5 lg:grid-cols-3">
+        <Card>
+          <h2 className="text-xl font-black">Quick Actions</h2>
+          <div className="mt-5 grid gap-3">
+            <ButtonLink href="/admin/competitions">Create Competition</ButtonLink>
+            <ButtonLink href="/admin/registrations" variant="glass">Review Registrations</ButtonLink>
+            <ButtonLink href="/api/admin/registrations/export" variant="glass">Export CSV</ButtonLink>
+          </div>
+        </Card>
         <Card>
           <h2 className="text-xl font-black">Latest Registrations</h2>
           <div className="mt-5 grid gap-3">
