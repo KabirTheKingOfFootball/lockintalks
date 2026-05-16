@@ -30,7 +30,7 @@ create table if not exists public.competitions (
   summary text not null,
   description text not null,
   image_url text,
-  status text not null default 'draft' check (status in ('draft', 'published', 'archived')),
+  status text not null default 'draft' check (status in ('draft', 'live', 'closed')),
   rules text[] not null default '{}',
   schedule text[] not null default '{}',
   prizes text[] not null default '{}',
@@ -41,12 +41,23 @@ create table if not exists public.competitions (
 
 alter table public.competitions enable row level security;
 
+alter table public.competitions
+drop constraint if exists competitions_status_check;
+
+update public.competitions set status = 'live' where status = 'published';
+update public.competitions set status = 'closed' where status = 'archived';
+
+alter table public.competitions
+add constraint competitions_status_check
+check (status in ('draft', 'live', 'closed'));
+
 drop policy if exists "Anyone can read published competitions" on public.competitions;
-create policy "Anyone can read published competitions"
+drop policy if exists "Anyone can read live competitions" on public.competitions;
+create policy "Anyone can read live competitions"
 on public.competitions
 for select
 to anon, authenticated
-using (status = 'published');
+using (status = 'live');
 
 drop policy if exists "Admins can manage competitions" on public.competitions;
 create policy "Admins can manage competitions"
@@ -100,6 +111,18 @@ on public.registrations (created_at desc);
 
 create index if not exists registrations_razorpay_order_id_idx
 on public.registrations (razorpay_order_id);
+
+create index if not exists registrations_payment_status_idx
+on public.registrations (payment_status);
+
+create index if not exists profiles_role_idx
+on public.profiles (role);
+
+create index if not exists competitions_status_idx
+on public.competitions (status);
+
+create index if not exists competitions_slug_idx
+on public.competitions (slug);
 
 alter table public.registrations enable row level security;
 

@@ -13,7 +13,7 @@ export type AdminCompetition = {
   summary: string;
   description: string;
   image_url: string | null;
-  status: "draft" | "published" | "archived";
+  status: "draft" | "live" | "closed";
   rules: string[];
   schedule: string[];
   prizes: string[];
@@ -46,7 +46,7 @@ export function getFallbackAdminCompetitions(): AdminCompetition[] {
     summary: competition.summary,
     description: competition.description,
     image_url: null,
-    status: "published",
+    status: "live",
     rules: competition.rules,
     schedule: competition.schedule,
     prizes: competition.prizes,

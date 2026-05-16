@@ -32,6 +32,8 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<AdminCompetition | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
   const editing = Boolean(form.id);
 
   const sortedCompetitions = useMemo(() => competitions.slice().sort((a, b) => a.name.localeCompare(b.name)), [competitions]);
@@ -85,18 +87,18 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
     }
   }
 
-  async function deleteCompetition(id: string) {
-    const competition = competitions.find((item) => item.id === id);
-    const typedName = prompt(`Type DELETE ${competition?.name || "competition"} to permanently delete this competition.`);
-    if (typedName !== `DELETE ${competition?.name || "competition"}`) return;
+  async function deleteCompetition(competition: AdminCompetition) {
+    if (deleteConfirm !== competition.name) return;
     setBusy(true);
     setError("");
 
     try {
-      const response = await fetch(`/api/admin/competitions/${id}`, { method: "DELETE" });
+      const response = await fetch(`/api/admin/competitions/${competition.id}`, { method: "DELETE" });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Could not delete competition.");
-      setCompetitions((current) => current.filter((item) => item.id !== id));
+      setCompetitions((current) => current.filter((item) => item.id !== competition.id));
+      setPendingDelete(null);
+      setDeleteConfirm("");
       setMessage("Competition deleted.");
     } catch (deleteError) {
       console.error("[LockInTalks admin UI] Competition delete failed:", deleteError);
@@ -106,7 +108,7 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
     }
   }
 
-  async function updateStatus(competition: AdminCompetition, status: "draft" | "published" | "archived") {
+  async function updateStatus(competition: AdminCompetition, status: "draft" | "live" | "closed") {
     const body = {
       ...competition,
       status,
@@ -128,7 +130,7 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Could not update status.");
       setCompetitions((current) => current.map((item) => (item.id === competition.id ? result.competition : item)));
-      setMessage(`Competition ${status === "published" ? "published" : status === "draft" ? "unpublished" : "closed"}.`);
+      setMessage(`Competition ${status === "live" ? "published" : status === "draft" ? "unpublished" : "closed"}.`);
     } catch (statusError) {
       console.error("[LockInTalks admin UI] Competition status update failed:", statusError);
       setError(statusError instanceof Error ? statusError.message : "Could not update status.");
@@ -171,12 +173,12 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
             <Input placeholder="Category" value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} />
             <Input placeholder="Age group" value={form.age_group} onChange={(event) => setForm({ ...form, age_group: event.target.value })} />
             <Input placeholder="Date" value={form.event_date} onChange={(event) => setForm({ ...form, event_date: event.target.value })} />
-            <Input placeholder="Fee label, e.g. ₹499" value={form.fee_label} onChange={(event) => setForm({ ...form, fee_label: event.target.value })} />
+            <Input placeholder="Fee label, e.g. INR 499" value={form.fee_label} onChange={(event) => setForm({ ...form, fee_label: event.target.value })} />
             <Input placeholder="Fee amount in paise" type="number" value={form.fee_amount} onChange={(event) => setForm({ ...form, fee_amount: Number(event.target.value) })} />
             <select className="focus-ring min-h-12 rounded-[8px] border border-white/15 bg-[#071b3b] px-4 text-sm text-white" value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
               <option value="draft">Draft</option>
-              <option value="published">Live</option>
-              <option value="archived">Closed</option>
+              <option value="live">Live</option>
+              <option value="closed">Closed</option>
             </select>
           </div>
           <Input placeholder="Image URL" value={form.image_url} onChange={(event) => setForm({ ...form, image_url: event.target.value })} />
@@ -209,18 +211,18 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
               <div className="flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-xl font-black">{competition.name}</h3>
-                  <span className="rounded-full border border-[#d4af37]/30 px-3 py-1 text-xs font-bold uppercase text-[#d4af37]">{competition.status === "published" ? "live" : competition.status === "archived" ? "closed" : "draft"}</span>
+                  <span className="rounded-full border border-[#d4af37]/30 px-3 py-1 text-xs font-bold uppercase text-[#d4af37]">{competition.status}</span>
                 </div>
                 <p className="mt-2 text-sm text-white/58">{competition.category} • {competition.age_group} • {competition.fee_label}</p>
                 <p className="mt-2 text-sm leading-6 text-white/65">{competition.summary}</p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button type="button" variant="glass" className="gap-2" onClick={() => editCompetition(competition)}><Pencil size={16} /> Edit</Button>
-                  <Button type="button" variant="glass" className="gap-2" onClick={() => updateStatus(competition, competition.status === "published" ? "draft" : "published")}>
-                    {competition.status === "published" ? <EyeOff size={16} /> : <Eye size={16} />}
-                    {competition.status === "published" ? "Unpublish" : "Publish"}
+                  <Button type="button" variant="glass" className="gap-2" onClick={() => updateStatus(competition, competition.status === "live" ? "draft" : "live")}>
+                    {competition.status === "live" ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {competition.status === "live" ? "Unpublish" : "Publish"}
                   </Button>
-                  <Button type="button" variant="glass" className="gap-2" onClick={() => updateStatus(competition, "archived")}>Close</Button>
-                  <Button type="button" variant="glass" className="gap-2" onClick={() => deleteCompetition(competition.id)}><Trash2 size={16} /> Delete</Button>
+                  <Button type="button" variant="glass" className="gap-2" onClick={() => updateStatus(competition, "closed")}>Close</Button>
+                  <Button type="button" variant="glass" className="gap-2" onClick={() => setPendingDelete(competition)}><Trash2 size={16} /> Delete</Button>
                   <label className="focus-ring inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-full border border-white/15 px-5 py-2.5 text-sm font-bold text-white/80 hover:border-[#d4af37]/50">
                     <ImagePlus size={16} /> Upload Image
                     <input type="file" accept="image/*" className="hidden" onChange={(event) => event.target.files?.[0] && uploadImage(competition.id, event.target.files[0])} />
@@ -231,6 +233,21 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
           </article>
         ))}
       </div>
+      {pendingDelete && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 px-4">
+          <div className="glass w-full max-w-md rounded-[8px] p-6">
+            <h2 className="text-2xl font-black">Delete competition?</h2>
+            <p className="mt-3 text-sm leading-6 text-white/65">
+              This cannot be undone. Type <span className="font-bold text-white">{pendingDelete.name}</span> to confirm.
+            </p>
+            <Input className="mt-5" value={deleteConfirm} onChange={(event) => setDeleteConfirm(event.target.value)} placeholder={pendingDelete.name} />
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+              <Button type="button" variant="glass" className="flex-1" onClick={() => { setPendingDelete(null); setDeleteConfirm(""); }}>Cancel</Button>
+              <Button type="button" className="flex-1" disabled={deleteConfirm !== pendingDelete.name || busy} onClick={() => deleteCompetition(pendingDelete)}>Delete</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
