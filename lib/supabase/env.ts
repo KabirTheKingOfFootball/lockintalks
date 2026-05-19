@@ -56,7 +56,14 @@ export function getSupabaseEnv(): SupabaseEnv {
   }
 
   try {
-    new URL(safeUrl);
+    const parsedUrl = new URL(safeUrl);
+    if (parsedUrl.pathname !== "/" && parsedUrl.pathname !== "") {
+      return {
+        ok: false,
+        missing: [],
+        message: "NEXT_PUBLIC_SUPABASE_URL must be only your Supabase project URL, like https://your-project-ref.supabase.co. Do not include /rest/v1, /auth/v1, or any extra path."
+      };
+    }
   } catch {
     return {
       ok: false,
@@ -102,6 +109,7 @@ export function getSupabaseDiagnostics() {
   return {
     urlConfigured: Boolean(url) && !placeholderValues.has(url),
     urlHost: parsedUrl?.host || null,
+    urlPath: parsedUrl?.pathname || null,
     publishableKeyConfigured: Boolean(publishableKey) && !placeholderValues.has(publishableKey),
     legacyAnonKeyConfigured: Boolean(anonKey) && !placeholderValues.has(anonKey),
     serviceRoleKeyConfigured: Boolean(serviceRoleKey) && !placeholderValues.has(serviceRoleKey),

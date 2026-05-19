@@ -5,9 +5,13 @@ import { useRouter } from "next/navigation";
 import { Lock, Mail, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getReadableSupabaseError } from "@/lib/readable-error";
-import { createClient } from "@/lib/supabase/client";
-import { SupabaseConfigError } from "@/lib/supabase/env";
+import { getReadableError, readJsonResponse } from "@/lib/readable-error";
+
+type AuthResponse = {
+  ok?: boolean;
+  error?: string;
+  needsEmailConfirmation?: boolean;
+};
 
 export function AuthForm({ mode, initialError = "" }: { mode: "login" | "signup"; initialError?: string }) {
   const router = useRouter();
@@ -36,40 +40,33 @@ export function AuthForm({ mode, initialError = "" }: { mode: "login" | "signup"
 
     try {
       setIsSubmitting(true);
-      const supabase = createClient();
-      const result = isSignup
-        ? await supabase.auth.signUp({
-            email: form.email,
-            password: form.password,
-            options: {
-              data: {
-                full_name: form.name.trim()
-              },
-              emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`
-            }
-          })
-        : await supabase.auth.signInWithPassword({
-            email: form.email,
-            password: form.password
-          });
+      const response = await fetch(isSignup ? "/api/auth/signup" : "/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          password: form.password
+        })
+      });
+      const result = await readJsonResponse<AuthResponse>(response);
 
-      if (result.error) {
-        console.error(`[LockInTalks auth form] ${mode} failed: ${result.error.message}`);
-        setError(getReadableSupabaseError(result.error));
+      if (!response.ok || result.error) {
+        console.error(`[LockInTalks auth form] ${mode} failed: ${result.error || response.statusText}`);
+        setError(result.error || "Authentication failed.");
+        return;
+      }
+
+      if (result.needsEmailConfirmation) {
+        setError("Account created. Please check your email to confirm your account, then login.");
         return;
       }
 
       router.push("/dashboard");
       router.refresh();
     } catch (submitError) {
-      if (submitError instanceof SupabaseConfigError) {
-        console.error(`[LockInTalks auth form] ${submitError.message}`);
-        setError(submitError.message);
-        return;
-      }
-
       console.error(`[LockInTalks auth form] Unexpected ${mode} error:`, submitError);
-      setError(getReadableSupabaseError(submitError, "Authentication is temporarily unavailable. Please check the Supabase configuration."));
+      setError(getReadableError(submitError, "Authentication is temporarily unavailable. Please check the Supabase configuration."));
     } finally {
       setIsSubmitting(false);
     }

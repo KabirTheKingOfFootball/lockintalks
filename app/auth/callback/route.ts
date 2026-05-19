@@ -1,15 +1,17 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { buildAppUrl, getRequestOrigin, normalizeNextPath } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const next = normalizeRedirectPath(requestUrl.searchParams.get("next"));
+  const next = normalizeNextPath(requestUrl.searchParams.get("next"));
+  const origin = getRequestOrigin(request);
 
   if (!code) {
     console.warn("[LockInTalks auth callback] Missing auth code in callback URL.");
-    return NextResponse.redirect(new URL("/login?error=missing-auth-code", requestUrl.origin));
+    return NextResponse.redirect(buildAppUrl(origin, "/login?error=missing-auth-code"));
   }
 
   try {
@@ -18,25 +20,18 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error(`[LockInTalks auth callback] Code exchange failed: ${error.message}`);
-      return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(error.message)}`, requestUrl.origin));
+      return NextResponse.redirect(buildAppUrl(origin, `/login?error=${encodeURIComponent(error.message)}`));
     }
 
-    return NextResponse.redirect(new URL(next, requestUrl.origin));
+    console.info(`[LockInTalks auth callback] Code exchange succeeded. Redirecting to ${next}.`);
+    return NextResponse.redirect(buildAppUrl(origin, next));
   } catch (error) {
     if (error instanceof SupabaseConfigError) {
       console.error(`[LockInTalks auth callback] ${error.message}`);
-      return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(error.message)}`, requestUrl.origin));
+      return NextResponse.redirect(buildAppUrl(origin, `/login?error=${encodeURIComponent(error.message)}`));
     }
 
     console.error("[LockInTalks auth callback] Unexpected callback error:", error);
-    return NextResponse.redirect(new URL("/login?error=auth-callback-failed", requestUrl.origin));
+    return NextResponse.redirect(buildAppUrl(origin, "/login?error=auth-callback-failed"));
   }
-}
-
-function normalizeRedirectPath(value: string | null) {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) {
-    return "/dashboard";
-  }
-
-  return value;
 }

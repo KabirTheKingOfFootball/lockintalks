@@ -29,6 +29,10 @@ export function getReadableSupabaseError(error: unknown, fallback = "Supabase is
     return `${message}. If this mentions a missing table, run supabase/schema.sql in the Supabase SQL Editor.`;
   }
 
+  if (/invalid path specified in request url|PGRST125/i.test(message)) {
+    return "Supabase rejected the request path. Check that NEXT_PUBLIC_SUPABASE_URL is only the project URL, like https://your-project-ref.supabase.co, with no /rest/v1 or /auth/v1 path added.";
+  }
+
   return message;
 }
 

@@ -1,8 +1,11 @@
-import { redirect } from "next/navigation";
+import { NextResponse, type NextRequest } from "next/server";
+import { buildAppUrl, getRequestOrigin } from "@/lib/site-url";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const origin = getRequestOrigin(request);
+
   try {
     const supabase = await createClient();
     const { error } = await supabase.auth.signOut();
@@ -18,5 +21,5 @@ export async function GET() {
     }
   }
 
-  redirect("/login");
+  return NextResponse.redirect(buildAppUrl(origin, "/login"));
 }
