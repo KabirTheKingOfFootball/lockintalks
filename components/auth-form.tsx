@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Lock, Mail, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getReadableSupabaseError } from "@/lib/readable-error";
 import { createClient } from "@/lib/supabase/client";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 
@@ -54,7 +55,7 @@ export function AuthForm({ mode, initialError = "" }: { mode: "login" | "signup"
 
       if (result.error) {
         console.error(`[LockInTalks auth form] ${mode} failed: ${result.error.message}`);
-        setError(result.error.message);
+        setError(getReadableSupabaseError(result.error));
         return;
       }
 
@@ -68,7 +69,7 @@ export function AuthForm({ mode, initialError = "" }: { mode: "login" | "signup"
       }
 
       console.error(`[LockInTalks auth form] Unexpected ${mode} error:`, submitError);
-      setError("Authentication is temporarily unavailable. Please check the Supabase configuration.");
+      setError(getReadableSupabaseError(submitError, "Authentication is temporarily unavailable. Please check the Supabase configuration."));
     } finally {
       setIsSubmitting(false);
     }

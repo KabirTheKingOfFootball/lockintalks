@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Download, Search } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getReadableError, readJsonResponse } from "@/lib/readable-error";
 import type { RegistrationRow } from "@/lib/registrations";
 
 export function RegistrationManager({ registrations }: { registrations: RegistrationRow[] }) {
@@ -38,15 +39,16 @@ export function RegistrationManager({ registrations }: { registrations: Registra
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ payment_status: paymentStatus })
       });
-      const result = await response.json();
+      const result = await readJsonResponse<{ error?: string; registration?: RegistrationRow }>(response);
 
-      if (!response.ok) throw new Error(result.error || "Could not update registration.");
+      if (!response.ok || !result.registration) throw new Error(result.error || "Could not update registration.");
 
-      setRows((current) => current.map((row) => (row.id === id ? result.registration : row)));
+      const updatedRegistration = result.registration;
+      setRows((current) => current.map((row) => (row.id === id ? updatedRegistration : row)));
       setMessage("Registration updated.");
     } catch (updateError) {
       console.error("[LockInTalks admin UI] Registration update failed:", updateError);
-      setError(updateError instanceof Error ? updateError.message : "Could not update registration.");
+      setError(getReadableError(updateError, "Could not update registration."));
     }
   }
 

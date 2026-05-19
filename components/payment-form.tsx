@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, CreditCard, Landmark, Smartphone, WalletCards, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getReadableError, readJsonResponse } from "@/lib/readable-error";
 import { getCompetitionBySlug } from "@/lib/registrations";
 
 type PaymentStep = "idle" | "creating" | "checkout" | "verifying" | "success" | "failed";
@@ -103,7 +104,7 @@ export function PaymentForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ registrationId })
       });
-      const order = (await orderResponse.json()) as CreateOrderResponse;
+      const order = await readJsonResponse<CreateOrderResponse>(orderResponse);
 
       if (!orderResponse.ok || order.error) {
         throw new Error(order.error || "Could not create payment order.");
@@ -144,7 +145,7 @@ export function PaymentForm() {
     } catch (paymentError) {
       console.error("[LockInTalks Razorpay Checkout] Could not start payment:", paymentError);
       setStep("failed");
-      setError(paymentError instanceof Error ? paymentError.message : "Could not start Razorpay payment.");
+      setError(getReadableError(paymentError, "Could not start Razorpay payment."));
     }
   }
 
@@ -161,7 +162,7 @@ export function PaymentForm() {
           razorpay_signature: response.razorpay_signature
         })
       });
-      const result = (await verifyResponse.json()) as { ok?: boolean; error?: string };
+      const result = await readJsonResponse<{ ok?: boolean; error?: string }>(verifyResponse);
 
       if (!verifyResponse.ok || !result.ok) {
         throw new Error(result.error || "Payment verification failed.");
@@ -173,7 +174,7 @@ export function PaymentForm() {
     } catch (verifyError) {
       console.error("[LockInTalks Razorpay Checkout] Payment verification failed:", verifyError);
       setStep("failed");
-      setError(verifyError instanceof Error ? verifyError.message : "Payment verification failed.");
+      setError(getReadableError(verifyError, "Payment verification failed."));
     }
   }
 

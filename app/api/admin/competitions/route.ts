@@ -10,15 +10,20 @@ export async function GET() {
   const admin = await checkAdmin();
   if (!admin.ok) return NextResponse.json({ error: admin.message }, { status: admin.status });
 
-  const supabaseAdmin = createAdminClient();
-  const { data, error } = await supabaseAdmin.from("competitions").select("*").order("created_at", { ascending: false });
+  try {
+    const supabaseAdmin = createAdminClient();
+    const { data, error } = await supabaseAdmin.from("competitions").select("*").order("created_at", { ascending: false });
 
-  if (error) {
-    console.error(`[LockInTalks admin competitions] GET failed: ${error.message}`);
-    return NextResponse.json({ error: "Could not load competitions." }, { status: 500 });
+    if (error) {
+      console.error(`[LockInTalks admin competitions] GET failed: ${error.message}`);
+      return NextResponse.json({ error: "Could not load competitions." }, { status: 500 });
+    }
+
+    return NextResponse.json({ competitions: data || [] });
+  } catch (error) {
+    console.error("[LockInTalks admin competitions] Unexpected GET error:", error);
+    return NextResponse.json({ error: "Could not connect to Supabase competitions data." }, { status: 503 });
   }
-
-  return NextResponse.json({ competitions: data || [] });
 }
 
 export async function POST(request: NextRequest) {

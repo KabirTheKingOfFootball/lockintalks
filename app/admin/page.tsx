@@ -20,16 +20,23 @@ export default async function AdminPage() {
   const admin = await checkAdmin();
   if (!admin.ok) return <AdminGate message={admin.message} />;
 
-  const [{ competitions, error: competitionError }, registrationsResult] = await Promise.all([
-    getAdminCompetitions(),
-    createAdminClient().from("registrations").select("*").order("created_at", { ascending: false })
-  ]);
-  const registrations = (registrationsResult.data || []) as RegistrationRow[];
+  const { competitions, error: competitionError } = await getAdminCompetitions();
+  let registrations: RegistrationRow[] = [];
+  let registrationsError: string | null = null;
+
+  try {
+    const registrationsResult = await createAdminClient().from("registrations").select("*").order("created_at", { ascending: false });
+    registrations = (registrationsResult.data || []) as RegistrationRow[];
+    registrationsError = registrationsResult.error?.message || null;
+  } catch (error) {
+    console.error("[LockInTalks admin] Failed to load dashboard registrations:", error);
+    registrationsError = "Could not connect to Supabase registrations data.";
+  }
 
   return (
     <AdminShell>
       {competitionError && <AdminError message={competitionError} />}
-      {registrationsResult.error && <AdminError message={registrationsResult.error.message} />}
+      {registrationsError && <AdminError message={registrationsError} />}
       <AnalyticsCards competitions={competitions} registrations={registrations} />
       <div className="mt-8 grid gap-5 lg:grid-cols-3">
         <Card>

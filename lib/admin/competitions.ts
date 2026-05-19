@@ -22,15 +22,20 @@ export type AdminCompetition = {
 };
 
 export async function getAdminCompetitions() {
-  const supabaseAdmin = createAdminClient();
-  const { data, error } = await supabaseAdmin.from("competitions").select("*").order("created_at", { ascending: false });
+  try {
+    const supabaseAdmin = createAdminClient();
+    const { data, error } = await supabaseAdmin.from("competitions").select("*").order("created_at", { ascending: false });
 
-  if (error) {
-    console.error(`[LockInTalks admin competitions] Failed to load competitions: ${error.message}`);
-    return { competitions: [] as AdminCompetition[], error: error.message };
+    if (error) {
+      console.error(`[LockInTalks admin competitions] Failed to load competitions: ${error.message}`);
+      return { competitions: [] as AdminCompetition[], error: error.message };
+    }
+
+    return { competitions: (data || []) as AdminCompetition[], error: null };
+  } catch (error) {
+    console.error("[LockInTalks admin competitions] Unexpected load failure:", error);
+    return { competitions: [] as AdminCompetition[], error: "Could not connect to Supabase competitions data." };
   }
-
-  return { competitions: (data || []) as AdminCompetition[], error: null };
 }
 
 export function getFallbackAdminCompetitions(): AdminCompetition[] {

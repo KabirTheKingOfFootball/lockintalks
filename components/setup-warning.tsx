@@ -9,6 +9,7 @@ export function SetupWarning({ title = "Supabase setup needed", message }: { tit
         <p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-white/68">{message}</p>
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
           <ButtonLink href="/" variant="glass">Back Home</ButtonLink>
+          <ButtonLink href="/api/health/supabase" variant="glass">Check Supabase</ButtonLink>
           <ButtonLink href="/contact">Contact Support</ButtonLink>
         </div>
       </div>

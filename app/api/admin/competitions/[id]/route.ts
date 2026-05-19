@@ -39,13 +39,18 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   if (!admin.ok) return NextResponse.json({ error: admin.message }, { status: admin.status });
 
   const { id } = await params;
-  const supabaseAdmin = createAdminClient();
-  const { error } = await supabaseAdmin.from("competitions").delete().eq("id", id);
+  try {
+    const supabaseAdmin = createAdminClient();
+    const { error } = await supabaseAdmin.from("competitions").delete().eq("id", id);
 
-  if (error) {
-    console.error(`[LockInTalks admin competitions] DELETE failed for ${id}: ${error.message}`);
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error) {
+      console.error(`[LockInTalks admin competitions] DELETE failed for ${id}: ${error.message}`);
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error(`[LockInTalks admin competitions] Unexpected DELETE error for ${id}:`, error);
+    return NextResponse.json({ error: "Could not delete competition." }, { status: 503 });
   }
-
-  return NextResponse.json({ ok: true });
 }

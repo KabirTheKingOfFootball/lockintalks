@@ -6,6 +6,7 @@ import { Eye, EyeOff, ImagePlus, Loader2, Pencil, Plus, Trash2 } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import type { AdminCompetition } from "@/lib/admin/competitions";
+import { getReadableError, readJsonResponse } from "@/lib/readable-error";
 
 const emptyForm = {
   id: "",
@@ -71,17 +72,17 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form)
       });
-      const result = await response.json();
+      const result = await readJsonResponse<{ error?: string; competition?: AdminCompetition }>(response);
 
-      if (!response.ok) throw new Error(result.error || "Could not save competition.");
+      if (!response.ok || !result.competition) throw new Error(result.error || "Could not save competition.");
 
-      const saved = result.competition as AdminCompetition;
+      const saved = result.competition;
       setCompetitions((current) => (editing ? current.map((item) => (item.id === saved.id ? saved : item)) : [saved, ...current]));
       setForm(emptyForm);
       setMessage(editing ? "Competition updated." : "Competition created.");
     } catch (saveError) {
       console.error("[LockInTalks admin UI] Competition save failed:", saveError);
-      setError(saveError instanceof Error ? saveError.message : "Could not save competition.");
+      setError(getReadableError(saveError, "Could not save competition."));
     } finally {
       setBusy(false);
     }
@@ -94,7 +95,7 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
 
     try {
       const response = await fetch(`/api/admin/competitions/${competition.id}`, { method: "DELETE" });
-      const result = await response.json();
+      const result = await readJsonResponse<{ error?: string }>(response);
       if (!response.ok) throw new Error(result.error || "Could not delete competition.");
       setCompetitions((current) => current.filter((item) => item.id !== competition.id));
       setPendingDelete(null);
@@ -102,7 +103,7 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
       setMessage("Competition deleted.");
     } catch (deleteError) {
       console.error("[LockInTalks admin UI] Competition delete failed:", deleteError);
-      setError(deleteError instanceof Error ? deleteError.message : "Could not delete competition.");
+      setError(getReadableError(deleteError, "Could not delete competition."));
     } finally {
       setBusy(false);
     }
@@ -127,13 +128,14 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body)
       });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Could not update status.");
-      setCompetitions((current) => current.map((item) => (item.id === competition.id ? result.competition : item)));
+      const result = await readJsonResponse<{ error?: string; competition?: AdminCompetition }>(response);
+      if (!response.ok || !result.competition) throw new Error(result.error || "Could not update status.");
+      const updatedCompetition = result.competition;
+      setCompetitions((current) => current.map((item) => (item.id === competition.id ? updatedCompetition : item)));
       setMessage(`Competition ${status === "live" ? "published" : status === "draft" ? "unpublished" : "closed"}.`);
     } catch (statusError) {
       console.error("[LockInTalks admin UI] Competition status update failed:", statusError);
-      setError(statusError instanceof Error ? statusError.message : "Could not update status.");
+      setError(getReadableError(statusError, "Could not update status."));
     } finally {
       setBusy(false);
     }
@@ -147,13 +149,14 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
 
     try {
       const response = await fetch(`/api/admin/competitions/${id}/image`, { method: "POST", body: formData });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Could not upload image.");
-      setCompetitions((current) => current.map((item) => (item.id === id ? { ...item, image_url: result.imageUrl } : item)));
+      const result = await readJsonResponse<{ error?: string; imageUrl?: string }>(response);
+      if (!response.ok || !result.imageUrl) throw new Error(result.error || "Could not upload image.");
+      const imageUrl = result.imageUrl;
+      setCompetitions((current) => current.map((item) => (item.id === id ? { ...item, image_url: imageUrl } : item)));
       setMessage("Image uploaded.");
     } catch (uploadError) {
       console.error("[LockInTalks admin UI] Image upload failed:", uploadError);
-      setError(uploadError instanceof Error ? uploadError.message : "Could not upload image.");
+      setError(getReadableError(uploadError, "Could not upload image."));
     } finally {
       setBusy(false);
     }

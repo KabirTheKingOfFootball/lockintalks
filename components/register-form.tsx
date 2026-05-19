@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Competition } from "@/data/competitions";
+import { getReadableSupabaseError } from "@/lib/readable-error";
 import { createClient } from "@/lib/supabase/client";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 
@@ -41,6 +42,10 @@ export function RegisterForm({ competition }: { competition: Competition }) {
 
       if (userError || !user) {
         console.warn(`[LockInTalks registration] User not authenticated: ${userError?.message || "No active session"}`);
+        if (userError) {
+          setError(getReadableSupabaseError(userError, "Please login before registering."));
+          return;
+        }
         router.push("/login");
         return;
       }
@@ -64,7 +69,7 @@ export function RegisterForm({ competition }: { competition: Competition }) {
 
       if (insertError) {
         console.error(`[LockInTalks registration] Insert failed: ${insertError.message}`);
-        setError(`${insertError.message}. If this mentions registrations, run supabase/schema.sql in Supabase SQL Editor.`);
+        setError(getReadableSupabaseError(insertError));
         return;
       }
 
@@ -77,7 +82,7 @@ export function RegisterForm({ competition }: { competition: Competition }) {
       }
 
       console.error("[LockInTalks registration] Unexpected registration error:", submitError);
-      setError("Registration is temporarily unavailable. Please check the Supabase setup.");
+      setError(getReadableSupabaseError(submitError, "Registration is temporarily unavailable. Please check the Supabase setup."));
     } finally {
       setIsSubmitting(false);
     }

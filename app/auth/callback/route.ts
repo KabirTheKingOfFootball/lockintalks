@@ -5,7 +5,7 @@ import { SupabaseConfigError } from "@/lib/supabase/env";
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const next = requestUrl.searchParams.get("next") || "/dashboard";
+  const next = normalizeRedirectPath(requestUrl.searchParams.get("next"));
 
   if (!code) {
     console.warn("[LockInTalks auth callback] Missing auth code in callback URL.");
@@ -31,4 +31,12 @@ export async function GET(request: NextRequest) {
     console.error("[LockInTalks auth callback] Unexpected callback error:", error);
     return NextResponse.redirect(new URL("/login?error=auth-callback-failed", requestUrl.origin));
   }
+}
+
+function normalizeRedirectPath(value: string | null) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return "/dashboard";
+  }
+
+  return value;
 }
