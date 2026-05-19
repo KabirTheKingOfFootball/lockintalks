@@ -73,7 +73,11 @@ export function RegisterForm({ competition }: { competition: Competition }) {
         return;
       }
 
-      router.push(`/payment?competition=${competition.slug}&registration=${data.id}`);
+      const paymentParams = new URLSearchParams({
+        competition: competition.slug,
+        registration: data.id
+      });
+      router.push(`/payment?${paymentParams.toString()}`);
     } catch (submitError) {
       if (submitError instanceof SupabaseConfigError) {
         console.error(`[LockInTalks registration] ${submitError.message}`);

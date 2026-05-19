@@ -34,7 +34,7 @@ export function RegistrationManager({ registrations }: { registrations: Registra
     setMessage("");
 
     try {
-      const response = await fetch(`/api/admin/registrations/${id}`, {
+      const response = await fetch(`/api/admin/registrations/${encodeURIComponent(id)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ payment_status: paymentStatus })

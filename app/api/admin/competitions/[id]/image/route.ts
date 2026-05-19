@@ -23,8 +23,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: "Only image uploads are allowed." }, { status: 400 });
     }
 
-    const extension = file.name.split(".").pop() || "png";
-    const path = `${id}/${Date.now()}.${extension}`;
+    const extension = sanitizeExtension(file.name.split(".").pop());
+    const safeCompetitionId = encodeURIComponent(id);
+    const path = `${safeCompetitionId}/${Date.now()}.${extension}`;
     const supabaseAdmin = createAdminClient();
     const { error: uploadError } = await supabaseAdmin.storage.from("competition-images").upload(path, file, {
       cacheControl: "3600",
@@ -51,4 +52,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     console.error(`[LockInTalks admin image] Unexpected upload error for ${id}:`, error);
     return NextResponse.json({ error: "Could not upload image." }, { status: 500 });
   }
+}
+
+function sanitizeExtension(value: string | undefined) {
+  const normalized = String(value || "png")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+
+  return normalized || "png";
 }
