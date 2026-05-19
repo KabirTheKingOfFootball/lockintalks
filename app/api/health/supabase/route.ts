@@ -29,18 +29,20 @@ export async function GET() {
   let ok = true;
 
   try {
-    const authHealth = await fetch(`${env.url}/auth/v1/health`, {
+    const authSettings = await fetch(buildSupabaseUrl(env.url, "/auth/v1/settings"), {
       headers: {
-        apikey: env.key
+        apikey: env.key,
+        Authorization: `Bearer ${env.key}`
       },
       cache: "no-store"
     });
 
-    checks.authReachable = authHealth.ok;
-    if (!authHealth.ok) {
+    checks.authReachable = authSettings.ok;
+    checks.authEndpoint = "/auth/v1/settings";
+    if (!authSettings.ok) {
       ok = false;
-      checks.authStatus = authHealth.status;
-      console.error(`[LockInTalks Supabase health] Auth health failed with status ${authHealth.status}.`);
+      checks.authStatus = authSettings.status;
+      console.error(`[LockInTalks Supabase health] Auth settings check failed with status ${authSettings.status}.`);
     }
   } catch (error) {
     ok = false;
@@ -78,4 +80,8 @@ export async function GET() {
     },
     { status: ok ? 200 : 503 }
   );
+}
+
+function buildSupabaseUrl(baseUrl: string, path: string) {
+  return new URL(path, baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`).toString();
 }
