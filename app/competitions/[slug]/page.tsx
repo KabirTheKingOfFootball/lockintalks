@@ -61,13 +61,13 @@ export default async function CompetitionDetailsPage({ params }: { params: Promi
             <Award className="mb-5 text-[#d4af37]" size={34} />
             <h2 className="text-2xl font-black">Registration</h2>
             <div className="mt-5 grid gap-3 text-sm text-white/68">
-              <p><span className="font-bold text-white">Age group:</span> {competition.ageGroup}</p>
+              <p><span className="font-bold text-white">Age Group:</span> {competition.ageGroup}</p>
               <p><span className="font-bold text-white">Date:</span> {competition.date}</p>
-              <p><span className="font-bold text-white">Entry fee:</span> {competition.fee}</p>
-              <p className="flex items-center gap-2"><Clock3 size={16} className="text-[#d4af37]" /> {competition.slotsRemaining} slots remaining</p>
+              <p><span className="font-bold text-white">Entry Fee:</span> {competition.fee}</p>
+              <p className="flex items-center gap-2"><Clock3 size={16} className="text-[#d4af37]" /> {competition.slotsRemaining} Slots Remaining</p>
             </div>
             <div className="mt-5"><Countdown targetIso={competition.dateIso} /></div>
-            <ButtonLink href={`/register/${competition.slug}`} className="mt-7 w-full">Register for this competition</ButtonLink>
+            <ButtonLink href={`/register/${competition.slug}`} className="mt-7 w-full">Register for This Competition</ButtonLink>
           </Card>
         </aside>
       </section>
@@ -83,7 +83,7 @@ function Info({ title, icon, items }: { title: string; icon: React.ReactNode; it
         <h2 className="text-xl font-black text-white">{title}</h2>
       </div>
       <ul className="grid gap-3 text-sm leading-6 text-white/65">
-        {items.map((item) => <li key={item}>• {item}</li>)}
+        {items.map((item) => <li key={item} className="flex gap-2"><span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#d4af37]" aria-hidden="true" /><span>{item}</span></li>)}
       </ul>
     </Card>
   );

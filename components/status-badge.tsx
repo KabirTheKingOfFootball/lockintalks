@@ -11,10 +11,17 @@ const styles = {
   cancelled: "border-red-300/35 text-red-100 bg-red-500/12"
 };
 
+function formatStatus(status: string) {
+  return status
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 export function StatusBadge({ status, className }: { status: keyof typeof styles; className?: string }) {
   return (
     <span className={cn("inline-flex rounded-full border px-3 py-1 text-xs font-black uppercase tracking-[0.16em]", styles[status], className)}>
-      {status.replace("_", " ")}
+      {formatStatus(status)}
     </span>
   );
 }

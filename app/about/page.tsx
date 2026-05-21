@@ -16,15 +16,15 @@ export default function AboutPage() {
         <Image src="/lockintalks-logo.png" alt="LockInTalks logo" width={520} height={520} className="mx-auto rounded-full drop-shadow-[0_0_45px_rgba(212,175,55,0.35)]" />
         <div>
           <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-[#d4af37]">Mission</p>
-          <h1 className="text-4xl font-black sm:text-6xl">Helping young voices become brave, clear, and ready.</h1>
-          <p className="mt-6 text-lg leading-8 text-white/68">LockInTalks exists to make public speaking feel exciting, structured, and achievable for kids and teenagers. We combine competition energy with thoughtful learning so every student leaves stronger than they arrived.</p>
+          <h1 className="text-4xl font-black sm:text-6xl">Helping Young Voices Become Clear, Confident, and Prepared</h1>
+          <p className="mt-6 text-lg leading-8 text-white/68">LockInTalks exists to make public speaking feel exciting, structured, and achievable for kids and teenagers. We combine competition energy with thoughtful learning so students can practise with purpose.</p>
         </div>
       </div>
       <div className="mt-12 grid gap-5 md:grid-cols-3">
         {[
-          [HeartHandshake, "Supportive by design", "Clear rules, age groups, and guidance reduce stress for students and parents."],
-          [Trophy, "Recognition matters", "Students build a portfolio of effort, certificates, and competition milestones."],
-          [Globe2, "Online and global", "The stage is accessible from anywhere with a camera, microphone, and courage."]
+          [HeartHandshake, "Supportive by Design", "Clear rules, age groups, and guidance reduce stress for students and parents."],
+          [Trophy, "Recognition Matters", "Students build a record of effort, certificates, and competition milestones."],
+          [Globe2, "Online and Accessible", "Students can join from anywhere with a camera, microphone, and stable internet connection."]
         ].map(([Icon, title, text]) => (
           <Card key={String(title)}>
             <Icon className="mb-4 text-[#d4af37]" />

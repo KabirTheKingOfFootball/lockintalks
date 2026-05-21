@@ -27,6 +27,10 @@ const emptyForm = {
   judges: ""
 };
 
+function formatStatus(status: string) {
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
 export function CompetitionManager({ initialCompetitions }: { initialCompetitions: AdminCompetition[] }) {
   const [competitions, setCompetitions] = useState(initialCompetitions);
   const [form, setForm] = useState(emptyForm);
@@ -132,7 +136,7 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
       if (!response.ok || !result.competition) throw new Error(result.error || "Could not update status.");
       const updatedCompetition = result.competition;
       setCompetitions((current) => current.map((item) => (item.id === competition.id ? updatedCompetition : item)));
-      setMessage(`Competition ${status === "live" ? "published" : status === "draft" ? "unpublished" : "closed"}.`);
+      setMessage(`Competition ${status === "live" ? "Published" : status === "draft" ? "Unpublished" : "Closed"}.`);
     } catch (statusError) {
       console.error("[LockInTalks admin UI] Competition status update failed:", statusError);
       setError(getReadableError(statusError, "Could not update status."));
@@ -174,10 +178,10 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
           <Input placeholder="Slug" value={form.slug} onChange={(event) => setForm({ ...form, slug: event.target.value })} />
           <div className="grid gap-4 sm:grid-cols-2">
             <Input placeholder="Category" value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} />
-            <Input placeholder="Age group" value={form.age_group} onChange={(event) => setForm({ ...form, age_group: event.target.value })} />
+            <Input placeholder="Age Group" value={form.age_group} onChange={(event) => setForm({ ...form, age_group: event.target.value })} />
             <Input placeholder="Date" value={form.event_date} onChange={(event) => setForm({ ...form, event_date: event.target.value })} />
-            <Input placeholder="Fee label, e.g. INR 499" value={form.fee_label} onChange={(event) => setForm({ ...form, fee_label: event.target.value })} />
-            <Input placeholder="Fee amount in paise" type="number" value={form.fee_amount} onChange={(event) => setForm({ ...form, fee_amount: Number(event.target.value) })} />
+            <Input placeholder="Fee Label, e.g. INR 499" value={form.fee_label} onChange={(event) => setForm({ ...form, fee_label: event.target.value })} />
+            <Input placeholder="Fee Amount in Paise" type="number" value={form.fee_amount} onChange={(event) => setForm({ ...form, fee_amount: Number(event.target.value) })} />
             <select className="focus-ring min-h-12 rounded-[8px] border border-white/15 bg-[#071b3b] px-4 text-sm text-white" value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
               <option value="draft">Draft</option>
               <option value="live">Live</option>
@@ -187,10 +191,10 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
           <Input placeholder="Image URL" value={form.image_url} onChange={(event) => setForm({ ...form, image_url: event.target.value })} />
           <Textarea placeholder="Summary" value={form.summary} onChange={(event) => setForm({ ...form, summary: event.target.value })} />
           <Textarea placeholder="Description" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
-          <Textarea placeholder="Rules, one per line" value={form.rules} onChange={(event) => setForm({ ...form, rules: event.target.value })} />
-          <Textarea placeholder="Schedule, one per line" value={form.schedule} onChange={(event) => setForm({ ...form, schedule: event.target.value })} />
-          <Textarea placeholder="Prizes, one per line" value={form.prizes} onChange={(event) => setForm({ ...form, prizes: event.target.value })} />
-          <Textarea placeholder="Judges, one per line" value={form.judges} onChange={(event) => setForm({ ...form, judges: event.target.value })} />
+          <Textarea placeholder="Rules, One Per Line" value={form.rules} onChange={(event) => setForm({ ...form, rules: event.target.value })} />
+          <Textarea placeholder="Schedule, One Per Line" value={form.schedule} onChange={(event) => setForm({ ...form, schedule: event.target.value })} />
+          <Textarea placeholder="Prizes, One Per Line" value={form.prizes} onChange={(event) => setForm({ ...form, prizes: event.target.value })} />
+          <Textarea placeholder="Judges, One Per Line" value={form.judges} onChange={(event) => setForm({ ...form, judges: event.target.value })} />
         </div>
         {error && <p className="mt-4 rounded-[8px] border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
         {message && <p className="mt-4 rounded-[8px] border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">{message}</p>}
@@ -214,9 +218,9 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
               <div className="flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-xl font-black">{competition.name}</h3>
-                  <span className="rounded-full border border-[#d4af37]/30 px-3 py-1 text-xs font-bold uppercase text-[#d4af37]">{competition.status}</span>
+                  <span className="rounded-full border border-[#d4af37]/30 px-3 py-1 text-xs font-bold uppercase text-[#d4af37]">{formatStatus(competition.status)}</span>
                 </div>
-                <p className="mt-2 text-sm text-white/58">{competition.category} • {competition.age_group} • {competition.fee_label}</p>
+                <p className="mt-2 text-sm text-white/58">{competition.category} | {competition.age_group} | {competition.fee_label}</p>
                 <p className="mt-2 text-sm leading-6 text-white/65">{competition.summary}</p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button type="button" variant="glass" className="gap-2" onClick={() => editCompetition(competition)}><Pencil size={16} /> Edit</Button>
@@ -239,7 +243,7 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
       {pendingDelete && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 px-4">
           <div className="glass w-full max-w-md rounded-[8px] p-6">
-            <h2 className="text-2xl font-black">Delete competition?</h2>
+            <h2 className="text-2xl font-black">Delete Competition?</h2>
             <p className="mt-3 text-sm leading-6 text-white/65">
               This cannot be undone. Type <span className="font-bold text-white">{pendingDelete.name}</span> to confirm.
             </p>

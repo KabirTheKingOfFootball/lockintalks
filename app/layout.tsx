@@ -25,11 +25,11 @@ export const metadata: Metadata = {
     template: "%s | LockInTalks"
   },
   description:
-    "LockInTalks is a premium online public speaking competition platform where kids and teenagers build confidence, compete globally, and earn recognition.",
+    "LockInTalks is an online public speaking competition platform where kids and teenagers build confidence, communication skills, and stage readiness.",
   keywords: ["public speaking", "kids competitions", "teen debate", "online speaking", "speech contests"],
   openGraph: {
     title: "LockInTalks",
-    description: "The global youth speaking championship platform.",
+    description: "Structured online speaking competitions for young voices.",
     url: "/",
     siteName: "LockInTalks",
     images: [{ url: "/lockintalks-logo.png", width: 1254, height: 1254, alt: "LockInTalks logo" }],

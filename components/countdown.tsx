@@ -15,7 +15,7 @@ export function Countdown({ targetIso }: { targetIso: string }) {
   }
 
   if (!Number.isFinite(remaining.total)) {
-    return <span className="text-sm font-bold text-white/60">Schedule coming soon</span>;
+    return <span className="text-sm font-bold text-white/60">Schedule Coming Soon</span>;
   }
 
   return (

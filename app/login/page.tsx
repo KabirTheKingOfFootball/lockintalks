@@ -16,7 +16,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     <MotionShell className="px-4 py-16">
       <AuthForm mode="login" initialError={readableError} />
       <p className="mt-6 text-center text-sm text-white/60">
-        New to LockInTalks? <Link href="/signup" className="font-bold text-[#d4af37]">Create an account</Link>
+        New to LockInTalks? <Link href="/signup" className="font-bold text-[#d4af37]">Create an Account</Link>
       </p>
     </MotionShell>
   );

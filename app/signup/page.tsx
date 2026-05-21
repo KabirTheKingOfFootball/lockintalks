@@ -15,7 +15,7 @@ export default function SignUpPage() {
       <AuthForm mode="signup" />
       <div className="mx-auto mt-6 grid max-w-md gap-3">
         <Card>
-          <p className="text-sm font-bold text-[#d4af37]">After signup</p>
+          <p className="text-sm font-bold text-[#d4af37]">After Signup</p>
           <p className="mt-2 text-sm leading-6 text-white/62">You will land in your dashboard, choose a competition, register, and receive next-step guidance.</p>
         </Card>
       </div>

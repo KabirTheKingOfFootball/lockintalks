@@ -1,5 +1,5 @@
 -- Optional LockInTalks competition seed data
--- Run this only if you want the original demo competitions to exist in Supabase.
+-- Run this only if you want starter competitions to exist in Supabase.
 -- Public pages now read from public.competitions where status = 'live'.
 
 insert into public.competitions (
@@ -65,7 +65,7 @@ values
   array['4 to 6 minute speech', 'Original speech required', 'Slides are optional', 'One speaker per entry'],
   array['Speaker briefing: July 16', 'Qualifiers: July 19', 'Grand stage: July 21'],
   array['Gold speaker certificate', 'Leadership spotlight', 'Mentor feedback session'],
-  array['Daniel Kim', 'Sara Williams', 'Aarav Mehta']
+  array['LockInTalks Review Panel', 'Guest Speaking Coach']
 ),
 (
   'extempore-arena',

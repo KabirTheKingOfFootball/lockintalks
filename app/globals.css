@@ -18,6 +18,7 @@ html {
 }
 
 body {
+  position: relative;
   margin: 0;
   min-height: 100vh;
   color: #ffffff;
@@ -26,6 +27,25 @@ body {
     radial-gradient(circle at 84% 22%, rgba(255, 255, 255, 0.08), transparent 22rem),
     linear-gradient(135deg, #020817 0%, #071b3b 48%, #01030a 100%);
   font-family: var(--font-inter), Arial, sans-serif;
+}
+
+body::before {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  content: "";
+  background:
+    linear-gradient(115deg, transparent 8%, rgba(212, 175, 55, 0.08) 28%, transparent 48%),
+    linear-gradient(245deg, transparent 12%, rgba(255, 255, 255, 0.045) 35%, transparent 58%);
+  opacity: 0.65;
+  transform: translate3d(0, 0, 0);
+  animation: spotlight-drift 16s ease-in-out infinite alternate;
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
 }
 
 a {
@@ -50,6 +70,7 @@ a {
   border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow: 0 20px 70px rgba(0, 0, 0, 0.28);
   backdrop-filter: blur(18px);
+  transform: translateZ(0);
 }
 
 .gold-border {
@@ -64,9 +85,56 @@ a {
   mask-image: linear-gradient(to bottom, black, transparent 88%);
 }
 
+.animated-grid {
+  animation: grid-drift 22s linear infinite;
+}
+
+.stage-light {
+  background:
+    linear-gradient(100deg, transparent 0%, rgba(212, 175, 55, 0.12) 42%, transparent 68%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 45%);
+  opacity: 0.72;
+  animation: spotlight-drift 14s ease-in-out infinite alternate;
+}
+
+.energy-line {
+  background: linear-gradient(90deg, transparent, rgba(247, 220, 131, 0.75), transparent);
+  box-shadow: 0 0 22px rgba(212, 175, 55, 0.4);
+  animation: line-glow 5s ease-in-out infinite alternate;
+}
+
 .focus-ring:focus-visible {
   outline: 2px solid #f7dc83;
   outline-offset: 3px;
+}
+
+@keyframes grid-drift {
+  from {
+    background-position: 0 0, 0 0;
+  }
+  to {
+    background-position: 88px 44px, 44px 88px;
+  }
+}
+
+@keyframes spotlight-drift {
+  from {
+    transform: translate3d(-2%, -1%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(2%, 1%, 0) scale(1.04);
+  }
+}
+
+@keyframes line-glow {
+  from {
+    opacity: 0.35;
+    transform: translateX(-6%);
+  }
+  to {
+    opacity: 0.85;
+    transform: translateX(6%);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

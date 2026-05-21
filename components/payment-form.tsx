@@ -217,7 +217,7 @@ export function PaymentForm({ registrationId, summary }: { registrationId: strin
         <div className="mt-6 grid gap-4 text-sm text-white/68">
           <p><span className="font-bold text-white">Competition:</span> {summary?.competitionName || "Registration selected"}</p>
           <p><span className="font-bold text-white">Date:</span> {summary?.competitionDate || "See competition details"}</p>
-          <p><span className="font-bold text-white">Entry fee:</span> {summary?.entryFee || "Calculated at checkout"}</p>
+          <p><span className="font-bold text-white">Entry Fee:</span> {summary?.entryFee || "Calculated at Checkout"}</p>
           <p><span className="font-bold text-white">Gateway:</span> Razorpay Checkout</p>
         </div>
       </aside>

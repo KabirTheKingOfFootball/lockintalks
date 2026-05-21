@@ -16,6 +16,13 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
+function formatStatus(status: string) {
+  return status
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 export default async function AdminPage() {
   const admin = await checkAdmin();
   if (!admin.ok) return <AdminGate message={admin.message} />;
@@ -53,7 +60,7 @@ export default async function AdminPage() {
             {registrations.slice(0, 5).map((registration) => (
               <div key={registration.id} className="rounded-[8px] bg-white/[0.05] p-3">
                 <p className="font-bold">{registration.student_name}</p>
-                <p className="text-sm text-white/55">{registration.competition_name} • {registration.payment_status}</p>
+                <p className="text-sm text-white/55">{registration.competition_name} | {formatStatus(registration.payment_status)}</p>
               </div>
             ))}
           </div>
@@ -64,7 +71,7 @@ export default async function AdminPage() {
             {competitions.slice(0, 5).map((competition) => (
               <div key={competition.id} className="flex items-center justify-between rounded-[8px] bg-white/[0.05] p-3">
                 <p className="font-bold">{competition.name}</p>
-                <span className="text-xs font-bold uppercase text-[#d4af37]">{competition.status}</span>
+                <span className="text-xs font-bold uppercase text-[#d4af37]">{formatStatus(competition.status)}</span>
               </div>
             ))}
           </div>

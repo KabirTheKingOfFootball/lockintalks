@@ -57,7 +57,7 @@ export function RegistrationManager({ registrations }: { registrations: Registra
       <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-2xl font-black">Registrations</h2>
-          <p className="mt-1 text-sm text-white/55">{filteredRegistrations.length} visible of {rows.length}</p>
+          <p className="mt-1 text-sm text-white/55">{filteredRegistrations.length} Visible of {rows.length}</p>
         </div>
         <ButtonLink href="/api/admin/registrations/export" className="gap-2"><Download size={16} /> Export CSV</ButtonLink>
       </div>
@@ -66,12 +66,12 @@ export function RegistrationManager({ registrations }: { registrations: Registra
       <div className="mb-5 grid gap-3 md:grid-cols-[1fr_220px]">
         <label className="relative">
           <Search className="pointer-events-none absolute left-4 top-3.5 text-white/40" size={18} />
-          <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search student, guardian, email, competition..." className="pl-11" />
+          <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search Student, Guardian, Email, Competition..." className="pl-11" />
         </label>
         <select className="focus-ring min-h-12 rounded-[8px] border border-white/15 bg-[#071b3b] px-4 text-sm text-white" value={status} onChange={(event) => setStatus(event.target.value)}>
-          <option value="all">All statuses</option>
+          <option value="all">All Statuses</option>
           <option value="pending">Pending</option>
-          <option value="payment_created">Payment created</option>
+          <option value="payment_created">Payment Created</option>
           <option value="paid">Paid</option>
           <option value="failed">Failed</option>
           <option value="cancelled">Cancelled</option>
@@ -110,7 +110,7 @@ export function RegistrationManager({ registrations }: { registrations: Registra
                     aria-label={`Update payment status for ${registration.student_name}`}
                   >
                     <option value="pending">Pending</option>
-                    <option value="payment_created">Payment created</option>
+                    <option value="payment_created">Payment Created</option>
                     <option value="paid">Paid</option>
                     <option value="failed">Failed</option>
                     <option value="cancelled">Cancelled</option>
@@ -122,7 +122,7 @@ export function RegistrationManager({ registrations }: { registrations: Registra
           </tbody>
         </table>
       </div>
-      {filteredRegistrations.length === 0 && <p className="py-8 text-center text-white/55">No registrations match your filters.</p>}
+      {filteredRegistrations.length === 0 && <p className="py-8 text-center text-white/55">No Registrations Match Your Filters.</p>}
     </div>
   );
 }

@@ -27,23 +27,23 @@ export function DashboardClient({
   return (
     <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
       <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-[#d4af37]">Dashboard</p>
-      <h1 className="text-4xl font-black sm:text-6xl">Welcome, {user.name.split(" ")[0]}.</h1>
+      <h1 className="text-4xl font-black sm:text-6xl">Welcome, {user.name.split(" ")[0]}</h1>
       <p className="mt-4 text-white/62">{user.email}</p>
       <div className="mt-8 grid gap-5 lg:grid-cols-[1fr_0.8fr]">
         <Card>
           <Sparkles className="mb-4 text-[#d4af37]" />
-          <h2 className="text-2xl font-black">Your speaker launchpad</h2>
+          <h2 className="text-2xl font-black">Your Speaker Launchpad</h2>
           <p className="mt-3 text-sm leading-6 text-white/62">
             Start by choosing one competition, complete payment, and use the prep checklist before your live online round.
           </p>
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-            <ButtonLink href="/competitions">Find a competition</ButtonLink>
-            <ButtonLink href="/contact" variant="glass">Ask for help</ButtonLink>
+            <ButtonLink href="/competitions">Find a Competition</ButtonLink>
+            <ButtonLink href="/contact" variant="glass">Ask for Help</ButtonLink>
           </div>
         </Card>
         <Card>
           <ListChecks className="mb-4 text-[#d4af37]" />
-          <h2 className="text-xl font-black">Before your round</h2>
+          <h2 className="text-xl font-black">Before Your Round</h2>
           <ul className="mt-4 grid gap-3 text-sm leading-6 text-white/65">
             <li>Check your camera, microphone, and internet.</li>
             <li>Practice a 30-second intro with a timer.</li>
@@ -57,20 +57,20 @@ export function DashboardClient({
         </div>
       )}
       <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-        <Card><Award className="mb-4 text-[#d4af37]" /><h2 className="font-black">Registered Competitions</h2><p className="mt-3 text-sm text-white/62">{latestRegistration?.competition_name || "No registrations yet."}</p></Card>
+        <Card><Award className="mb-4 text-[#d4af37]" /><h2 className="font-black">Registered Competitions</h2><p className="mt-3 text-sm text-white/62">{latestRegistration?.competition_name || "No Registrations Yet"}</p></Card>
         <Card><CalendarClock className="mb-4 text-[#d4af37]" /><h2 className="font-black">Upcoming Events</h2><p className="mt-3 text-sm text-white/62">{latestRegistration ? "Check your email for live room details." : "Choose a competition to start."}</p></Card>
         <Card><CreditCard className="mb-4 text-[#d4af37]" /><h2 className="font-black">Payment History</h2><p className="mt-3 text-sm text-white/62">{paidRegistrations.length ? `${paidRegistrations.length} paid registration${paidRegistrations.length === 1 ? "" : "s"}` : "No paid registrations yet."}</p></Card>
         <Card><FileBadge className="mb-4 text-[#d4af37]" /><h2 className="font-black">Certificates</h2><p className="mt-3 text-sm text-white/62">Certificates will appear after results are published.</p></Card>
       </div>
       {registrations.length > 0 && (
         <section className="mt-10">
-          <h2 className="mb-4 text-2xl font-black">Your registrations</h2>
+          <h2 className="mb-4 text-2xl font-black">Your Registrations</h2>
           <div className="grid gap-3">
             {registrations.map((registration) => (
               <div key={registration.id} className="glass flex flex-col justify-between gap-3 rounded-[8px] p-4 sm:flex-row sm:items-center">
                 <div>
                   <p className="font-bold">{registration.competition_name}</p>
-                  <p className="text-sm text-white/58">{registration.student_name} • {registration.entry_fee}</p>
+                  <p className="text-sm text-white/58">{registration.student_name} | {registration.entry_fee}</p>
                 </div>
                 <StatusBadge status={registration.payment_status} />
               </div>
@@ -81,12 +81,12 @@ export function DashboardClient({
       {registrations.length === 0 && (
         <Card className="mt-10 text-center">
           <Lightbulb className="mx-auto mb-4 text-[#d4af37]" />
-          <h2 className="text-2xl font-black">No registrations yet</h2>
+          <h2 className="text-2xl font-black">No Registrations Yet</h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/62">Explore the live competition tracks and lock in your first stage. Your events, payment status, and certificates will appear here.</p>
           <ButtonLink href="/competitions" className="mt-5">Explore Competitions</ButtonLink>
         </Card>
       )}
-      <Link href="/competitions" className="mt-8 inline-flex text-sm font-bold text-[#d4af37]">Explore more competitions</Link>
+      <Link href="/competitions" className="mt-8 inline-flex text-sm font-bold text-[#d4af37]">Explore More Competitions</Link>
     </div>
   );
 }

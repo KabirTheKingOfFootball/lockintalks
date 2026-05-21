@@ -19,7 +19,7 @@ export function AuthForm({ mode, initialError = "" }: { mode: "login" | "signup"
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const isSignup = mode === "signup";
-  const title = useMemo(() => (isSignup ? "Create your speaker account" : "Welcome back, champion"), [isSignup]);
+  const title = useMemo(() => (isSignup ? "Create Your Speaker Account" : "Welcome Back"), [isSignup]);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -58,7 +58,7 @@ export function AuthForm({ mode, initialError = "" }: { mode: "login" | "signup"
       }
 
       if (result.needsEmailConfirmation) {
-        setError("Account created. Please check your email to confirm your account, then login.");
+        setError("Account Created. Please check your email to confirm your account, then log in.");
         return;
       }
 
@@ -80,10 +80,10 @@ export function AuthForm({ mode, initialError = "" }: { mode: "login" | "signup"
       <div className="mt-7 grid gap-4">
         {isSignup && (
           <label className="grid gap-2 text-sm font-bold text-white/80">
-            Student name
+            Student Name
             <span className="relative">
               <UserRound className="pointer-events-none absolute left-4 top-3.5 text-white/40" size={18} />
-              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Aarav Sharma" className="pl-11" />
+              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Student Name" className="pl-11" />
             </span>
           </label>
         )}

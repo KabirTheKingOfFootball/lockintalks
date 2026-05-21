@@ -1,6 +1,6 @@
 import { ButtonLink } from "@/components/ui/button";
 
-export function SetupWarning({ title = "Supabase setup needed", message }: { title?: string; message: string }) {
+export function SetupWarning({ title = "Supabase Setup Needed", message }: { title?: string; message: string }) {
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6 lg:px-8">
       <div className="glass rounded-[8px] p-8">

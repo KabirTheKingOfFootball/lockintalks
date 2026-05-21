@@ -22,11 +22,11 @@ export default async function CompetitionsPage() {
       <div className="mb-10 grid gap-5 lg:grid-cols-[1fr_0.38fr] lg:items-end">
         <div className="max-w-3xl">
         <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-[#d4af37]">Competitions</p>
-        <h1 className="text-4xl font-black sm:text-6xl">Choose your championship track.</h1>
-        <p className="mt-5 text-lg leading-8 text-white/65">Age-grouped online events built for confidence, clarity, and unforgettable stage moments.</p>
+        <h1 className="text-4xl font-black sm:text-6xl">Choose Your Speaking Event</h1>
+        <p className="mt-5 text-lg leading-8 text-white/65">Age-grouped online events built for confidence, clarity, and meaningful stage practice.</p>
         </div>
         <div className="glass rounded-[8px] p-4 text-sm leading-6 text-white/65">
-          <p className="font-bold text-white">New here?</p>
+          <p className="font-bold text-white">New Here?</p>
           <p>Pick an event, register, pay securely, then join the live online stage from your dashboard.</p>
         </div>
       </div>
@@ -34,8 +34,8 @@ export default async function CompetitionsPage() {
       {competitions.length === 0 ? (
         <Card className="text-center">
           <Mic2 className="mx-auto mb-4 text-[#d4af37]" size={34} />
-          <h2 className="text-2xl font-black">No live competitions yet</h2>
-          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/62">New championship tracks will appear here as soon as an admin publishes them.</p>
+          <h2 className="text-2xl font-black">No Live Competitions Yet</h2>
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/62">New speaking events will appear here as soon as an admin publishes them.</p>
         </Card>
       ) : (
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -54,8 +54,8 @@ export default async function CompetitionsPage() {
               <div className="mt-5 grid gap-3 text-sm text-white/68">
                 <span className="flex items-center gap-2"><Users size={16} className="text-[#d4af37]" /> {competition.ageGroup}</span>
                 <span className="flex items-center gap-2"><CalendarDays size={16} className="text-[#d4af37]" /> {competition.date}</span>
-                <span className="flex items-center gap-2"><Wallet size={16} className="text-[#d4af37]" /> Entry fee {competition.fee}</span>
-                <span className="flex items-center gap-2"><Clock3 size={16} className="text-[#d4af37]" /> {competition.slotsRemaining} slots remaining</span>
+                <span className="flex items-center gap-2"><Wallet size={16} className="text-[#d4af37]" /> Entry Fee {competition.fee}</span>
+                <span className="flex items-center gap-2"><Clock3 size={16} className="text-[#d4af37]" /> {competition.slotsRemaining} Slots Remaining</span>
               </div>
               <div className="mt-5"><Countdown targetIso={competition.dateIso} /></div>
               <ButtonLink href={`/competitions/${competition.slug}`} className="mt-6 w-full">View Details</ButtonLink>

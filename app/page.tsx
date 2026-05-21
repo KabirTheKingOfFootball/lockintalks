@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Award, BadgeCheck, Crown, Globe2, Mic2, ShieldCheck, Sparkles, Trophy, Users, Zap } from "lucide-react";
+import { ArrowRight, Award, BadgeCheck, Crown, Globe2, Mic2, ShieldCheck, Sparkles, Trophy } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MotionShell, Reveal } from "@/components/motion-shell";
@@ -8,19 +8,19 @@ import { Section } from "@/components/section";
 import { getLiveCompetitions } from "@/lib/competitions";
 
 const reasons = [
-  { icon: ShieldCheck, title: "Improve confidence", text: "Practice structured speaking in a supportive, high-standard environment." },
-  { icon: Globe2, title: "Compete globally", text: "Join online events with students from different cities and countries." },
-  { icon: Mic2, title: "Build communication skills", text: "Learn clarity, persuasion, storytelling, and live delivery." },
-  { icon: Award, title: "Win recognition", text: "Earn certificates, badges, finalist mentions, and judge feedback." }
+  { icon: ShieldCheck, title: "Improve Confidence", text: "Practice structured speaking in a supportive, high-standard environment." },
+  { icon: Globe2, title: "Join Online Events", text: "Take part in organized speaking formats designed for students." },
+  { icon: Mic2, title: "Build Communication Skills", text: "Learn clarity, persuasion, storytelling, and live delivery." },
+  { icon: Award, title: "Earn Recognition", text: "Track progress through event participation, certificates, and feedback when available." }
 ];
 
 const categories = ["Debate Battles", "Storytelling", "Motivational Speaking", "Extempore", "Speech Challenges", "Team Speaking"];
 const steps = ["Sign Up", "Choose Competition", "Pay Registration Fee", "Compete Online", "Get Results & Certificates"];
 const faqs = [
   ["Who can join LockInTalks?", "Kids and teenagers can join age-grouped online competitions from anywhere with a stable internet connection."],
-  ["Are competitions fully online?", "Yes. Briefings, live rounds, judging, payments, and certificates are handled through the online platform."],
-  ["Do students receive feedback?", "Most competitions include judge notes or a scorecard so students can keep improving after the event."],
-  ["Is payment real on this demo?", "This build includes a demo-safe payment UI prepared for a secure server-side payment provider integration."]
+  ["Are competitions fully online?", "Yes. Registration, payment, live rounds, judging, and certificate updates are handled online."],
+  ["Do students receive feedback?", "Some events include judge notes or a scorecard so students can keep improving after the event."],
+  ["How are payments handled?", "Payments are processed through a secure checkout flow and verified on the server before registration is confirmed."]
 ];
 
 export const dynamic = "force-dynamic";
@@ -31,35 +31,36 @@ export default async function HomePage() {
   return (
     <MotionShell>
       <section className="relative overflow-hidden">
-        <div className="mesh-bg absolute inset-0" aria-hidden="true" />
-        <div className="absolute left-8 top-28 hidden h-24 w-24 rounded-full border border-[#d4af37]/35 lg:block" aria-hidden="true" />
-        <div className="absolute bottom-16 right-10 hidden h-32 w-32 rounded-full border border-white/10 lg:block" aria-hidden="true" />
+        <div className="mesh-bg animated-grid absolute inset-0" aria-hidden="true" />
+        <div className="stage-light absolute inset-0" aria-hidden="true" />
+        <div className="energy-line absolute left-0 top-32 hidden h-px w-1/3 lg:block" aria-hidden="true" />
+        <div className="energy-line absolute bottom-24 right-0 hidden h-px w-1/4 lg:block" aria-hidden="true" />
         <div className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8">
           <div className="relative z-10">
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#d4af37]/35 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.22em] text-[#f7dc83]">
-              <Trophy size={16} /> Global youth speaking championship
+              <Trophy size={16} /> Global Youth Speaking Competitions
             </div>
             <h1 className="max-w-4xl text-5xl font-black leading-[0.95] text-white sm:text-7xl lg:text-8xl">
               Speak. <span className="gold-text">Inspire.</span> Lead.
             </h1>
             <p className="mt-7 max-w-2xl text-lg leading-8 text-white/72">
-              LockInTalks is an online public speaking competition platform where students compete, improve confidence, and showcase speaking talent globally.
+              LockInTalks gives students a structured online stage to practise public speaking, build confidence, and compete in a supportive environment.
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <ButtonLink href="/competitions" className="gap-2">Explore Competitions <ArrowRight size={18} /></ButtonLink>
               <ButtonLink href="/signup" variant="glass">Register Now</ButtonLink>
             </div>
             <div className="mt-10 grid max-w-xl grid-cols-3 gap-3">
-              {["2K+ Speakers", "40+ Events", "Global Stage"].map((item) => (
+              {["Speaking Practice", "Live Online Events", "Confidence Building"].map((item) => (
                 <div key={item} className="rounded-[8px] border border-white/10 bg-white/[0.05] p-3 text-center text-sm font-bold text-white/75">{item}</div>
               ))}
             </div>
           </div>
           <div className="relative mx-auto w-full max-w-lg">
-            <div className="absolute inset-8 rounded-full bg-[#d4af37]/20 blur-3xl" aria-hidden="true" />
+            <div className="absolute inset-x-6 top-10 h-3/4 bg-[#d4af37]/18 blur-3xl" aria-hidden="true" />
             <Image
               src="/lockintalks-logo.png"
-              alt="LockInTalks championship logo"
+              alt="LockInTalks logo"
               width={720}
               height={720}
               priority
@@ -67,22 +68,22 @@ export default async function HomePage() {
             />
             <div className="glass absolute -bottom-4 left-2 flex items-center gap-3 rounded-[8px] p-4">
               <Sparkles className="text-[#d4af37]" size={22} />
-              <span className="text-sm font-bold">Champions League for young speakers</span>
+              <span className="text-sm font-bold">A Supportive Arena for Young Voices</span>
             </div>
           </div>
         </div>
       </section>
 
-      <Section eyebrow="What is LockInTalks?" title={<>A premium online arena for young voices.</>}>
+      <Section eyebrow="What Is LockInTalks?" title={<>A Premium Online Arena for Young Voices</>}>
         <Reveal>
           <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
             <div className="glass rounded-[8px] p-8">
               <p className="text-xl leading-9 text-white/76">
-                LockInTalks combines the energy of a championship with the polish of a world-class speaking stage. Students enter age-appropriate competitions, perform online, receive feedback, and build the courage to speak when it matters.
+                LockInTalks combines the focus of a competition with the care of a learning environment. Students join age-appropriate events, speak online, and develop clarity, confidence, and communication habits they can use beyond the stage.
               </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-              {["Live online rounds", "Judge-led scoring", "Certificates & recognition"].map((item) => (
+              {["Live Online Rounds", "Clear Event Guidelines", "Certificates & Recognition"].map((item) => (
                 <div key={item} className="rounded-[8px] border border-[#d4af37]/25 bg-[#d4af37]/10 p-5 font-bold text-[#f7dc83]">{item}</div>
               ))}
             </div>
@@ -90,7 +91,7 @@ export default async function HomePage() {
         </Reveal>
       </Section>
 
-      <Section eyebrow="Why Join?" title={<>Confidence, skill, and recognition in one elite platform.</>}>
+      <Section eyebrow="Why Join?" title={<>Confidence, Skill, and Recognition in One Structured Platform</>}>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {reasons.map((reason) => (
             <Reveal key={reason.title}>
@@ -104,12 +105,12 @@ export default async function HomePage() {
         </div>
       </Section>
 
-      <Section eyebrow="Why LockInTalks?" title="Built for first-time speakers and future finalists.">
+      <Section eyebrow="Why LockInTalks?" title="Built for First-Time Speakers and Growing Communicators">
         <div className="grid gap-5 lg:grid-cols-3">
           {[
-            ["Beginner-friendly", "Students get a clear path from signup to stage, with simple steps and supportive judging."],
-            ["Real recognition", "Certificates, badges, and winner showcases make progress visible for students and parents."],
-            ["Championship energy", "Events feel exciting without becoming chaotic, with rules, schedules, and score criteria upfront."]
+            ["Beginner-Friendly", "Students get a clear path from sign-up to stage, with simple steps and supportive guidance."],
+            ["Meaningful Recognition", "Certificates and event milestones help students see progress over time."],
+            ["Structured Energy", "Events feel exciting without becoming chaotic, with rules, schedules, and criteria upfront."]
           ].map(([title, text]) => (
             <Card key={title}>
               <BadgeCheck className="mb-4 text-[#d4af37]" />
@@ -120,11 +121,11 @@ export default async function HomePage() {
         </div>
       </Section>
 
-      <Section eyebrow="Competition Categories" title="Pick your stage. Build your edge.">
+      <Section eyebrow="Competition Categories" title="Pick Your Stage. Build Your Edge.">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {categories.map((category) => (
             <Reveal key={category}>
-              <Link href="/competitions" className="glass group flex min-h-28 items-center justify-between rounded-[8px] p-5">
+              <Link href="/competitions" className="glass group flex min-h-28 items-center justify-between rounded-[8px] p-5 transition duration-300 hover:-translate-y-1 hover:border-[#d4af37]/45">
                 <span className="text-lg font-black">{category}</span>
                 <span className="rounded-full border border-[#d4af37]/35 p-3 text-[#d4af37] transition group-hover:translate-x-1"><ArrowRight size={18} /></span>
               </Link>
@@ -133,11 +134,11 @@ export default async function HomePage() {
         </div>
       </Section>
 
-      <Section eyebrow="How It Works" title="From sign-up to spotlight in five clean steps.">
+      <Section eyebrow="How It Works" title="From Sign-Up to Stage in Five Clear Steps">
         <div className="grid gap-4 md:grid-cols-5">
           {steps.map((step, index) => (
             <Reveal key={step}>
-              <div className="h-full rounded-[8px] border border-white/10 bg-white/[0.055] p-5">
+              <div className="h-full rounded-[8px] border border-white/10 bg-white/[0.055] p-5 transition duration-300 hover:-translate-y-1 hover:border-[#d4af37]/40">
                 <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-[#fff1a8] to-[#d4af37] font-black text-[#071b3b]">{index + 1}</div>
                 <p className="font-black">{step}</p>
               </div>
@@ -146,63 +147,63 @@ export default async function HomePage() {
         </div>
       </Section>
 
-      <Section eyebrow="Featured Competitions" title="Current championship tracks.">
+      <Section eyebrow="Featured Competitions" title="Current Speaking Events">
         {competitions.length === 0 ? (
           <Card className="text-center">
             <Mic2 className="mx-auto mb-4 text-[#d4af37]" />
-            <h3 className="text-2xl font-black">Live competitions coming soon</h3>
+            <h3 className="text-2xl font-black">Live Competitions Coming Soon</h3>
             <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/62">Published competitions will appear here automatically from the admin panel.</p>
           </Card>
         ) : (
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-          {competitions.map((competition) => (
-            <Card key={competition.slug}>
-              <div className={`mb-5 h-28 rounded-[8px] bg-gradient-to-br ${competition.accent} p-4 text-[#071b3b]`}>
-                <Mic2 size={28} />
-                <p className="mt-5 text-lg font-black">{competition.category}</p>
-              </div>
-              <h3 className="text-lg font-black">{competition.name}</h3>
-              <p className="mt-2 text-sm text-white/58">{competition.ageGroup} • {competition.fee} • {competition.slotsRemaining} slots</p>
-              <ButtonLink href={`/competitions/${competition.slug}`} variant="glass" className="mt-5 w-full">View Details</ButtonLink>
-            </Card>
-          ))}
-        </div>
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+            {competitions.map((competition) => (
+              <Card key={competition.slug}>
+                <div className={`mb-5 h-28 rounded-[8px] bg-gradient-to-br ${competition.accent} p-4 text-[#071b3b]`}>
+                  <Mic2 size={28} />
+                  <p className="mt-5 text-lg font-black">{competition.category}</p>
+                </div>
+                <h3 className="text-lg font-black">{competition.name}</h3>
+                <p className="mt-2 text-sm text-white/58">{competition.ageGroup} | {competition.fee} | {competition.slotsRemaining} Slots</p>
+                <ButtonLink href={`/competitions/${competition.slug}`} variant="glass" className="mt-5 w-full">View Details</ButtonLink>
+              </Card>
+            ))}
+          </div>
         )}
       </Section>
 
-      <Section eyebrow="Winner Showcase" title="A future wall of young voices.">
+      <Section eyebrow="Why Students Join LockInTalks" title="Growth That Goes Beyond One Event">
         <div className="grid gap-5 md:grid-cols-3">
           {[
-            ["Debate Champion", "Coming soon", "Sharp reasoning and calm rebuttals."],
-            ["Storytelling Star", "Coming soon", "Original stories with unforgettable delivery."],
-            ["Motivation Medalist", "Coming soon", "Talks that move students to action."]
-          ].map(([title, name, text]) => (
+            ["Speak With Structure", "Students learn to organize ideas before they speak."],
+            ["Grow Under Pressure", "Timed rounds help students stay calm and focused."],
+            ["Build Stage Confidence", "A guided online format makes performance practice feel achievable."]
+          ].map(([title, text]) => (
             <Card key={title} className="text-center">
               <Crown className="mx-auto mb-4 text-[#d4af37]" />
-              <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#d4af37]">{title}</p>
-              <h3 className="mt-3 text-2xl font-black">{name}</h3>
+              <h3 className="text-2xl font-black">{title}</h3>
               <p className="mt-3 text-sm leading-6 text-white/62">{text}</p>
             </Card>
           ))}
         </div>
       </Section>
 
-      <Section eyebrow="Testimonials" title="What young speakers say.">
+      <Section eyebrow="Student Development" title="A Competitive but Encouraging Environment">
         <div className="grid gap-5 md:grid-cols-3">
           {[
-            ["Aarav, 14", "The feedback helped me sound confident instead of rushed."],
-            ["Mia, 11", "It felt like a real championship, but friendly and fun."],
-            ["Zoya, 16", "I finally learned how to structure a speech under pressure."]
-          ].map(([name, quote]) => (
-            <Card key={name}>
-              <p className="text-lg leading-8 text-white/78">“{quote}”</p>
-              <p className="mt-5 font-bold text-[#d4af37]">{name}</p>
+            ["Clear Expectations", "Rules, schedules, and judging criteria help students and parents understand each event."],
+            ["Useful Practice", "Students prepare, speak, and reflect with a clear goal instead of vague stage practice."],
+            ["Parent-Friendly Flow", "Registration, payment, event details, and results are organized in one place."]
+          ].map(([title, text]) => (
+            <Card key={title}>
+              <BadgeCheck className="mb-4 text-[#d4af37]" />
+              <h3 className="text-xl font-black">{title}</h3>
+              <p className="mt-3 text-sm leading-6 text-white/62">{text}</p>
             </Card>
           ))}
         </div>
       </Section>
 
-      <Section eyebrow="FAQ" title="Quick answers before you step on stage.">
+      <Section eyebrow="FAQ" title="Quick Answers Before You Step On Stage">
         <div className="grid gap-4">
           {faqs.map(([question, answer]) => (
             <details key={question} className="glass rounded-[8px] p-5">

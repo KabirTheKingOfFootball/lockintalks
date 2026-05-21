@@ -43,7 +43,7 @@ export function RegisterForm({ competition }: { competition: PublicCompetition }
       if (userError || !user) {
         console.warn(`[LockInTalks registration] User not authenticated: ${userError?.message || "No active session"}`);
         if (userError) {
-          setError(getReadableSupabaseError(userError, "Please login before registering."));
+          setError(getReadableSupabaseError(userError, "Please log in before registering."));
           return;
         }
         router.push("/login");
@@ -97,15 +97,15 @@ export function RegisterForm({ competition }: { competition: PublicCompetition }
       <h1 className="text-3xl font-black">Register for <span className="gold-text">{competition.name}</span></h1>
       <p className="mt-3 text-sm leading-6 text-white/62">Fill in the speaker details, then continue to the secure payment step.</p>
       <div className="mt-7 grid gap-4 sm:grid-cols-2">
-        <label className="grid gap-2 text-sm font-bold text-white/80">Student name<Input value={form.student} onChange={(e) => setForm({ ...form, student: e.target.value })} /></label>
+        <label className="grid gap-2 text-sm font-bold text-white/80">Student Name<Input value={form.student} onChange={(e) => setForm({ ...form, student: e.target.value })} /></label>
         <label className="grid gap-2 text-sm font-bold text-white/80">Age<Input inputMode="numeric" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} /></label>
-        <label className="grid gap-2 text-sm font-bold text-white/80">Guardian name<Input value={form.guardian} onChange={(e) => setForm({ ...form, guardian: e.target.value })} /></label>
-        <label className="grid gap-2 text-sm font-bold text-white/80">Guardian email<Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></label>
+        <label className="grid gap-2 text-sm font-bold text-white/80">Guardian Name<Input value={form.guardian} onChange={(e) => setForm({ ...form, guardian: e.target.value })} /></label>
+        <label className="grid gap-2 text-sm font-bold text-white/80">Guardian Email<Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></label>
         <label className="grid gap-2 text-sm font-bold text-white/80 sm:col-span-2">City / Country<Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} /></label>
       </div>
       {error && <p className="mt-4 rounded-[8px] border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
       <Button type="submit" className="mt-6 w-full sm:w-auto" disabled={isSubmitting}>
-        {isSubmitting ? "Saving registration..." : "Continue to Payment"}
+        {isSubmitting ? "Saving Registration..." : "Continue to Payment"}
       </Button>
     </form>
   );

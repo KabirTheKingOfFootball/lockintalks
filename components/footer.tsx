@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Camera, Mail, PlayCircle } from "lucide-react";
+import { Mail, PlayCircle } from "lucide-react";
 
 export function Footer() {
   return (
@@ -15,7 +15,7 @@ export function Footer() {
             </div>
           </div>
           <p className="max-w-md text-sm leading-6 text-white/60">
-            The championship-style online speaking platform for confident kids, bold teens, and future leaders.
+            A structured online speaking platform for students building confidence, clarity, and communication skills.
           </p>
         </div>
         <div>
@@ -30,20 +30,18 @@ export function Footer() {
         <div>
           <p className="mb-4 text-sm font-bold uppercase tracking-[0.24em] text-[#d4af37]">Connect</p>
           <div className="flex gap-3">
-            <Link href="mailto:hello@lockintalks.com" aria-label="Email LockInTalks" className="focus-ring rounded-full border border-white/15 p-3 text-white/75 hover:border-[#d4af37] hover:text-[#d4af37]">
+            <Link href="mailto:lockintalks@gmail.com" aria-label="Email LockInTalks" className="focus-ring rounded-full border border-white/15 p-3 text-white/75 hover:border-[#d4af37] hover:text-[#d4af37]">
               <Mail size={18} />
-            </Link>
-            <Link href="https://instagram.com/lockintalks" aria-label="LockInTalks Instagram" className="focus-ring rounded-full border border-white/15 p-3 text-white/75 hover:border-[#d4af37] hover:text-[#d4af37]">
-              <Camera size={18} />
             </Link>
             <Link href="https://youtube.com" aria-label="LockInTalks YouTube" className="focus-ring rounded-full border border-white/15 p-3 text-white/75 hover:border-[#d4af37] hover:text-[#d4af37]">
               <PlayCircle size={18} />
             </Link>
           </div>
-          <p className="mt-5 text-sm text-white/55">hello@lockintalks.com</p>
+          <p className="mt-5 text-sm text-white/55">lockintalks@gmail.com</p>
+          <p className="mt-2 text-sm text-white/55">YouTube: LockInTalks</p>
         </div>
       </div>
-      <div className="border-t border-white/10 px-4 py-5 text-center text-xs text-white/45">© 2026 LockInTalks. All rights reserved.</div>
+      <div className="border-t border-white/10 px-4 py-5 text-center text-xs text-white/45">Copyright 2026 LockInTalks. All Rights Reserved.</div>
     </footer>
   );
 }
