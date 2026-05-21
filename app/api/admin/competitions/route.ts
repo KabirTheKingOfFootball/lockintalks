@@ -40,6 +40,12 @@ export async function POST(request: NextRequest) {
     }
 
     const supabaseAdmin = createAdminClient();
+    const { data: existing } = await supabaseAdmin.from("competitions").select("id").eq("slug", slug).maybeSingle();
+
+    if (existing) {
+      return NextResponse.json({ error: "A competition with this slug already exists. Choose a unique slug." }, { status: 409 });
+    }
+
     const { data, error } = await supabaseAdmin
       .from("competitions")
       .insert(normalizeCompetitionPayload({ ...body, name, slug }))

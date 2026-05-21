@@ -14,6 +14,10 @@ export function Countdown({ targetIso }: { targetIso: string }) {
     return <span className="text-sm font-bold text-white/60">Event has started</span>;
   }
 
+  if (!Number.isFinite(remaining.total)) {
+    return <span className="text-sm font-bold text-white/60">Schedule coming soon</span>;
+  }
+
   return (
     <div className="grid grid-cols-4 gap-2" aria-label="Competition countdown">
       {[
@@ -32,7 +36,9 @@ export function Countdown({ targetIso }: { targetIso: string }) {
 }
 
 function getRemaining(targetIso: string) {
-  const total = Math.max(0, new Date(targetIso).getTime() - Date.now());
+  const target = new Date(targetIso).getTime();
+  if (!Number.isFinite(target)) return { total: Number.NaN, days: 0, hours: 0, minutes: 0, seconds: 0 };
+  const total = Math.max(0, target - Date.now());
   const days = Math.floor(total / 86400000);
   const hours = Math.floor((total / 3600000) % 24);
   const minutes = Math.floor((total / 60000) % 60);

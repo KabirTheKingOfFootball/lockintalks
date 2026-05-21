@@ -1,13 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { CheckCircle2, CreditCard, Landmark, Smartphone, WalletCards, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getReadableError, readJsonResponse } from "@/lib/readable-error";
-import { getCompetitionBySlug } from "@/lib/registrations";
 
 type PaymentStep = "idle" | "creating" | "checkout" | "verifying" | "success" | "failed";
+
+type PaymentSummary = {
+  competitionName: string;
+  competitionDate: string;
+  entryFee: string;
+};
 
 type CreateOrderResponse = {
   error?: string;
@@ -75,11 +80,8 @@ const paymentMethods: Array<{ icon: LucideIcon; label: string }> = [
   { icon: WalletCards, label: "Wallets" }
 ];
 
-export function PaymentForm() {
+export function PaymentForm({ registrationId, summary }: { registrationId: string | null; summary: PaymentSummary | null }) {
   const router = useRouter();
-  const params = useSearchParams();
-  const competition = getCompetitionBySlug(params.get("competition"));
-  const registrationId = params.get("registration");
   const [error, setError] = useState("");
   const [step, setStep] = useState<PaymentStep>("idle");
 
@@ -206,16 +208,16 @@ export function PaymentForm() {
         )}
         {error && <p className="mt-4 rounded-[8px] border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
         <Button type="button" onClick={startPayment} className="mt-6 w-full" disabled={isBusy}>
-          {isBusy ? "Processing..." : `Pay ${competition.fee}`}
+          {isBusy ? "Processing..." : `Pay ${summary?.entryFee || "now"}`}
         </Button>
       </div>
       <aside className="glass rounded-[8px] p-6">
         <CheckCircle2 className="mb-5 text-[#d4af37]" size={34} />
         <h2 className="text-2xl font-black">Order Summary</h2>
         <div className="mt-6 grid gap-4 text-sm text-white/68">
-          <p><span className="font-bold text-white">Competition:</span> {competition.name}</p>
-          <p><span className="font-bold text-white">Date:</span> {competition.date}</p>
-          <p><span className="font-bold text-white">Entry fee:</span> {competition.fee}</p>
+          <p><span className="font-bold text-white">Competition:</span> {summary?.competitionName || "Registration selected"}</p>
+          <p><span className="font-bold text-white">Date:</span> {summary?.competitionDate || "See competition details"}</p>
+          <p><span className="font-bold text-white">Entry fee:</span> {summary?.entryFee || "Calculated at checkout"}</p>
           <p><span className="font-bold text-white">Gateway:</span> Razorpay Checkout</p>
         </div>
       </aside>

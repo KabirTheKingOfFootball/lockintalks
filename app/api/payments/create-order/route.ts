@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { RazorpayConfigError } from "@/lib/razorpay/env";
-import { createRazorpayClient, getAmountForCompetition, getPublicRazorpayKey, paymentCurrency } from "@/lib/razorpay/payments";
+import { createRazorpayClient, getPublicRazorpayKey, paymentCurrency } from "@/lib/razorpay/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
@@ -51,8 +51,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "This registration is already paid." }, { status: 409 });
     }
 
-    const amount = getAmountForCompetition(registration.competition_slug);
     const supabaseAdmin = createAdminClient();
+    const { data: competition, error: competitionError } = await supabaseAdmin
+      .from("competitions")
+      .select("fee_amount, status")
+      .eq("slug", registration.competition_slug)
+      .single();
+
+    if (competitionError || !competition) {
+      console.error(`[LockInTalks payment order] Competition lookup failed for ${registration.competition_slug}: ${competitionError?.message || "Not found"}`);
+      return NextResponse.json({ error: "This competition is no longer available for payment." }, { status: 404 });
+    }
+
+    if (competition.status !== "live") {
+      return NextResponse.json({ error: "This competition is not currently accepting payments." }, { status: 409 });
+    }
+
+    const amount = Number(competition.fee_amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return NextResponse.json({ error: "This competition does not have a valid payment amount configured." }, { status: 400 });
+    }
+
     const razorpay = createRazorpayClient();
     const order = (await razorpay.orders.create({
       amount,

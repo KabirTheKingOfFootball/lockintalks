@@ -1,5 +1,3 @@
-import { competitions } from "@/data/competitions";
-
 export type RegistrationRow = {
   id: string;
   user_id: string;
@@ -20,7 +18,3 @@ export type RegistrationRow = {
   paid_at: string | null;
   created_at: string;
 };
-
-export function getCompetitionBySlug(slug: string | null) {
-  return competitions.find((competition) => competition.slug === slug) || competitions[0];
-}

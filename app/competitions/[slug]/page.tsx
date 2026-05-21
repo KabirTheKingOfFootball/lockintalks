@@ -1,20 +1,23 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Award, CalendarDays, Gavel, Mic2, Trophy, Users, ClipboardCheck, Clock3 } from "lucide-react";
-import { competitions, getCompetition } from "@/data/competitions";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MotionShell } from "@/components/motion-shell";
 import { Countdown } from "@/components/countdown";
 import { StatusBadge } from "@/components/status-badge";
+import { getLiveCompetitionBySlug, getLiveCompetitions } from "@/lib/competitions";
 
-export function generateStaticParams() {
+export const dynamic = "force-dynamic";
+
+export async function generateStaticParams() {
+  const { competitions } = await getLiveCompetitions();
   return competitions.map((competition) => ({ slug: competition.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const competition = getCompetition(slug);
+  const { competition } = await getLiveCompetitionBySlug(slug);
   if (!competition) return {};
   return {
     title: competition.name,
@@ -29,7 +32,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function CompetitionDetailsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const competition = getCompetition(slug);
+  const { competition } = await getLiveCompetitionBySlug(slug);
   if (!competition) notFound();
 
   return (

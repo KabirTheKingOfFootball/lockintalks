@@ -1,11 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Award, BadgeCheck, Crown, Globe2, Mic2, ShieldCheck, Sparkles, Trophy, Users, Zap } from "lucide-react";
-import { competitions } from "@/data/competitions";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MotionShell, Reveal } from "@/components/motion-shell";
 import { Section } from "@/components/section";
+import { getLiveCompetitions } from "@/lib/competitions";
 
 const reasons = [
   { icon: ShieldCheck, title: "Improve confidence", text: "Practice structured speaking in a supportive, high-standard environment." },
@@ -23,7 +23,11 @@ const faqs = [
   ["Is payment real on this demo?", "This build includes a demo-safe payment UI prepared for a secure server-side payment provider integration."]
 ];
 
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const { competitions } = await getLiveCompetitions(4);
+
   return (
     <MotionShell>
       <section className="relative overflow-hidden">
@@ -143,8 +147,15 @@ export default function HomePage() {
       </Section>
 
       <Section eyebrow="Featured Competitions" title="Current championship tracks.">
+        {competitions.length === 0 ? (
+          <Card className="text-center">
+            <Mic2 className="mx-auto mb-4 text-[#d4af37]" />
+            <h3 className="text-2xl font-black">Live competitions coming soon</h3>
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/62">Published competitions will appear here automatically from the admin panel.</p>
+          </Card>
+        ) : (
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-          {competitions.filter((competition) => competition.featured).map((competition) => (
+          {competitions.map((competition) => (
             <Card key={competition.slug}>
               <div className={`mb-5 h-28 rounded-[8px] bg-gradient-to-br ${competition.accent} p-4 text-[#071b3b]`}>
                 <Mic2 size={28} />
@@ -156,6 +167,7 @@ export default function HomePage() {
             </Card>
           ))}
         </div>
+        )}
       </Section>
 
       <Section eyebrow="Winner Showcase" title="A future wall of young voices.">

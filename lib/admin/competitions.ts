@@ -1,4 +1,3 @@
-import { competitions as fallbackCompetitions } from "@/data/competitions";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type AdminCompetition = {
@@ -36,28 +35,6 @@ export async function getAdminCompetitions() {
     console.error("[LockInTalks admin competitions] Unexpected load failure:", error);
     return { competitions: [] as AdminCompetition[], error: "Could not connect to Supabase competitions data." };
   }
-}
-
-export function getFallbackAdminCompetitions(): AdminCompetition[] {
-  return fallbackCompetitions.map((competition, index) => ({
-    id: competition.slug,
-    slug: competition.slug,
-    name: competition.name,
-    category: competition.category,
-    age_group: competition.ageGroup,
-    event_date: competition.date,
-    fee_label: competition.fee,
-    fee_amount: Number(competition.fee.replace(/\D/g, "")) * 100 || 0,
-    summary: competition.summary,
-    description: competition.description,
-    image_url: null,
-    status: "live",
-    rules: competition.rules,
-    schedule: competition.schedule,
-    prizes: competition.prizes,
-    judges: competition.judges,
-    created_at: new Date(Date.UTC(2026, 0, index + 1)).toISOString()
-  }));
 }
 
 export function slugify(value: string) {

@@ -4,17 +4,6 @@ import { requireRazorpayEnv } from "@/lib/razorpay/env";
 
 export const paymentCurrency = "INR";
 
-const competitionAmounts: Record<string, number> = {
-  "debate-battles-global": 49900,
-  "storytelling-showcase": 39900,
-  "motivational-speaking-cup": 59900,
-  "extempore-arena": 34900
-};
-
-export function getAmountForCompetition(slug: string) {
-  return competitionAmounts[slug] || 49900;
-}
-
 export function formatAmount(amountPaise: number) {
   return `₹${(amountPaise / 100).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 }

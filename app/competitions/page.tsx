@@ -1,18 +1,22 @@
 import type { Metadata } from "next";
 import { Mic2, CalendarDays, Users, Wallet, Clock3 } from "lucide-react";
-import { competitions } from "@/data/competitions";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MotionShell } from "@/components/motion-shell";
 import { Countdown } from "@/components/countdown";
 import { StatusBadge } from "@/components/status-badge";
+import { getLiveCompetitions } from "@/lib/competitions";
 
 export const metadata: Metadata = {
   title: "Competitions",
   description: "Explore LockInTalks online public speaking competitions for kids and teenagers."
 };
 
-export default function CompetitionsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function CompetitionsPage() {
+  const { competitions, error } = await getLiveCompetitions();
+
   return (
     <MotionShell className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
       <div className="mb-10 grid gap-5 lg:grid-cols-[1fr_0.38fr] lg:items-end">
@@ -26,6 +30,14 @@ export default function CompetitionsPage() {
           <p>Pick an event, register, pay securely, then join the live online stage from your dashboard.</p>
         </div>
       </div>
+      {error && <p className="mb-6 rounded-[8px] border border-red-400/30 bg-red-500/10 p-4 text-sm text-red-100">{error}</p>}
+      {competitions.length === 0 ? (
+        <Card className="text-center">
+          <Mic2 className="mx-auto mb-4 text-[#d4af37]" size={34} />
+          <h2 className="text-2xl font-black">No live competitions yet</h2>
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/62">New championship tracks will appear here as soon as an admin publishes them.</p>
+        </Card>
+      ) : (
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {competitions.map((competition) => (
           <Card key={competition.slug} className="overflow-hidden p-0">
@@ -51,6 +63,7 @@ export default function CompetitionsPage() {
           </Card>
         ))}
       </div>
+      )}
     </MotionShell>
   );
 }

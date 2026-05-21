@@ -1,0 +1,100 @@
+-- Optional LockInTalks competition seed data
+-- Run this only if you want the original demo competitions to exist in Supabase.
+-- Public pages now read from public.competitions where status = 'live'.
+
+insert into public.competitions (
+  slug,
+  name,
+  category,
+  age_group,
+  event_date,
+  fee_label,
+  fee_amount,
+  summary,
+  description,
+  status,
+  rules,
+  schedule,
+  prizes,
+  judges
+)
+values
+(
+  'debate-battles-global',
+  'Debate Battles Global',
+  'Debate Battles',
+  '10-16 years',
+  '2026-06-22T14:00:00+05:30',
+  'INR 499',
+  49900,
+  'Fast-paced argument rounds for sharp thinkers who love strategy, evidence, and stage presence.',
+  'A bracket-style debate tournament designed for young speakers who can think clearly, listen carefully, and respond with confidence under pressure.',
+  'live',
+  array['Two speakers per match', 'Opening statement, rebuttal, and closing round', 'Citations must be age-appropriate', 'Respectful language is required'],
+  array['Orientation: June 20', 'Preliminary rounds: June 22', 'Semi-finals: June 24', 'Final showcase: June 26'],
+  array['Champion trophy certificate', 'Featured speaker badge', 'Judge feedback report'],
+  array['Anika Rao', 'Marcus Bell', 'Leah Chen']
+),
+(
+  'storytelling-showcase',
+  'Storytelling Showcase',
+  'Storytelling',
+  '7-13 years',
+  '2026-07-05T11:00:00+05:30',
+  'INR 399',
+  39900,
+  'A creative stage for original stories, expressive delivery, and memorable characters.',
+  'Students perform a polished story with emotion, structure, and voice control while learning how to keep an audience hooked online.',
+  'live',
+  array['Original or adapted stories allowed', '3 to 5 minute performance', 'Props are optional', 'No offensive or unsafe content'],
+  array['Submission check: July 2', 'Live rounds: July 5', 'Awards stream: July 6'],
+  array['Best storyteller medal', 'Creativity certificate', 'Audience favorite mention'],
+  array['Priya Sethi', 'Owen Brooks', 'Maya Torres']
+),
+(
+  'motivational-speaking-cup',
+  'Motivational Speaking Cup',
+  'Motivational Speaking',
+  '12-18 years',
+  '2026-07-19T16:00:00+05:30',
+  'INR 599',
+  59900,
+  'TED-style short talks for teens ready to inspire action and lead with presence.',
+  'A premium speech challenge focused on purpose, clarity, stage confidence, and a message that can move a global youth audience.',
+  'live',
+  array['4 to 6 minute speech', 'Original speech required', 'Slides are optional', 'One speaker per entry'],
+  array['Speaker briefing: July 16', 'Qualifiers: July 19', 'Grand stage: July 21'],
+  array['Gold speaker certificate', 'Leadership spotlight', 'Mentor feedback session'],
+  array['Daniel Kim', 'Sara Williams', 'Aarav Mehta']
+),
+(
+  'extempore-arena',
+  'Extempore Arena',
+  'Extempore',
+  '9-17 years',
+  '2026-08-03T15:00:00+05:30',
+  'INR 349',
+  34900,
+  'Think fast, speak clear, and turn surprise topics into winning moments.',
+  'A high-energy online format where students receive surprise prompts and deliver concise, structured speeches after a short preparation window.',
+  'live',
+  array['Topic assigned live', '90 seconds preparation', '2 minute speech', 'No external help during prep'],
+  array['Tech check: August 2', 'Live competition: August 3', 'Results: August 4'],
+  array['Quick thinker badge', 'Finalist certificate', 'Performance scorecard'],
+  array['Nina Patel', 'James Carter', 'Fatima Noor']
+)
+on conflict (slug) do update set
+  name = excluded.name,
+  category = excluded.category,
+  age_group = excluded.age_group,
+  event_date = excluded.event_date,
+  fee_label = excluded.fee_label,
+  fee_amount = excluded.fee_amount,
+  summary = excluded.summary,
+  description = excluded.description,
+  status = excluded.status,
+  rules = excluded.rules,
+  schedule = excluded.schedule,
+  prizes = excluded.prizes,
+  judges = excluded.judges,
+  updated_at = now();

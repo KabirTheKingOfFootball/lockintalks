@@ -1,16 +1,19 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { competitions, getCompetition } from "@/data/competitions";
 import { RegisterForm } from "@/components/register-form";
 import { MotionShell } from "@/components/motion-shell";
+import { getLiveCompetitionBySlug, getLiveCompetitions } from "@/lib/competitions";
 
-export function generateStaticParams() {
+export const dynamic = "force-dynamic";
+
+export async function generateStaticParams() {
+  const { competitions } = await getLiveCompetitions();
   return competitions.map((competition) => ({ slug: competition.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const competition = getCompetition(slug);
+  const { competition } = await getLiveCompetitionBySlug(slug);
   return {
     title: competition ? `Register: ${competition.name}` : "Register",
     description: competition?.summary || "Register for a LockInTalks competition."
@@ -19,7 +22,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function RegisterPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const competition = getCompetition(slug);
+  const { competition } = await getLiveCompetitionBySlug(slug);
   if (!competition) notFound();
 
   return (
