@@ -38,10 +38,23 @@ Copy `.env.example` to `.env.local` and replace secrets before deploying.
 3. Add Razorpay test keys in Vercel:
    - `NEXT_PUBLIC_RAZORPAY_KEY_ID`
    - `RAZORPAY_KEY_SECRET`
-4. Add the deployed site URL and `/auth/callback` in Supabase Auth URL settings.
-5. Redeploy on Vercel.
+   - `RAZORPAY_WEBHOOK_SECRET`
+4. In Razorpay Dashboard, create a payment webhook that points to:
+   - `https://YOUR-VERCEL-DOMAIN/api/payments/webhook`
+   - Enable payment events such as `payment.captured` and `payment.failed`.
+5. Add the deployed site URL and `/auth/callback` in Supabase Auth URL settings.
+6. Redeploy on Vercel.
 
-Razorpay payments use a secure order and verification flow. The browser opens Checkout, but registrations are marked `paid` only after `/api/payments/verify` validates the Razorpay signature on the server.
+Razorpay payments use a secure order and verification flow. The browser opens Checkout, but registrations are only treated as seat-confirmed after server-side verification and captured payment confirmation. Webhooks are recorded in `payment_events` and deduplicated using Razorpay's event id.
+
+## Monitoring
+
+Vercel Web Analytics and Speed Insights are included in the root layout. Optional Sentry monitoring is configured and stays inactive until these variables are added:
+
+- `NEXT_PUBLIC_SENTRY_DSN`
+- `SENTRY_DSN`
+- `NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE`
+- `SENTRY_TRACES_SAMPLE_RATE`
 
 ## Admin Panel
 

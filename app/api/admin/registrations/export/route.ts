@@ -27,10 +27,19 @@ export async function GET() {
     "city",
     "country",
     "city_country",
+    "registration_status",
+    "age_proof_status",
+    "payment_provider",
     "payment_status",
+    "payment_order_id",
+    "payment_id",
     "razorpay_order_id",
     "razorpay_payment_id",
-    "created_at"
+    "amount_due",
+    "amount_paid",
+    "seat_confirmed_at",
+    "created_at",
+    "updated_at"
   ];
   const csv = [headers.join(","), ...(data || []).map((row) => headers.map((header) => csvCell(row[header as keyof typeof row])).join(","))].join("\n");
 

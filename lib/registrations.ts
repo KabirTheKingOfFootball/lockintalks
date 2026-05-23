@@ -1,3 +1,5 @@
+import type { AgeProofStatus, PaymentStatus, RegistrationStatus } from "@/lib/payment/status";
+
 export type RegistrationRow = {
   id: string;
   user_id: string;
@@ -11,12 +13,22 @@ export type RegistrationRow = {
   country: string | null;
   city_country: string;
   entry_fee: string;
-  payment_status: "pending" | "payment_created" | "paid" | "failed" | "cancelled";
+  registration_status: RegistrationStatus | null;
+  age_proof_status: AgeProofStatus | null;
+  payment_required: boolean | null;
+  payment_status: PaymentStatus;
+  payment_provider: string | null;
+  payment_order_id: string | null;
+  payment_id: string | null;
   razorpay_order_id: string | null;
   razorpay_payment_id: string | null;
   razorpay_signature: string | null;
+  amount_due: number | null;
+  amount_paid: number | null;
   payment_amount: number | null;
   payment_currency: string | null;
+  seat_confirmed_at: string | null;
   paid_at: string | null;
   created_at: string;
+  updated_at: string | null;
 };

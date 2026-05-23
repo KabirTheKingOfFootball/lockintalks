@@ -17,23 +17,23 @@ export async function GET() {
     if (error || !user) {
       if (error) console.warn(`[LockInTalks auth session] Session check failed: ${error.message}`);
       return NextResponse.json(
-        { authenticated: false, role: null, redirectTo: "/login" },
+        { authenticated: false, user: null, role: null, redirectTo: "/login" },
         { status: 200, headers: { "Cache-Control": "no-store" } }
       );
     }
 
     const role = await getUserRole(user.id);
     return NextResponse.json(
-      { authenticated: true, role, redirectTo: getRoleRedirect(role) },
+      { authenticated: true, user: { id: user.id, email: user.email || "" }, role, redirectTo: getRoleRedirect(role) },
       { status: 200, headers: { "Cache-Control": "no-store" } }
     );
   } catch (error) {
     if (error instanceof SupabaseConfigError) {
       console.error(`[LockInTalks auth session] ${error.message}`);
-      return NextResponse.json({ authenticated: false, role: null, redirectTo: "/login", error: error.message }, { status: 503 });
+      return NextResponse.json({ authenticated: false, user: null, role: null, redirectTo: "/login", error: error.message }, { status: 503, headers: { "Cache-Control": "no-store" } });
     }
 
     console.error("[LockInTalks auth session] Unexpected session check error:", error);
-    return NextResponse.json({ authenticated: false, role: null, redirectTo: "/login", error: "Could not verify session." }, { status: 500 });
+    return NextResponse.json({ authenticated: false, user: null, role: null, redirectTo: "/login", error: "Could not verify session." }, { status: 500, headers: { "Cache-Control": "no-store" } });
   }
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { track } from "@vercel/analytics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { PublicCompetition } from "@/lib/competitions";
@@ -41,11 +42,13 @@ export function RegisterForm({ competition }: { competition: PublicCompetition }
       } = await supabase.auth.getUser();
 
       if (userError || !user) {
+        track("register_clicked_logged_out", { competition: competition.slug });
         router.push(`/login?next=${encodeURIComponent(`/register/${competition.slug}`)}`);
         setError("Please Log In or Create an Account Before Registering for a Competition.");
         return;
       }
 
+      track("registration_started", { competition: competition.slug });
       const { data, error: insertError } = await supabase
         .from("registrations")
         .insert({
@@ -60,6 +63,10 @@ export function RegisterForm({ competition }: { competition: PublicCompetition }
           country: form.country.trim(),
           city_country: `${form.city.trim()}, ${form.country.trim()}`,
           entry_fee: competition.fee,
+          registration_status: "submitted",
+          age_proof_status: "not_required_yet",
+          payment_required: true,
+          payment_provider: "razorpay",
           payment_status: "pending"
         })
         .select("id")
@@ -75,6 +82,7 @@ export function RegisterForm({ competition }: { competition: PublicCompetition }
         competition: competition.slug,
         registration: data.id
       });
+      track("registration_submitted", { competition: competition.slug });
       router.push(`/payment?${paymentParams.toString()}`);
     } catch (submitError) {
       if (submitError instanceof SupabaseConfigError) {

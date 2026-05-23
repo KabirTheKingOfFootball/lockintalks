@@ -4,6 +4,7 @@ import { createRazorpayClient, getPublicRazorpayKey, paymentCurrency } from "@/l
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
+import { isPaymentInProgress, isSeatConfirmed } from "@/lib/payment/status";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,6 +17,7 @@ type RazorpayOrder = {
   id: string;
   amount: number;
   currency: string;
+  status?: string;
 };
 
 export async function POST(request: NextRequest) {
@@ -40,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     const { data: registration, error: registrationError } = await supabase
       .from("registrations")
-      .select("id, user_id, competition_slug, competition_name, student_name, guardian_email, entry_fee, payment_status")
+      .select("id, user_id, competition_slug, competition_name, student_name, guardian_email, entry_fee, payment_status, razorpay_order_id, payment_order_id, payment_amount, amount_due, payment_currency")
       .eq("id", body.registrationId)
       .eq("user_id", userId)
       .single();
@@ -50,7 +52,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Registration not found for this account." }, { status: 404 });
     }
 
-    if (registration.payment_status === "paid") {
+    if (isSeatConfirmed(registration.payment_status)) {
       return NextResponse.json({ error: "This registration is already paid." }, { status: 409 });
     }
 
@@ -75,6 +77,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "This competition does not have a valid payment amount configured." }, { status: 400 });
     }
 
+    const existingOrderId = registration.payment_order_id || registration.razorpay_order_id;
+    const existingAmount = Number(registration.amount_due || registration.payment_amount || 0);
+
+    if (existingOrderId && isPaymentInProgress(registration.payment_status) && existingAmount === amount) {
+      await savePaymentAttempt({
+        registrationId: registration.id,
+        userId,
+        providerOrderId: existingOrderId,
+        amount,
+        currency: registration.payment_currency || paymentCurrency,
+        status: "reused"
+      });
+
+      return NextResponse.json(
+        {
+          keyId: getPublicRazorpayKey(),
+          orderId: existingOrderId,
+          amount,
+          currency: registration.payment_currency || paymentCurrency,
+          name: "LockInTalks",
+          description: registration.competition_name,
+          prefill: {
+            name: registration.student_name,
+            email: registration.guardian_email
+          },
+          registrationId: registration.id
+        },
+        { headers: { "Cache-Control": "no-store" } }
+      );
+    }
+
     const razorpay = createRazorpayClient();
     const order = (await razorpay.orders.create({
       amount,
@@ -89,10 +122,15 @@ export async function POST(request: NextRequest) {
     const { error: updateError } = await supabaseAdmin
       .from("registrations")
       .update({
-        payment_status: "payment_created",
+        payment_status: "order_created",
+        registration_status: "payment_pending",
+        payment_provider: "razorpay",
         razorpay_order_id: order.id,
+        payment_order_id: order.id,
         payment_amount: amount,
-        payment_currency: paymentCurrency
+        amount_due: amount,
+        payment_currency: paymentCurrency,
+        updated_at: new Date().toISOString()
       })
       .eq("id", registration.id)
       .eq("user_id", userId);
@@ -102,19 +140,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Payment order was created, but could not be saved. Please contact support." }, { status: 500 });
     }
 
-    return NextResponse.json({
-      keyId: getPublicRazorpayKey(),
-      orderId: order.id,
+    await savePaymentAttempt({
+      registrationId: registration.id,
+      userId,
+      providerOrderId: order.id,
       amount: order.amount,
       currency: order.currency,
-      name: "LockInTalks",
-      description: registration.competition_name,
-      prefill: {
-        name: registration.student_name,
-        email: registration.guardian_email
-      },
-      registrationId: registration.id
+      status: order.status || "created"
     });
+
+    return NextResponse.json(
+      {
+        keyId: getPublicRazorpayKey(),
+        orderId: order.id,
+        amount: order.amount,
+        currency: order.currency,
+        name: "LockInTalks",
+        description: registration.competition_name,
+        prefill: {
+          name: registration.student_name,
+          email: registration.guardian_email
+        },
+        registrationId: registration.id
+      },
+      { headers: { "Cache-Control": "no-store" } }
+    );
   } catch (error) {
     if (error instanceof SupabaseConfigError || error instanceof RazorpayConfigError) {
       console.error(`[LockInTalks payment order] ${error.message}`);
@@ -123,5 +173,42 @@ export async function POST(request: NextRequest) {
 
     console.error("[LockInTalks payment order] Unexpected order creation error:", error);
     return NextResponse.json({ error: "Could not create payment order right now." }, { status: 500 });
+  }
+}
+
+async function savePaymentAttempt({
+  registrationId,
+  userId,
+  providerOrderId,
+  amount,
+  currency,
+  status
+}: {
+  registrationId: string;
+  userId: string;
+  providerOrderId: string;
+  amount: number;
+  currency: string;
+  status: string;
+}) {
+  try {
+    const supabaseAdmin = createAdminClient();
+    const { error } = await supabaseAdmin.from("payment_attempts").upsert(
+      {
+        registration_id: registrationId,
+        user_id: userId,
+        provider: "razorpay",
+        provider_order_id: providerOrderId,
+        amount,
+        currency,
+        status,
+        updated_at: new Date().toISOString()
+      },
+      { onConflict: "provider,provider_order_id" }
+    );
+
+    if (error) console.warn(`[LockInTalks payment order] Could not save payment attempt ${providerOrderId}: ${error.message}`);
+  } catch (error) {
+    console.warn("[LockInTalks payment order] Payment attempt logging skipped:", error);
   }
 }

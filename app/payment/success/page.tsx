@@ -5,7 +5,7 @@ import { MotionShell } from "@/components/motion-shell";
 
 export const metadata: Metadata = {
   title: "Payment Successful",
-  description: "Your LockInTalks registration payment was successful."
+  description: "Your LockInTalks registration payment was verified and captured successfully."
 };
 
 export default function PaymentSuccessPage() {
@@ -16,8 +16,8 @@ export default function PaymentSuccessPage() {
           <CheckCircle2 size={46} />
         </div>
         <p className="mb-3 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-[0.3em] text-[#d4af37]"><Sparkles size={16} /> Locked in</p>
-        <h1 className="text-4xl font-black sm:text-6xl">Payment Successful</h1>
-        <p className="mx-auto mt-5 max-w-xl text-white/66">Your registration is confirmed. Event details, room links, and preparation instructions will be shared by email.</p>
+        <h1 className="text-4xl font-black sm:text-6xl">Registration Confirmed</h1>
+        <p className="mx-auto mt-5 max-w-xl text-white/66">Your payment was verified successfully and your seat is now secured. Event details, room links, and preparation instructions will be shared by email.</p>
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
           <ButtonLink href="/dashboard">Go to Dashboard</ButtonLink>
           <ButtonLink href="/competitions" variant="glass">Explore More</ButtonLink>

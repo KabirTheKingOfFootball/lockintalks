@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { track } from "@vercel/analytics";
 import { Lock, Mail, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +55,7 @@ export function AuthForm({ mode, initialError = "", nextPath = "/dashboard" }: {
     try {
       setIsSubmitting(true);
       setStatusText(isSignup ? "Creating Account..." : "Signing In...");
+      track(isSignup ? "signup_started" : "login_started");
       const response = await fetch(isSignup ? "/api/auth/signup" : "/api/auth/login", {
         method: "POST",
         cache: "no-store",
@@ -71,11 +73,13 @@ export function AuthForm({ mode, initialError = "", nextPath = "/dashboard" }: {
       if (!response.ok || result.error) {
         console.error(`[LockInTalks auth form] ${mode} failed: ${result.error || response.statusText}`);
         setError(result.error || "Authentication failed.");
+        track(isSignup ? "signup_failed" : "login_failed", { reason: "api_error" });
         return;
       }
 
       if (result.needsEmailConfirmation) {
         setError("Account Created. Please check your email to confirm your account, then log in.");
+        track("signup_completed", { needsEmailConfirmation: true });
         return;
       }
 
@@ -85,6 +89,7 @@ export function AuthForm({ mode, initialError = "", nextPath = "/dashboard" }: {
       const redirectTo = getPostAuthRedirect(role, nextPath);
 
       setStatusText("Redirecting...");
+      track(isSignup ? "signup_completed" : "login_completed", { role, redirectTo });
       window.dispatchEvent(new CustomEvent("lockintalks-auth-changed", { detail: { ...session, redirectTo } }));
       router.refresh();
       isNavigatingAway = true;
@@ -92,6 +97,7 @@ export function AuthForm({ mode, initialError = "", nextPath = "/dashboard" }: {
     } catch (submitError) {
       console.error(`[LockInTalks auth form] Unexpected ${mode} error:`, submitError);
       setError(getReadableError(submitError, "Authentication is temporarily unavailable. Please check the Supabase configuration."));
+      track(isSignup ? "signup_failed" : "login_failed", { reason: "unexpected_error" });
     } finally {
       if (!isNavigatingAway) {
         setIsSubmitting(false);

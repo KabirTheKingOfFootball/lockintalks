@@ -6,5 +6,17 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif)$).*)"]
+  matcher: [
+    "/admin/:path*",
+    "/dashboard/:path*",
+    "/register/:path*",
+    "/payment/:path*",
+    "/api/auth/:path*",
+    "/api/admin/:path*",
+    "/api/payments/create-order",
+    "/api/payments/verify",
+    "/api/payments/failed",
+    "/auth/callback",
+    "/logout"
+  ]
 };

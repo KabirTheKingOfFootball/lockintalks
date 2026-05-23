@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { track } from "@vercel/analytics";
 import { CheckCircle2, CreditCard, Landmark, Smartphone, WalletCards, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getReadableError, readJsonResponse } from "@/lib/readable-error";
 
-type PaymentStep = "idle" | "creating" | "checkout" | "verifying" | "success" | "failed";
+type PaymentStep = "idle" | "creating" | "checkout" | "verifying" | "pending" | "success" | "failed";
 
 type PaymentSummary = {
   competitionName: string;
@@ -83,10 +84,12 @@ const paymentMethods: Array<{ icon: LucideIcon; label: string }> = [
 export function PaymentForm({ registrationId, summary }: { registrationId: string | null; summary: PaymentSummary | null }) {
   const router = useRouter();
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [step, setStep] = useState<PaymentStep>("idle");
 
   async function startPayment() {
     setError("");
+    setMessage("");
 
     if (!registrationId) {
       setError("Missing registration id. Please register for a competition before paying.");
@@ -101,8 +104,11 @@ export function PaymentForm({ registrationId, summary }: { registrationId: strin
         throw new Error("Razorpay Checkout did not load. Please refresh and try again.");
       }
 
+      track("payment_order_create_started", { provider: "razorpay" });
       const orderResponse = await fetch("/api/payments/create-order", {
         method: "POST",
+        cache: "no-store",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ registrationId })
       });
@@ -112,6 +118,7 @@ export function PaymentForm({ registrationId, summary }: { registrationId: strin
         throw new Error(order.error || "Could not create payment order.");
       }
 
+      track("payment_order_created", { provider: "razorpay", currency: order.currency });
       setStep("checkout");
       const checkout = new window.Razorpay({
         key: order.keyId,
@@ -127,7 +134,8 @@ export function PaymentForm({ registrationId, summary }: { registrationId: strin
         modal: {
           ondismiss: async () => {
             setStep("failed");
-            setError("Payment was cancelled. You can try again when ready.");
+            setError("Payment was not completed. No registration seat has been confirmed yet. You can try again safely.");
+            track("payment_failed", { provider: "razorpay", reason: "cancelled" });
             await markPaymentFailed(registrationId, "cancelled");
           }
         },
@@ -139,15 +147,18 @@ export function PaymentForm({ registrationId, summary }: { registrationId: strin
       checkout.on("payment.failed", async (response) => {
         console.warn(`[LockInTalks Razorpay Checkout] Payment failed: ${response.error?.reason || response.error?.description || "Unknown reason"}`);
         setStep("failed");
-        setError(response.error?.description || "Payment failed. Please try again.");
+        setError(response.error?.description || "Payment was not completed. No registration seat has been confirmed yet. You can try again safely.");
+        track("payment_failed", { provider: "razorpay", reason: response.error?.reason || "checkout_failed" });
         await markPaymentFailed(registrationId, "failed");
       });
 
+      track("payment_checkout_opened", { provider: "razorpay" });
       checkout.open();
     } catch (paymentError) {
       console.error("[LockInTalks Razorpay Checkout] Could not start payment:", paymentError);
       setStep("failed");
       setError(getReadableError(paymentError, "Could not start Razorpay payment."));
+      track("payment_failed", { provider: "razorpay", reason: "order_start_failed" });
     }
   }
 
@@ -156,6 +167,8 @@ export function PaymentForm({ registrationId, summary }: { registrationId: strin
       setStep("verifying");
       const verifyResponse = await fetch("/api/payments/verify", {
         method: "POST",
+        cache: "no-store",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           registrationId: currentRegistrationId,
@@ -164,19 +177,29 @@ export function PaymentForm({ registrationId, summary }: { registrationId: strin
           razorpay_signature: response.razorpay_signature
         })
       });
-      const result = await readJsonResponse<{ ok?: boolean; error?: string }>(verifyResponse);
+      const result = await readJsonResponse<{ ok?: boolean; status?: string; pending?: boolean; error?: string }>(verifyResponse);
 
       if (!verifyResponse.ok || !result.ok) {
         throw new Error(result.error || "Payment verification failed.");
       }
 
+      track("payment_verified", { provider: "razorpay", status: result.status || "verified" });
+
+      if (result.pending) {
+        setStep("pending");
+        setMessage("Your payment is still being confirmed. Please do not pay again right now. If this does not update shortly, contact lockintalks@gmail.com.");
+        return;
+      }
+
       setStep("success");
+      track("payment_captured", { provider: "razorpay" });
       router.push("/payment/success");
       router.refresh();
     } catch (verifyError) {
       console.error("[LockInTalks Razorpay Checkout] Payment verification failed:", verifyError);
       setStep("failed");
       setError(getReadableError(verifyError, "Payment verification failed."));
+      track("payment_failed", { provider: "razorpay", reason: "verification_failed" });
     }
   }
 
@@ -187,7 +210,7 @@ export function PaymentForm({ registrationId, summary }: { registrationId: strin
       <div className="glass rounded-[8px] p-6 sm:p-8">
         <h1 className="text-3xl font-black">Secure Payment</h1>
         <p className="mt-3 text-sm leading-6 text-white/62">
-          Razorpay Checkout supports UPI, cards, netbanking, and wallets. LockInTalks confirms your registration only after server-side signature verification.
+          Razorpay Checkout supports UPI, cards, netbanking, and wallets. Your registration seat is reserved temporarily while payment is completed securely.
         </p>
         <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {paymentMethods.map(({ icon: Icon, label }) => (
@@ -201,11 +224,13 @@ export function PaymentForm({ registrationId, summary }: { registrationId: strin
           <p className="mt-5 rounded-[8px] border border-[#d4af37]/30 bg-[#d4af37]/10 p-3 text-sm text-[#f7dc83]">
             {step === "creating" && "Creating secure Razorpay order..."}
             {step === "checkout" && "Razorpay Checkout is open. Complete payment in the secure popup."}
-            {step === "verifying" && "Verifying payment securely on the server..."}
-            {step === "success" && "Payment verified successfully."}
-            {step === "failed" && "Payment was not completed."}
+            {step === "verifying" && "Payment received. We are securely verifying your transaction. This usually takes a few seconds."}
+            {step === "pending" && "Your payment is still being confirmed. Please do not pay again right now."}
+            {step === "success" && "Registration confirmed. Your payment was verified successfully and your seat is now secured."}
+            {step === "failed" && "Payment was not completed. No registration seat has been confirmed yet."}
           </p>
         )}
+        {message && <p className="mt-4 rounded-[8px] border border-[#d4af37]/30 bg-[#d4af37]/10 p-3 text-sm text-[#f7dc83]">{message}</p>}
         {error && <p className="mt-4 rounded-[8px] border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
         <Button type="button" onClick={startPayment} className="mt-6 w-full" disabled={isBusy}>
           {isBusy ? "Processing..." : `Pay ${summary?.entryFee || "now"}`}
@@ -250,6 +275,8 @@ async function markPaymentFailed(registrationId: string, status: "failed" | "can
   try {
     await fetch("/api/payments/failed", {
       method: "POST",
+      cache: "no-store",
+      credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ registrationId, status })
     });

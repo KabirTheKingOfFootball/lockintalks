@@ -6,6 +6,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getReadableError, readJsonResponse } from "@/lib/readable-error";
 import type { RegistrationRow } from "@/lib/registrations";
+import { ageProofStatuses, paymentStatusLabel, paymentStatuses, registrationStatuses } from "@/lib/payment/status";
 
 export function RegistrationManager({ registrations }: { registrations: RegistrationRow[] }) {
   const [rows, setRows] = useState(registrations);
@@ -29,7 +30,7 @@ export function RegistrationManager({ registrations }: { registrations: Registra
     });
   }, [query, rows, status]);
 
-  async function updatePaymentStatus(id: string, paymentStatus: string) {
+  async function updateRegistration(id: string, payload: Partial<Pick<RegistrationRow, "payment_status" | "registration_status" | "age_proof_status">>) {
     setError("");
     setMessage("");
 
@@ -37,7 +38,7 @@ export function RegistrationManager({ registrations }: { registrations: Registra
       const response = await fetch(`/api/admin/registrations/${encodeURIComponent(id)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ payment_status: paymentStatus })
+        body: JSON.stringify(payload)
       });
       const result = await readJsonResponse<{ error?: string; registration?: RegistrationRow }>(response);
 
@@ -70,15 +71,13 @@ export function RegistrationManager({ registrations }: { registrations: Registra
         </label>
         <select className="focus-ring min-h-12 rounded-[8px] border border-white/15 bg-[#071b3b] px-4 text-sm text-white" value={status} onChange={(event) => setStatus(event.target.value)}>
           <option value="all">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="payment_created">Payment Created</option>
-          <option value="paid">Paid</option>
-          <option value="failed">Failed</option>
-          <option value="cancelled">Cancelled</option>
+          {paymentStatuses.map((paymentStatus) => (
+            <option key={paymentStatus} value={paymentStatus}>{paymentStatusLabel(paymentStatus)}</option>
+          ))}
         </select>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[900px] border-separate border-spacing-y-2 text-left text-sm">
+        <table className="w-full min-w-[1150px] border-separate border-spacing-y-2 text-left text-sm">
           <thead className="text-xs uppercase tracking-[0.18em] text-[#d4af37]">
             <tr>
               <th className="px-3 py-2">Student</th>
@@ -86,6 +85,8 @@ export function RegistrationManager({ registrations }: { registrations: Registra
               <th className="px-3 py-2">Guardian</th>
               <th className="px-3 py-2">City</th>
               <th className="px-3 py-2">Country / Nation</th>
+              <th className="px-3 py-2">Entry Status</th>
+              <th className="px-3 py-2">Age Proof</th>
               <th className="px-3 py-2">Payment</th>
               <th className="px-3 py-2">Created</th>
             </tr>
@@ -106,16 +107,38 @@ export function RegistrationManager({ registrations }: { registrations: Registra
                 <td className="px-3 py-3">{registration.country || "Not Provided"}</td>
                 <td className="px-3 py-3">
                   <select
+                    className="focus-ring rounded-full border border-white/15 bg-[#071b3b] px-3 py-1 text-xs font-bold text-white/80"
+                    value={registration.registration_status || "submitted"}
+                    onChange={(event) => updateRegistration(registration.id, { registration_status: event.target.value as RegistrationRow["registration_status"] })}
+                    aria-label={`Update registration status for ${registration.student_name}`}
+                  >
+                    {registrationStatuses.map((registrationStatus) => (
+                      <option key={registrationStatus} value={registrationStatus}>{formatSimpleStatus(registrationStatus)}</option>
+                    ))}
+                  </select>
+                </td>
+                <td className="px-3 py-3">
+                  <select
+                    className="focus-ring rounded-full border border-white/15 bg-[#071b3b] px-3 py-1 text-xs font-bold text-white/80"
+                    value={registration.age_proof_status || "not_required_yet"}
+                    onChange={(event) => updateRegistration(registration.id, { age_proof_status: event.target.value as RegistrationRow["age_proof_status"] })}
+                    aria-label={`Update age proof status for ${registration.student_name}`}
+                  >
+                    {ageProofStatuses.map((ageProofStatus) => (
+                      <option key={ageProofStatus} value={ageProofStatus}>{formatSimpleStatus(ageProofStatus)}</option>
+                    ))}
+                  </select>
+                </td>
+                <td className="px-3 py-3">
+                  <select
                     className="focus-ring rounded-full border border-[#d4af37]/30 bg-[#071b3b] px-3 py-1 text-xs font-bold uppercase text-[#d4af37]"
                     value={registration.payment_status}
-                    onChange={(event) => updatePaymentStatus(registration.id, event.target.value)}
+                    onChange={(event) => updateRegistration(registration.id, { payment_status: event.target.value as RegistrationRow["payment_status"] })}
                     aria-label={`Update payment status for ${registration.student_name}`}
                   >
-                    <option value="pending">Pending</option>
-                    <option value="payment_created">Payment Created</option>
-                    <option value="paid">Paid</option>
-                    <option value="failed">Failed</option>
-                    <option value="cancelled">Cancelled</option>
+                    {paymentStatuses.map((paymentStatus) => (
+                      <option key={paymentStatus} value={paymentStatus}>{paymentStatusLabel(paymentStatus)}</option>
+                    ))}
                   </select>
                 </td>
                 <td className="rounded-r-[8px] px-3 py-3 text-white/55">{new Date(registration.created_at).toLocaleDateString()}</td>
@@ -127,4 +150,11 @@ export function RegistrationManager({ registrations }: { registrations: Registra
       {filteredRegistrations.length === 0 && <p className="py-8 text-center text-white/55">No Registrations Match Your Filters.</p>}
     </div>
   );
+}
+
+function formatSimpleStatus(value: string) {
+  return value
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }

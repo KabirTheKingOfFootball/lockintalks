@@ -99,25 +99,45 @@ create table if not exists public.registrations (
   country text,
   city_country text not null,
   entry_fee text not null,
-  payment_status text not null default 'pending' check (payment_status in ('pending', 'payment_created', 'paid', 'failed', 'cancelled')),
+  registration_status text not null default 'submitted' check (registration_status in ('submitted', 'payment_pending', 'paid', 'under_review', 'accepted', 'rejected', 'withdrawn')),
+  age_proof_status text not null default 'not_required_yet' check (age_proof_status in ('not_required_yet', 'requested', 'submitted', 'approved', 'rejected')),
+  payment_required boolean not null default true,
+  payment_status text not null default 'pending' check (payment_status in ('pending', 'order_created', 'payment_created', 'signature_verified', 'captured', 'paid', 'failed', 'cancelled', 'refunded')),
+  payment_provider text not null default 'razorpay',
+  payment_order_id text,
+  payment_id text,
   razorpay_order_id text,
   razorpay_payment_id text,
   razorpay_signature text,
+  amount_due integer,
+  amount_paid integer,
   payment_amount integer,
   payment_currency text default 'INR',
+  seat_confirmed_at timestamptz,
   paid_at timestamptz,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
 alter table public.registrations
 add column if not exists city text,
 add column if not exists country text,
+add column if not exists registration_status text not null default 'submitted',
+add column if not exists age_proof_status text not null default 'not_required_yet',
+add column if not exists payment_required boolean not null default true,
+add column if not exists payment_provider text not null default 'razorpay',
+add column if not exists payment_order_id text,
+add column if not exists payment_id text,
 add column if not exists razorpay_order_id text,
 add column if not exists razorpay_payment_id text,
 add column if not exists razorpay_signature text,
+add column if not exists amount_due integer,
+add column if not exists amount_paid integer,
 add column if not exists payment_amount integer,
 add column if not exists payment_currency text default 'INR',
-add column if not exists paid_at timestamptz;
+add column if not exists seat_confirmed_at timestamptz,
+add column if not exists paid_at timestamptz,
+add column if not exists updated_at timestamptz not null default now();
 
 update public.registrations
 set
@@ -129,8 +149,40 @@ alter table public.registrations
 drop constraint if exists registrations_payment_status_check;
 
 alter table public.registrations
+drop constraint if exists registrations_registration_status_check;
+
+alter table public.registrations
+drop constraint if exists registrations_age_proof_status_check;
+
+update public.registrations
+set payment_status = 'order_created'
+where payment_status = 'payment_created';
+
+update public.registrations
+set
+  payment_order_id = coalesce(payment_order_id, razorpay_order_id),
+  payment_id = coalesce(payment_id, razorpay_payment_id),
+  amount_due = coalesce(amount_due, payment_amount),
+  amount_paid = coalesce(amount_paid, case when payment_status in ('paid', 'captured') then payment_amount else null end),
+  registration_status = case
+    when payment_status in ('paid', 'captured') then 'accepted'
+    when payment_status in ('failed', 'cancelled', 'refunded') then 'payment_pending'
+    else coalesce(registration_status, 'submitted')
+  end,
+  seat_confirmed_at = coalesce(seat_confirmed_at, case when payment_status in ('paid', 'captured') then paid_at else null end),
+  updated_at = coalesce(updated_at, created_at, now());
+
+alter table public.registrations
 add constraint registrations_payment_status_check
-check (payment_status in ('pending', 'payment_created', 'paid', 'failed', 'cancelled'));
+check (payment_status in ('pending', 'order_created', 'payment_created', 'signature_verified', 'captured', 'paid', 'failed', 'cancelled', 'refunded'));
+
+alter table public.registrations
+add constraint registrations_registration_status_check
+check (registration_status in ('submitted', 'payment_pending', 'paid', 'under_review', 'accepted', 'rejected', 'withdrawn'));
+
+alter table public.registrations
+add constraint registrations_age_proof_status_check
+check (age_proof_status in ('not_required_yet', 'requested', 'submitted', 'approved', 'rejected'));
 
 create index if not exists registrations_user_id_idx
 on public.registrations (user_id);
@@ -140,6 +192,15 @@ on public.registrations (created_at desc);
 
 create index if not exists registrations_razorpay_order_id_idx
 on public.registrations (razorpay_order_id);
+
+create index if not exists registrations_payment_order_id_idx
+on public.registrations (payment_order_id);
+
+create index if not exists registrations_registration_status_idx
+on public.registrations (registration_status);
+
+create index if not exists registrations_age_proof_status_idx
+on public.registrations (age_proof_status);
 
 create index if not exists registrations_payment_status_idx
 on public.registrations (payment_status);
@@ -175,7 +236,90 @@ on public.registrations
 for update
 to authenticated
 using (auth.uid() = user_id)
-with check (auth.uid() = user_id and payment_status <> 'paid');
+with check (auth.uid() = user_id and payment_status not in ('paid', 'captured'));
+
+create table if not exists public.payment_attempts (
+  id uuid primary key default gen_random_uuid(),
+  registration_id uuid not null references public.registrations(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  provider text not null default 'razorpay',
+  provider_order_id text not null,
+  provider_payment_id text,
+  amount integer not null default 0,
+  currency text not null default 'INR',
+  status text not null default 'created',
+  signature_verified boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (provider, provider_order_id)
+);
+
+alter table public.payment_attempts enable row level security;
+
+create index if not exists payment_attempts_registration_id_idx
+on public.payment_attempts (registration_id);
+
+create index if not exists payment_attempts_user_id_idx
+on public.payment_attempts (user_id);
+
+create index if not exists payment_attempts_provider_order_id_idx
+on public.payment_attempts (provider_order_id);
+
+drop policy if exists "Users can read own payment attempts" on public.payment_attempts;
+create policy "Users can read own payment attempts"
+on public.payment_attempts
+for select
+to authenticated
+using (auth.uid() = user_id);
+
+drop policy if exists "Admins can manage payment attempts" on public.payment_attempts;
+create policy "Admins can manage payment attempts"
+on public.payment_attempts
+for all
+to authenticated
+using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'))
+with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+
+create table if not exists public.payment_events (
+  id uuid primary key default gen_random_uuid(),
+  provider text not null default 'razorpay',
+  provider_event_id text not null unique,
+  event_type text not null,
+  provider_order_id text,
+  provider_payment_id text,
+  registration_id uuid references public.registrations(id) on delete set null,
+  raw_payload jsonb not null,
+  processed boolean not null default false,
+  processing_error text,
+  received_at timestamptz not null default now(),
+  processed_at timestamptz
+);
+
+alter table public.payment_events enable row level security;
+
+create index if not exists payment_events_provider_event_id_idx
+on public.payment_events (provider_event_id);
+
+create index if not exists payment_events_provider_order_id_idx
+on public.payment_events (provider_order_id);
+
+create index if not exists payment_events_registration_id_idx
+on public.payment_events (registration_id);
+
+drop policy if exists "Admins can read payment events" on public.payment_events;
+create policy "Admins can read payment events"
+on public.payment_events
+for select
+to authenticated
+using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
+
+drop policy if exists "Admins can manage payment events" on public.payment_events;
+create policy "Admins can manage payment events"
+on public.payment_events
+for all
+to authenticated
+using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'))
+with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
 
 insert into storage.buckets (id, name, public)
 values ('competition-images', 'competition-images', true)

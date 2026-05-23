@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
+import { isSeatConfirmed } from "@/lib/payment/status";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,9 +32,29 @@ export async function POST(request: NextRequest) {
     }
 
     const supabaseAdmin = createAdminClient();
+    const { data: registration, error: lookupError } = await supabaseAdmin
+      .from("registrations")
+      .select("id, user_id, payment_status")
+      .eq("id", body.registrationId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (lookupError || !registration) {
+      console.error(`[LockInTalks payment failed] Registration lookup failed: ${lookupError?.message || "Not found"}`);
+      return NextResponse.json({ error: "Registration not found for this account." }, { status: 404 });
+    }
+
+    if (isSeatConfirmed(registration.payment_status)) {
+      return NextResponse.json({ ok: true, ignored: true });
+    }
+
     const { error } = await supabaseAdmin
       .from("registrations")
-      .update({ payment_status: body.status === "cancelled" ? "cancelled" : "failed" })
+      .update({
+        payment_status: body.status === "cancelled" ? "cancelled" : "failed",
+        registration_status: "payment_pending",
+        updated_at: new Date().toISOString()
+      })
       .eq("id", body.registrationId)
       .eq("user_id", userId);
 

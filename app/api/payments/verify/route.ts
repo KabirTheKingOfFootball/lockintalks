@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { RazorpayConfigError } from "@/lib/razorpay/env";
-import { verifyRazorpaySignature } from "@/lib/razorpay/payments";
+import { fetchRazorpayPayment, isRazorpayPaymentCaptured, verifyRazorpaySignature } from "@/lib/razorpay/payments";
+import { isSeatConfirmed } from "@/lib/payment/status";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     const { data: registration, error: registrationError } = await supabase
       .from("registrations")
-      .select("id, user_id, razorpay_order_id, payment_status")
+      .select("id, user_id, razorpay_order_id, payment_order_id, payment_status")
       .eq("id", registrationId)
       .eq("user_id", userId)
       .single();
@@ -48,28 +49,55 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Registration not found for this account." }, { status: 404 });
     }
 
-    if (registration.razorpay_order_id !== orderId) {
+    const storedOrderId = registration.payment_order_id || registration.razorpay_order_id;
+
+    if (!storedOrderId || storedOrderId !== orderId) {
       console.warn(`[LockInTalks payment verify] Order mismatch for registration ${registration.id}.`);
       return NextResponse.json({ error: "Payment order does not match this registration." }, { status: 400 });
     }
 
-    const isValid = verifyRazorpaySignature({ orderId, paymentId, signature });
+    if (isSeatConfirmed(registration.payment_status)) {
+      return NextResponse.json({ ok: true, status: registration.payment_status, alreadyConfirmed: true });
+    }
+
+    const isValid = verifyRazorpaySignature({ orderId: storedOrderId, paymentId, signature });
 
     if (!isValid) {
       console.warn(`[LockInTalks payment verify] Signature mismatch for registration ${registration.id}.`);
       const supabaseAdmin = createAdminClient();
-      await supabaseAdmin.from("registrations").update({ payment_status: "failed" }).eq("id", registration.id).eq("user_id", userId);
+      await supabaseAdmin
+        .from("registrations")
+        .update({ payment_status: "failed", registration_status: "payment_pending", updated_at: new Date().toISOString() })
+        .eq("id", registration.id)
+        .eq("user_id", userId);
       return NextResponse.json({ error: "Payment verification failed." }, { status: 400 });
     }
 
     const supabaseAdmin = createAdminClient();
+    const payment = await fetchRazorpayPayment(paymentId);
+
+    if (payment.order_id && payment.order_id !== storedOrderId) {
+      console.warn(`[LockInTalks payment verify] Razorpay payment ${paymentId} belongs to ${payment.order_id}, expected ${storedOrderId}.`);
+      return NextResponse.json({ error: "Payment details do not match this registration." }, { status: 400 });
+    }
+
+    const captured = isRazorpayPaymentCaptured(payment);
+    const now = new Date().toISOString();
     const { error: updateError } = await supabaseAdmin
       .from("registrations")
       .update({
-        payment_status: "paid",
+        payment_status: captured ? "captured" : "signature_verified",
+        registration_status: captured ? "accepted" : "payment_pending",
+        payment_provider: "razorpay",
+        payment_order_id: storedOrderId,
+        payment_id: paymentId,
         razorpay_payment_id: paymentId,
         razorpay_signature: signature,
-        paid_at: new Date().toISOString()
+        amount_paid: captured ? payment.amount ?? null : null,
+        payment_currency: payment.currency || "INR",
+        paid_at: captured ? now : null,
+        seat_confirmed_at: captured ? now : null,
+        updated_at: now
       })
       .eq("id", registration.id)
       .eq("user_id", userId);
@@ -79,7 +107,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Payment verified, but registration could not be updated. Please contact support." }, { status: 500 });
     }
 
-    return NextResponse.json({ ok: true });
+    await supabaseAdmin.from("payment_attempts").upsert(
+      {
+        registration_id: registration.id,
+        user_id: userId,
+        provider: "razorpay",
+        provider_order_id: storedOrderId,
+        provider_payment_id: paymentId,
+        amount: payment.amount || 0,
+        currency: payment.currency || "INR",
+        status: payment.status || (captured ? "captured" : "signature_verified"),
+        signature_verified: true,
+        updated_at: now
+      },
+      { onConflict: "provider,provider_order_id" }
+    );
+
+    return NextResponse.json({ ok: true, status: captured ? "captured" : "signature_verified", pending: !captured }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     if (error instanceof SupabaseConfigError || error instanceof RazorpayConfigError) {
       console.error(`[LockInTalks payment verify] ${error.message}`);

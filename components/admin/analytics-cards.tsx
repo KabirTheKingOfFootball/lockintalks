@@ -2,16 +2,18 @@ import { Award, CreditCard, Mic2, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import type { AdminCompetition } from "@/lib/admin/competitions";
 import type { RegistrationRow } from "@/lib/registrations";
+import { isSeatConfirmed } from "@/lib/payment/status";
+import { formatAmount } from "@/lib/razorpay/payments";
 
 export function AnalyticsCards({ competitions, registrations }: { competitions: AdminCompetition[]; registrations: RegistrationRow[] }) {
-  const paid = registrations.filter((registration) => registration.payment_status === "paid");
-  const revenue = paid.reduce((total, registration) => total + (registration.payment_amount || 0), 0);
+  const paid = registrations.filter((registration) => isSeatConfirmed(registration.payment_status));
+  const revenue = paid.reduce((total, registration) => total + (registration.amount_paid || registration.payment_amount || 0), 0);
 
   const cards = [
     { icon: Mic2, label: "Competitions", value: competitions.length },
     { icon: Users, label: "Registrations", value: registrations.length },
     { icon: CreditCard, label: "Paid Entries", value: paid.length },
-    { icon: Award, label: "Revenue", value: `₹${(revenue / 100).toLocaleString("en-IN")}` }
+    { icon: Award, label: "Revenue", value: formatAmount(revenue) }
   ];
 
   return (

@@ -3,6 +3,7 @@ type RazorpayEnv =
       ok: true;
       keyId: string;
       keySecret: string;
+      webhookSecret: string | null;
     }
   | {
       ok: false;
@@ -20,6 +21,7 @@ export class RazorpayConfigError extends Error {
 export function getRazorpayEnv(): RazorpayEnv {
   const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || null;
   const missing = [];
 
   if (!keyId) missing.push("NEXT_PUBLIC_RAZORPAY_KEY_ID");
@@ -33,7 +35,7 @@ export function getRazorpayEnv(): RazorpayEnv {
     };
   }
 
-  return { ok: true, keyId: keyId as string, keySecret: keySecret as string };
+  return { ok: true, keyId: keyId as string, keySecret: keySecret as string, webhookSecret };
 }
 
 export function requireRazorpayEnv() {
@@ -44,4 +46,14 @@ export function requireRazorpayEnv() {
   }
 
   return env;
+}
+
+export function requireRazorpayWebhookSecret() {
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+  if (!secret) {
+    throw new RazorpayConfigError("Missing RAZORPAY_WEBHOOK_SECRET. Add the webhook secret from Razorpay Dashboard before enabling payment webhooks.");
+  }
+
+  return secret;
 }

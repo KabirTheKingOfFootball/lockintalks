@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import type { RegistrationRow } from "@/lib/registrations";
+import { isSeatConfirmed } from "@/lib/payment/status";
 
 type DashboardUser = {
   name: string;
@@ -22,7 +23,7 @@ export function DashboardClient({
   dataError?: string;
 }) {
   const latestRegistration = registrations[0];
-  const paidRegistrations = registrations.filter((registration) => registration.payment_status === "paid");
+  const paidRegistrations = registrations.filter((registration) => isSeatConfirmed(registration.payment_status));
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
