@@ -10,6 +10,10 @@ export type CompetitionRecord = {
   category: string;
   age_group: string;
   event_date: string;
+  event_time: string | null;
+  timezone: string | null;
+  registration_deadline: string | null;
+  max_participants: number | null;
   fee_label: string;
   fee_amount: number;
   summary: string;
@@ -19,6 +23,7 @@ export type CompetitionRecord = {
   rules: string[];
   schedule: string[];
   prizes: string[];
+  criteria: string[];
   judges: string[];
   created_at: string;
   updated_at?: string | null;
@@ -32,10 +37,15 @@ export type PublicCompetition = {
   ageGroup: string;
   date: string;
   dateIso: string;
+  time: string;
+  timezone: string;
+  registrationDeadline: string | null;
   fee: string;
   feeAmount: number;
   status: CompetitionStatus;
   slotsRemaining: number;
+  maxParticipants: number;
+  displayStatus: "Upcoming" | "Live" | "Closed";
   featured: boolean;
   summary: string;
   description: string;
@@ -55,7 +65,7 @@ const accents = [
   "from-blue-100 via-amber-300 to-yellow-600"
 ];
 
-const defaultCriteria = ["Message clarity", "Structure", "Voice control", "Presence and confidence"];
+const defaultCriteria = ["Confidence", "Clarity", "Creativity", "Speech Structure", "Stage Presence", "Time Management"];
 
 export async function getLiveCompetitions(limit?: number) {
   try {
@@ -111,8 +121,9 @@ export async function getLiveCompetitionBySlug(slug: string) {
 }
 
 export function mapCompetitionRecord(record: CompetitionRecord): PublicCompetition {
-  const dateIso = getDateIso(record.event_date);
+  const dateIso = getDateIso(record.event_date, record.event_time || "");
   const accent = accents[Math.abs(hashString(record.slug)) % accents.length];
+  const maxParticipants = Number(record.max_participants || 50);
 
   return {
     id: record.id,
@@ -122,10 +133,15 @@ export function mapCompetitionRecord(record: CompetitionRecord): PublicCompetiti
     ageGroup: record.age_group,
     date: record.event_date,
     dateIso,
+    time: record.event_time || "TBA",
+    timezone: record.timezone || "IST",
+    registrationDeadline: record.registration_deadline || null,
     fee: record.fee_label,
     feeAmount: record.fee_amount,
     status: record.status,
-    slotsRemaining: getSlotsRemaining(record),
+    slotsRemaining: maxParticipants,
+    maxParticipants,
+    displayStatus: getDisplayStatus(record.status, dateIso),
     featured: record.status === "live",
     summary: record.summary,
     description: record.description,
@@ -135,19 +151,41 @@ export function mapCompetitionRecord(record: CompetitionRecord): PublicCompetiti
     schedule: record.schedule || [],
     prizes: record.prizes || [],
     judges: record.judges || [],
-    criteria: defaultCriteria
+    criteria: record.criteria?.length ? record.criteria : defaultCriteria
   };
 }
 
-function getDateIso(eventDate: string) {
-  const parsed = new Date(eventDate);
+function getDateIso(eventDate: string, eventTime: string) {
+  const istIso = toIstIso(eventDate, eventTime);
+  if (istIso) return istIso;
+  const parsed = new Date(`${eventDate} ${eventTime || ""}`.trim());
   if (Number.isFinite(parsed.getTime())) return parsed.toISOString();
   return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 }
 
-function getSlotsRemaining(record: CompetitionRecord) {
-  const seed = Math.abs(hashString(record.id || record.slug));
-  return 18 + (seed % 35);
+function toIstIso(eventDate: string, eventTime: string) {
+  const dateMatch = eventDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const timeMatch = eventTime.trim().match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+  if (!dateMatch || !timeMatch) return null;
+
+  let hour = Number(timeMatch[1]);
+  const minute = Number(timeMatch[2] || 0);
+  const meridiem = timeMatch[3]?.toUpperCase();
+  if (meridiem === "PM" && hour < 12) hour += 12;
+  if (meridiem === "AM" && hour === 12) hour = 0;
+  if (hour > 23 || minute > 59) return null;
+
+  return new Date(`${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00+05:30`).toISOString();
+}
+
+function getDisplayStatus(status: CompetitionStatus, dateIso: string): "Upcoming" | "Live" | "Closed" {
+  if (status === "closed") return "Closed";
+  const now = Date.now();
+  const eventTime = new Date(dateIso).getTime();
+  if (!Number.isFinite(eventTime)) return status === "live" ? "Upcoming" : "Closed";
+  if (eventTime + 3 * 60 * 60 * 1000 < now) return "Closed";
+  if (eventTime <= now) return "Live";
+  return "Upcoming";
 }
 
 function hashString(value: string) {

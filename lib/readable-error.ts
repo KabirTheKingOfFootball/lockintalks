@@ -17,6 +17,10 @@ export function getReadableError(error: unknown, fallback = "Something went wron
 export function getReadableSupabaseError(error: unknown, fallback = "Supabase is temporarily unavailable. Please try again.") {
   const message = getReadableError(error, fallback);
 
+  if (/auth session missing|session.*missing|no active session/i.test(message)) {
+    return "Please Log In or Create an Account Before Registering for a Competition.";
+  }
+
   if (/failed to fetch|fetch failed|networkerror|load failed|typeerror/i.test(message)) {
     return "Could not connect to Supabase. Confirm NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY are set in Vercel, the Supabase project is active, and the app was redeployed after saving env vars.";
   }

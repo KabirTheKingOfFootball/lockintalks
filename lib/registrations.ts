@@ -7,6 +7,8 @@ export type RegistrationRow = {
   student_age: number;
   guardian_name: string;
   guardian_email: string;
+  city: string | null;
+  country: string | null;
   city_country: string;
   entry_fee: string;
   payment_status: "pending" | "payment_created" | "paid" | "failed" | "cancelled";

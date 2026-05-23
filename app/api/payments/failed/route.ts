@@ -20,11 +20,14 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createClient();
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
-    const userId = claimsData?.claims?.sub;
+    const {
+      data: { user },
+      error: userError
+    } = await supabase.auth.getUser();
+    const userId = user?.id;
 
-    if (claimsError || !userId) {
-      return NextResponse.json({ error: "Please login before updating payment status." }, { status: 401 });
+    if (userError || !userId) {
+      return NextResponse.json({ error: "Please log in before updating payment status." }, { status: 401 });
     }
 
     const supabaseAdmin = createAdminClient();

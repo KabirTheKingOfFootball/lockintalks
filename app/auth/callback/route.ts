@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { buildAppUrl, getRequestOrigin, normalizeNextPath } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
+import { getReadableSupabaseError } from "@/lib/readable-error";
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error(`[LockInTalks auth callback] Code exchange failed: ${error.message}`);
-      return NextResponse.redirect(buildAppUrl(origin, `/login?error=${encodeURIComponent(error.message)}`));
+      return NextResponse.redirect(buildAppUrl(origin, `/login?error=${encodeURIComponent(getReadableSupabaseError(error, "Login could not be completed."))}`));
     }
 
     console.info(`[LockInTalks auth callback] Code exchange succeeded. Redirecting to ${next}.`);
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     if (error instanceof SupabaseConfigError) {
       console.error(`[LockInTalks auth callback] ${error.message}`);
-      return NextResponse.redirect(buildAppUrl(origin, `/login?error=${encodeURIComponent(error.message)}`));
+      return NextResponse.redirect(buildAppUrl(origin, `/login?error=${encodeURIComponent(getReadableSupabaseError(error, "Login could not be completed."))}`));
     }
 
     console.error("[LockInTalks auth callback] Unexpected callback error:", error);

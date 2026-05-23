@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { HelpCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { MotionShell } from "@/components/motion-shell";
+import { FAQAssistant } from "@/components/faq-assistant";
 
 export const metadata: Metadata = {
   title: "FAQ",
@@ -12,6 +13,8 @@ const faqs = [
   ["Who can participate?", "Kids and teenagers can join based on the age group listed for each competition."],
   ["Are competitions online?", "Yes. Registration, payment, live rounds, results, and certificate updates are handled online."],
   ["How do payments work?", "Payments use Razorpay Checkout. Registration is confirmed only after server-side verification."],
+  ["Do competitions include cash prizes?", "Yes. Every competition includes cash prize opportunities. Exact prize details appear on the competition page when published."],
+  ["Is age verification required?", "Yes. Accepted participants may be asked by email to submit proof of age before the competition begins."],
   ["Do students get certificates?", "Certificates are planned for completed competitions and will appear in the dashboard."],
   ["Can beginners join?", "Yes. LockInTalks is built to help first-time speakers practice with structure and confidence."]
 ];
@@ -34,6 +37,7 @@ export default function FAQPage() {
           </Card>
         ))}
       </div>
+      <FAQAssistant />
     </MotionShell>
   );
 }

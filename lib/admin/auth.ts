@@ -16,12 +16,15 @@ export type AdminCheck =
 export async function checkAdmin(): Promise<AdminCheck> {
   try {
     const supabase = await createClient();
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
-    const userId = claimsData?.claims?.sub;
+    const {
+      data: { user },
+      error: userError
+    } = await supabase.auth.getUser();
+    const userId = user?.id;
 
-    if (claimsError || !userId) {
-      console.warn(`[LockInTalks admin] Unauthorized admin access: ${claimsError?.message || "No active session"}`);
-      return { ok: false, status: 401, message: "Please login with an admin account." };
+    if (userError || !userId) {
+      console.warn(`[LockInTalks admin] Unauthorized admin access: ${userError?.message || "No active session"}`);
+      return { ok: false, status: 401, message: "Please log in with an admin account." };
     }
 
     const supabaseAdmin = createAdminClient();
@@ -40,7 +43,7 @@ export async function checkAdmin(): Promise<AdminCheck> {
     return {
       ok: true,
       userId,
-      email: typeof claimsData.claims.email === "string" ? claimsData.claims.email : ""
+      email: user.email || ""
     };
   } catch (error) {
     console.error("[LockInTalks admin] Admin authorization failed:", error);

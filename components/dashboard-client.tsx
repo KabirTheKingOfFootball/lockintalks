@@ -34,11 +34,11 @@ export function DashboardClient({
           <Sparkles className="mb-4 text-[#d4af37]" />
           <h2 className="text-2xl font-black">Your Speaker Launchpad</h2>
           <p className="mt-3 text-sm leading-6 text-white/62">
-            Start by choosing one competition, complete payment, and use the prep checklist before your live online round.
+            Start by choosing one competition, complete payment, and use the prep checklist before your live online round. Top performers can win cash awards in every competition.
           </p>
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
             <ButtonLink href="/competitions">Find a Competition</ButtonLink>
-            <ButtonLink href="/contact" variant="glass">Ask for Help</ButtonLink>
+            <ButtonLink href="mailto:lockintalks@gmail.com" variant="glass">Ask for Help</ButtonLink>
           </div>
         </Card>
         <Card>
@@ -70,7 +70,8 @@ export function DashboardClient({
               <div key={registration.id} className="glass flex flex-col justify-between gap-3 rounded-[8px] p-4 sm:flex-row sm:items-center">
                 <div>
                   <p className="font-bold">{registration.competition_name}</p>
-                  <p className="text-sm text-white/58">{registration.student_name} | {registration.entry_fee}</p>
+                  <p className="text-sm text-white/58">{registration.student_name} | Age {registration.student_age} | {registration.city || registration.city_country}{registration.country ? `, ${registration.country}` : ""} | {registration.entry_fee}</p>
+                  <p className="mt-1 text-xs font-bold uppercase tracking-[0.16em] text-[#d4af37]">Competing for cash prizes and recognition</p>
                 </div>
                 <StatusBadge status={registration.payment_status} />
               </div>
@@ -82,7 +83,7 @@ export function DashboardClient({
         <Card className="mt-10 text-center">
           <Lightbulb className="mx-auto mb-4 text-[#d4af37]" />
           <h2 className="text-2xl font-black">No Registrations Yet</h2>
-          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/62">Explore the live competition tracks and lock in your first stage. Your events, payment status, and certificates will appear here.</p>
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/62">Explore the live competition tracks and lock in your first stage. Your events, payment status, cash prize details, and certificates will appear here.</p>
           <ButtonLink href="/competitions" className="mt-5">Explore Competitions</ButtonLink>
         </Card>
       )}

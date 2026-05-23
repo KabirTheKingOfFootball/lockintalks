@@ -8,6 +8,10 @@ insert into public.competitions (
   category,
   age_group,
   event_date,
+  event_time,
+  timezone,
+  registration_deadline,
+  max_participants,
   fee_label,
   fee_amount,
   summary,
@@ -16,6 +20,7 @@ insert into public.competitions (
   rules,
   schedule,
   prizes,
+  criteria,
   judges
 )
 values
@@ -24,7 +29,11 @@ values
   'Debate Battles Global',
   'Debate Battles',
   '10-16 years',
-  '2026-06-22T14:00:00+05:30',
+  '2026-06-22',
+  '2:00 PM',
+  'IST',
+  '2026-06-20',
+  60,
   'INR 499',
   49900,
   'Fast-paced argument rounds for sharp thinkers who love strategy, evidence, and stage presence.',
@@ -32,7 +41,8 @@ values
   'live',
   array['Two speakers per match', 'Opening statement, rebuttal, and closing round', 'Citations must be age-appropriate', 'Respectful language is required'],
   array['Orientation: June 20', 'Preliminary rounds: June 22', 'Semi-finals: June 24', 'Final showcase: June 26'],
-  array['Champion trophy certificate', 'Featured speaker badge', 'Judge feedback report'],
+  array['Cash awards for top performers', 'Champion certificate', 'Judge feedback report'],
+  array['Confidence', 'Argument Clarity', 'Evidence Use', 'Speech Structure', 'Respectful Rebuttal', 'Time Management'],
   array['Anika Rao', 'Marcus Bell', 'Leah Chen']
 ),
 (
@@ -40,7 +50,11 @@ values
   'Storytelling Showcase',
   'Storytelling',
   '7-13 years',
-  '2026-07-05T11:00:00+05:30',
+  '2026-07-05',
+  '11:00 AM',
+  'IST',
+  '2026-07-02',
+  50,
   'INR 399',
   39900,
   'A creative stage for original stories, expressive delivery, and memorable characters.',
@@ -48,7 +62,8 @@ values
   'live',
   array['Original or adapted stories allowed', '3 to 5 minute performance', 'Props are optional', 'No offensive or unsafe content'],
   array['Submission check: July 2', 'Live rounds: July 5', 'Awards stream: July 6'],
-  array['Best storyteller medal', 'Creativity certificate', 'Audience favorite mention'],
+  array['Cash awards for top performers', 'Creativity certificate', 'Audience favorite mention'],
+  array['Confidence', 'Clarity', 'Creativity', 'Story Structure', 'Expression', 'Time Management'],
   array['Priya Sethi', 'Owen Brooks', 'Maya Torres']
 ),
 (
@@ -56,7 +71,11 @@ values
   'Motivational Speaking Cup',
   'Motivational Speaking',
   '12-18 years',
-  '2026-07-19T16:00:00+05:30',
+  '2026-07-19',
+  '4:00 PM',
+  'IST',
+  '2026-07-16',
+  60,
   'INR 599',
   59900,
   'TED-style short talks for teens ready to inspire action and lead with presence.',
@@ -64,7 +83,8 @@ values
   'live',
   array['4 to 6 minute speech', 'Original speech required', 'Slides are optional', 'One speaker per entry'],
   array['Speaker briefing: July 16', 'Qualifiers: July 19', 'Grand stage: July 21'],
-  array['Gold speaker certificate', 'Leadership spotlight', 'Mentor feedback session'],
+  array['Cash awards for top performers', 'Leadership spotlight', 'Mentor feedback session'],
+  array['Confidence', 'Clarity', 'Message Strength', 'Speech Structure', 'Stage Presence', 'Time Management'],
   array['LockInTalks Review Panel', 'Guest Speaking Coach']
 ),
 (
@@ -72,7 +92,11 @@ values
   'Extempore Arena',
   'Extempore',
   '9-17 years',
-  '2026-08-03T15:00:00+05:30',
+  '2026-08-03',
+  '3:00 PM',
+  'IST',
+  '2026-08-01',
+  45,
   'INR 349',
   34900,
   'Think fast, speak clear, and turn surprise topics into winning moments.',
@@ -80,7 +104,8 @@ values
   'live',
   array['Topic assigned live', '90 seconds preparation', '2 minute speech', 'No external help during prep'],
   array['Tech check: August 2', 'Live competition: August 3', 'Results: August 4'],
-  array['Quick thinker badge', 'Finalist certificate', 'Performance scorecard'],
+  array['Cash awards for top performers', 'Finalist certificate', 'Performance scorecard'],
+  array['Confidence', 'Clarity', 'Quick Thinking', 'Speech Structure', 'Stage Presence', 'Time Management'],
   array['Nina Patel', 'James Carter', 'Fatima Noor']
 )
 on conflict (slug) do update set
@@ -88,6 +113,10 @@ on conflict (slug) do update set
   category = excluded.category,
   age_group = excluded.age_group,
   event_date = excluded.event_date,
+  event_time = excluded.event_time,
+  timezone = excluded.timezone,
+  registration_deadline = excluded.registration_deadline,
+  max_participants = excluded.max_participants,
   fee_label = excluded.fee_label,
   fee_amount = excluded.fee_amount,
   summary = excluded.summary,
@@ -96,5 +125,6 @@ on conflict (slug) do update set
   rules = excluded.rules,
   schedule = excluded.schedule,
   prizes = excluded.prizes,
+  criteria = excluded.criteria,
   judges = excluded.judges,
   updated_at = now();

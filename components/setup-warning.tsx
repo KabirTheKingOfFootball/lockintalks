@@ -10,7 +10,7 @@ export function SetupWarning({ title = "Supabase Setup Needed", message }: { tit
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
           <ButtonLink href="/" variant="glass">Back Home</ButtonLink>
           <ButtonLink href="/api/health/supabase" variant="glass">Check Supabase</ButtonLink>
-          <ButtonLink href="/contact">Contact Support</ButtonLink>
+          <ButtonLink href="mailto:lockintalks@gmail.com">Contact Support</ButtonLink>
         </div>
       </div>
     </div>

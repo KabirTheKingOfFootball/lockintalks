@@ -13,14 +13,14 @@ export function RegisterForm({ competition }: { competition: PublicCompetition }
   const router = useRouter();
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [form, setForm] = useState({ student: "", age: "", guardian: "", email: "", city: "" });
+  const [form, setForm] = useState({ student: "", age: "", guardian: "", email: "", city: "", country: "" });
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
 
     const age = Number(form.age);
-    if (!form.student.trim() || !form.guardian.trim() || !form.city.trim()) {
+    if (!form.student.trim() || !form.guardian.trim() || !form.city.trim() || !form.country.trim()) {
       setError("Please complete all required fields.");
       return;
     }
@@ -41,12 +41,8 @@ export function RegisterForm({ competition }: { competition: PublicCompetition }
       } = await supabase.auth.getUser();
 
       if (userError || !user) {
-        console.warn(`[LockInTalks registration] User not authenticated: ${userError?.message || "No active session"}`);
-        if (userError) {
-          setError(getReadableSupabaseError(userError, "Please log in before registering."));
-          return;
-        }
-        router.push("/login");
+        router.push(`/login?next=${encodeURIComponent(`/register/${competition.slug}`)}`);
+        setError("Please Log In or Create an Account Before Registering for a Competition.");
         return;
       }
 
@@ -60,7 +56,9 @@ export function RegisterForm({ competition }: { competition: PublicCompetition }
           student_age: age,
           guardian_name: form.guardian.trim(),
           guardian_email: form.email.trim(),
-          city_country: form.city.trim(),
+          city: form.city.trim(),
+          country: form.country.trim(),
+          city_country: `${form.city.trim()}, ${form.country.trim()}`,
           entry_fee: competition.fee,
           payment_status: "pending"
         })
@@ -95,13 +93,14 @@ export function RegisterForm({ competition }: { competition: PublicCompetition }
   return (
     <form onSubmit={submit} className="glass rounded-[8px] p-6 sm:p-8">
       <h1 className="text-3xl font-black">Register for <span className="gold-text">{competition.name}</span></h1>
-      <p className="mt-3 text-sm leading-6 text-white/62">Fill in the speaker details, then continue to the secure payment step.</p>
+      <p className="mt-3 text-sm leading-6 text-white/62">Fill in the speaker details, then continue to the secure payment step. Top performers compete for cash awards, recognition, and confidence-building stage experience.</p>
       <div className="mt-7 grid gap-4 sm:grid-cols-2">
         <label className="grid gap-2 text-sm font-bold text-white/80">Student Name<Input value={form.student} onChange={(e) => setForm({ ...form, student: e.target.value })} /></label>
         <label className="grid gap-2 text-sm font-bold text-white/80">Age<Input inputMode="numeric" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} /></label>
         <label className="grid gap-2 text-sm font-bold text-white/80">Guardian Name<Input value={form.guardian} onChange={(e) => setForm({ ...form, guardian: e.target.value })} /></label>
         <label className="grid gap-2 text-sm font-bold text-white/80">Guardian Email<Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></label>
-        <label className="grid gap-2 text-sm font-bold text-white/80 sm:col-span-2">City / Country<Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} /></label>
+        <label className="grid gap-2 text-sm font-bold text-white/80">City<Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} /></label>
+        <label className="grid gap-2 text-sm font-bold text-white/80">Country / Nation<Input value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} /></label>
       </div>
       {error && <p className="mt-4 rounded-[8px] border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
       <Button type="submit" className="mt-6 w-full sm:w-auto" disabled={isSubmitting}>

@@ -13,7 +13,7 @@ type AuthResponse = {
   needsEmailConfirmation?: boolean;
 };
 
-export function AuthForm({ mode, initialError = "" }: { mode: "login" | "signup"; initialError?: string }) {
+export function AuthForm({ mode, initialError = "", nextPath = "/dashboard" }: { mode: "login" | "signup"; initialError?: string; nextPath?: string }) {
   const router = useRouter();
   const [error, setError] = useState(initialError);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,7 +46,8 @@ export function AuthForm({ mode, initialError = "" }: { mode: "login" | "signup"
         body: JSON.stringify({
           name: form.name,
           email: form.email,
-          password: form.password
+          password: form.password,
+          next: nextPath
         })
       });
       const result = await readJsonResponse<AuthResponse>(response);
@@ -62,7 +63,7 @@ export function AuthForm({ mode, initialError = "" }: { mode: "login" | "signup"
         return;
       }
 
-      router.push("/dashboard");
+      router.push(nextPath);
       router.refresh();
     } catch (submitError) {
       console.error(`[LockInTalks auth form] Unexpected ${mode} error:`, submitError);

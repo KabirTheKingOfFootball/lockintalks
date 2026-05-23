@@ -20,7 +20,7 @@ export function RegistrationManager({ registrations }: { registrations: Registra
       const matchesStatus = status === "all" || registration.payment_status === status;
       const matchesQuery =
         !normalizedQuery ||
-        [registration.student_name, registration.guardian_name, registration.guardian_email, registration.competition_name, registration.city_country]
+        [registration.student_name, registration.guardian_name, registration.guardian_email, registration.competition_name, registration.city, registration.country, registration.city_country]
           .join(" ")
           .toLowerCase()
           .includes(normalizedQuery);
@@ -84,7 +84,8 @@ export function RegistrationManager({ registrations }: { registrations: Registra
               <th className="px-3 py-2">Student</th>
               <th className="px-3 py-2">Competition</th>
               <th className="px-3 py-2">Guardian</th>
-              <th className="px-3 py-2">Location</th>
+              <th className="px-3 py-2">City</th>
+              <th className="px-3 py-2">Country / Nation</th>
               <th className="px-3 py-2">Payment</th>
               <th className="px-3 py-2">Created</th>
             </tr>
@@ -101,7 +102,8 @@ export function RegistrationManager({ registrations }: { registrations: Registra
                   <p>{registration.guardian_name}</p>
                   <p className="text-white/50">{registration.guardian_email}</p>
                 </td>
-                <td className="px-3 py-3">{registration.city_country}</td>
+                <td className="px-3 py-3">{registration.city || registration.city_country}</td>
+                <td className="px-3 py-3">{registration.country || "Not Provided"}</td>
                 <td className="px-3 py-3">
                   <select
                     className="focus-ring rounded-full border border-[#d4af37]/30 bg-[#071b3b] px-3 py-1 text-xs font-bold uppercase text-[#d4af37]"

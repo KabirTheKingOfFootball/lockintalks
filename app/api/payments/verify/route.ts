@@ -25,12 +25,15 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createClient();
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
-    const userId = claimsData?.claims?.sub;
+    const {
+      data: { user },
+      error: userError
+    } = await supabase.auth.getUser();
+    const userId = user?.id;
 
-    if (claimsError || !userId) {
-      console.warn(`[LockInTalks payment verify] Unauthenticated verification attempt: ${claimsError?.message || "No user id"}`);
-      return NextResponse.json({ error: "Please login before verifying payment." }, { status: 401 });
+    if (userError || !userId) {
+      console.warn(`[LockInTalks payment verify] Unauthenticated verification attempt: ${userError?.message || "No user id"}`);
+      return NextResponse.json({ error: "Please log in before verifying payment." }, { status: 401 });
     }
 
     const { data: registration, error: registrationError } = await supabase

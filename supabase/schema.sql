@@ -25,6 +25,10 @@ create table if not exists public.competitions (
   category text not null,
   age_group text not null,
   event_date text not null,
+  event_time text not null default 'TBA',
+  timezone text not null default 'IST',
+  registration_deadline text,
+  max_participants integer not null default 50 check (max_participants > 0),
   fee_label text not null,
   fee_amount integer not null default 0,
   summary text not null,
@@ -34,12 +38,27 @@ create table if not exists public.competitions (
   rules text[] not null default '{}',
   schedule text[] not null default '{}',
   prizes text[] not null default '{}',
+  criteria text[] not null default '{}',
   judges text[] not null default '{}',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 alter table public.competitions enable row level security;
+
+alter table public.competitions
+add column if not exists event_time text not null default 'TBA',
+add column if not exists timezone text not null default 'IST',
+add column if not exists registration_deadline text,
+add column if not exists max_participants integer not null default 50,
+add column if not exists criteria text[] not null default '{}';
+
+alter table public.competitions
+drop constraint if exists competitions_max_participants_check;
+
+alter table public.competitions
+add constraint competitions_max_participants_check
+check (max_participants > 0);
 
 alter table public.competitions
 drop constraint if exists competitions_status_check;
@@ -76,6 +95,8 @@ create table if not exists public.registrations (
   student_age integer not null check (student_age between 6 and 19),
   guardian_name text not null,
   guardian_email text not null,
+  city text,
+  country text,
   city_country text not null,
   entry_fee text not null,
   payment_status text not null default 'pending' check (payment_status in ('pending', 'payment_created', 'paid', 'failed', 'cancelled')),
@@ -89,12 +110,20 @@ create table if not exists public.registrations (
 );
 
 alter table public.registrations
+add column if not exists city text,
+add column if not exists country text,
 add column if not exists razorpay_order_id text,
 add column if not exists razorpay_payment_id text,
 add column if not exists razorpay_signature text,
 add column if not exists payment_amount integer,
 add column if not exists payment_currency text default 'INR',
 add column if not exists paid_at timestamptz;
+
+update public.registrations
+set
+  city = coalesce(city, nullif(split_part(city_country, ',', 1), '')),
+  country = coalesce(country, nullif(trim(substr(city_country, length(split_part(city_country, ',', 1)) + 2)), ''))
+where city is null or country is null;
 
 alter table public.registrations
 drop constraint if exists registrations_payment_status_check;

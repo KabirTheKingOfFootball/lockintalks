@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { checkAdmin } from "@/lib/admin/auth";
+import { normalizeCompetitionPayload } from "@/lib/admin/competition-payload";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { normalizeCompetitionPayload } from "@/app/api/admin/competitions/route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

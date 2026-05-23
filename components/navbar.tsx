@@ -26,7 +26,7 @@ const publicLinks = [
   { href: "/competitions", label: "Competitions" },
   { href: "/about", label: "About" },
   { href: "/faq", label: "FAQ" },
-  { href: "/contact", label: "Contact" }
+  { href: "mailto:lockintalks@gmail.com", label: "Contact" }
 ];
 
 export function Navbar() {

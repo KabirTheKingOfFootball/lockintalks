@@ -29,26 +29,17 @@ export default async function DashboardPage() {
     return <SetupWarning title="Dashboard unavailable" message="The dashboard could not connect to Supabase. Check your Vercel function logs for the exact server error." />;
   }
 
-  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
-
-  if (claimsError) {
-    console.error(`[LockInTalks dashboard] Failed to validate Supabase claims: ${claimsError.message}`);
-  }
-
-  const userId = claimsData?.claims?.sub;
-
-  if (!userId) {
-    redirect("/login");
-  }
-
   const {
     data: { user },
     error: userError
   } = await supabase.auth.getUser();
 
-  if (userError) {
-    console.error(`[LockInTalks dashboard] Failed to read Supabase user profile: ${userError.message}`);
+  if (userError || !user) {
+    console.error(`[LockInTalks dashboard] Failed to read Supabase user profile: ${userError?.message || "No active session"}`);
+    redirect("/login");
   }
+
+  const userId = user.id;
 
   let registrations: RegistrationRow[] = [];
   let dataError: string | undefined;
@@ -72,7 +63,7 @@ export default async function DashboardPage() {
   }
 
   const displayName = typeof user?.user_metadata.full_name === "string" ? user.user_metadata.full_name : "LockIn Speaker";
-  const email = user?.email || (typeof claimsData.claims.email === "string" ? claimsData.claims.email : "");
+  const email = user.email || "";
 
   return (
     <MotionShell>

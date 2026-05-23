@@ -27,10 +27,10 @@ export async function updateSession(request: NextRequest) {
       }
     });
 
-    const { error } = await supabase.auth.getClaims();
+    const { error } = await supabase.auth.getUser();
 
     if (error) {
-      console.warn(`[LockInTalks Supabase proxy] Could not refresh auth claims for ${request.nextUrl.pathname}: ${error.message}`);
+      console.warn(`[LockInTalks Supabase proxy] Could not refresh auth session for ${request.nextUrl.pathname}: ${error.message}`);
     }
   } catch (error) {
     console.error(`[LockInTalks Supabase proxy] Unexpected session refresh error for ${request.nextUrl.pathname}:`, error);

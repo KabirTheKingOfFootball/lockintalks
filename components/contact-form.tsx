@@ -16,6 +16,9 @@ export function ContactForm() {
       }}
     >
       <h1 className="text-3xl font-black">Contact LockInTalks</h1>
+      <p className="mt-3 text-sm leading-6 text-white/62">
+        For support, questions, or competition help, contact <a className="font-bold text-[#d4af37]" href="mailto:lockintalks@gmail.com">lockintalks@gmail.com</a>.
+      </p>
       <div className="mt-7 grid gap-4">
         <Input required placeholder="Name" />
         <Input required type="email" placeholder="Email" />

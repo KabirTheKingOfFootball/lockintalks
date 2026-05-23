@@ -27,8 +27,10 @@ async function getPaymentSummary(registrationId: string | null) {
 
   try {
     const supabase = await createClient();
-    const { data: claimsData } = await supabase.auth.getClaims();
-    const userId = claimsData?.claims?.sub;
+    const {
+      data: { user }
+    } = await supabase.auth.getUser();
+    const userId = user?.id;
 
     if (!userId) return null;
 
@@ -46,13 +48,13 @@ async function getPaymentSummary(registrationId: string | null) {
 
     const { data: competition } = await supabase
       .from("competitions")
-      .select("event_date")
+      .select("event_date, event_time, timezone")
       .eq("slug", data.competition_slug)
       .maybeSingle();
 
     return {
       competitionName: data.competition_name,
-      competitionDate: competition?.event_date || "See competition details",
+      competitionDate: competition ? `${competition.event_date} | ${competition.event_time || "TBA"} ${competition.timezone || "IST"}` : "See competition details",
       entryFee: data.entry_fee
     };
   } catch (error) {

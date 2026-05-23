@@ -11,7 +11,7 @@ const reasons = [
   { icon: ShieldCheck, title: "Improve Confidence", text: "Practice structured speaking in a supportive, high-standard environment." },
   { icon: Globe2, title: "Join Online Events", text: "Take part in organized speaking formats designed for students." },
   { icon: Mic2, title: "Build Communication Skills", text: "Learn clarity, persuasion, storytelling, and live delivery." },
-  { icon: Award, title: "Earn Recognition", text: "Track progress through event participation, certificates, and feedback when available." }
+  { icon: Award, title: "Compete for Rewards", text: "Every competition includes cash prize opportunities along with recognition and feedback when available." }
 ];
 
 const categories = ["Debate Battles", "Storytelling", "Motivational Speaking", "Extempore", "Speech Challenges", "Team Speaking"];
@@ -44,7 +44,7 @@ export default async function HomePage() {
               Speak. <span className="gold-text">Inspire.</span> Lead.
             </h1>
             <p className="mt-7 max-w-2xl text-lg leading-8 text-white/72">
-              LockInTalks gives students a structured online stage to practise public speaking, build confidence, and compete in a supportive environment.
+              LockInTalks gives students a structured online stage to practise public speaking, build confidence, earn recognition, and compete for exciting cash prizes in a supportive environment.
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <ButtonLink href="/competitions" className="gap-2">Explore Competitions <ArrowRight size={18} /></ButtonLink>
@@ -68,7 +68,7 @@ export default async function HomePage() {
             />
             <div className="glass absolute -bottom-4 left-2 flex items-center gap-3 rounded-[8px] p-4">
               <Sparkles className="text-[#d4af37]" size={22} />
-              <span className="text-sm font-bold">A Supportive Arena for Young Voices</span>
+              <span className="text-sm font-bold">Confidence, Recognition, and Cash Awards</span>
             </div>
           </div>
         </div>
@@ -110,7 +110,7 @@ export default async function HomePage() {
           {[
             ["Beginner-Friendly", "Students get a clear path from sign-up to stage, with simple steps and supportive guidance."],
             ["Meaningful Recognition", "Certificates and event milestones help students see progress over time."],
-            ["Structured Energy", "Events feel exciting without becoming chaotic, with rules, schedules, and criteria upfront."]
+            ["Structured Energy", "Events feel exciting without becoming chaotic, with rules, schedules, and judging criteria upfront."]
           ].map(([title, text]) => (
             <Card key={title}>
               <BadgeCheck className="mb-4 text-[#d4af37]" />
@@ -163,7 +163,7 @@ export default async function HomePage() {
                   <p className="mt-5 text-lg font-black">{competition.category}</p>
                 </div>
                 <h3 className="text-lg font-black">{competition.name}</h3>
-                <p className="mt-2 text-sm text-white/58">{competition.ageGroup} | {competition.fee} | {competition.slotsRemaining} Slots</p>
+                <p className="mt-2 text-sm text-white/58">{competition.ageGroup} | {competition.fee} | Cash Prizes</p>
                 <ButtonLink href={`/competitions/${competition.slug}`} variant="glass" className="mt-5 w-full">View Details</ButtonLink>
               </Card>
             ))}

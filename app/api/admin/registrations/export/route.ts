@@ -24,6 +24,8 @@ export async function GET() {
     "student_age",
     "guardian_name",
     "guardian_email",
+    "city",
+    "country",
     "city_country",
     "payment_status",
     "razorpay_order_id",

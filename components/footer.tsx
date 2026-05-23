@@ -24,7 +24,7 @@ export function Footer() {
             <Link href="/competitions">Competitions</Link>
             <Link href="/signup">Sign Up</Link>
             <Link href="/dashboard">Dashboard</Link>
-            <Link href="/contact">Contact</Link>
+            <Link href="mailto:lockintalks@gmail.com">Contact</Link>
           </div>
         </div>
         <div>

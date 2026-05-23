@@ -66,7 +66,7 @@ export default async function AdminPage() {
           </div>
         </Card>
         <Card>
-          <h2 className="text-xl font-black">Competition Status</h2>
+          <h2 className="text-xl font-black">Competition Visibility</h2>
           <div className="mt-5 grid gap-3">
             {competitions.slice(0, 5).map((competition) => (
               <div key={competition.id} className="flex items-center justify-between rounded-[8px] bg-white/[0.05] p-3">

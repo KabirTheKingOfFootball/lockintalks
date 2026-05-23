@@ -11,6 +11,7 @@ type SignupRequest = {
   name?: string;
   email?: string;
   password?: string;
+  next?: string;
 };
 
 export async function POST(request: NextRequest) {
@@ -19,6 +20,7 @@ export async function POST(request: NextRequest) {
     const name = String(body.name || "").trim();
     const email = String(body.email || "").trim();
     const password = String(body.password || "");
+    const next = String(body.next || "/dashboard");
 
     if (name.length < 2) {
       return NextResponse.json({ error: "Please enter the student's name." }, { status: 400 });
@@ -29,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     const origin = getRequestOrigin(request);
-    const emailRedirectTo = buildAppUrl(origin, "/auth/callback?next=/dashboard");
+    const emailRedirectTo = buildAppUrl(origin, `/auth/callback?next=${encodeURIComponent(next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard")}`);
     console.info(`[LockInTalks auth signup] Using email redirect origin ${origin} and callback ${emailRedirectTo}`);
 
     const supabase = await createClient();

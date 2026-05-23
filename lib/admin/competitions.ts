@@ -7,6 +7,10 @@ export type AdminCompetition = {
   category: string;
   age_group: string;
   event_date: string;
+  event_time: string | null;
+  timezone: string | null;
+  registration_deadline: string | null;
+  max_participants: number | null;
   fee_label: string;
   fee_amount: number;
   summary: string;
@@ -16,6 +20,7 @@ export type AdminCompetition = {
   rules: string[];
   schedule: string[];
   prizes: string[];
+  criteria: string[];
   judges: string[];
   created_at: string;
 };
