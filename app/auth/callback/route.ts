@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { buildAppUrl, getRequestOrigin, normalizeNextPath } from "@/lib/site-url";
-import { getRoleRedirect, getUserRole } from "@/lib/auth/session";
+import { getPostAuthRedirect } from "@/lib/auth/redirect";
+import { getUserRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { getReadableSupabaseError } from "@/lib/readable-error";
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
     }
 
     const role = await getUserRole(user.id);
-    const redirectTo = getRoleRedirect(role);
+    const redirectTo = getPostAuthRedirect(role, next);
     console.info(`[LockInTalks auth callback] Code exchange succeeded. Role: ${role}. Redirecting to ${redirectTo}.`);
     return NextResponse.redirect(buildAppUrl(origin, redirectTo));
   } catch (error) {

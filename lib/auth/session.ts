@@ -1,10 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { AppRole } from "@/lib/auth/redirect";
 
-export type AppRole = "user" | "admin";
-
-export function getRoleRedirect(role: AppRole) {
-  return role === "admin" ? "/admin" : "/dashboard";
-}
+export { getRoleRedirect } from "@/lib/auth/redirect";
 
 export async function getUserRole(userId: string): Promise<AppRole> {
   try {

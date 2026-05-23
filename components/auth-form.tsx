@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Lock, Mail, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getPostAuthRedirect } from "@/lib/auth/redirect";
 import { getReadableError, readJsonResponse } from "@/lib/readable-error";
 
 type AuthResponse = {
@@ -48,6 +49,8 @@ export function AuthForm({ mode, initialError = "", nextPath = "/dashboard" }: {
       return;
     }
 
+    let isNavigatingAway = false;
+
     try {
       setIsSubmitting(true);
       setStatusText(isSignup ? "Creating Account..." : "Signing In...");
@@ -77,18 +80,23 @@ export function AuthForm({ mode, initialError = "", nextPath = "/dashboard" }: {
       }
 
       setStatusText("Confirming Session...");
-      const session = await waitForServerSession(result.redirectTo);
-      const redirectTo = session.redirectTo || result.redirectTo || "/dashboard";
+      const session = await waitForServerSession();
+      const role = session.role === "admin" ? "admin" : "user";
+      const redirectTo = getPostAuthRedirect(role, nextPath);
 
-      window.dispatchEvent(new CustomEvent("lockintalks-auth-changed", { detail: session }));
-      router.replace(redirectTo);
+      setStatusText("Redirecting...");
+      window.dispatchEvent(new CustomEvent("lockintalks-auth-changed", { detail: { ...session, redirectTo } }));
       router.refresh();
+      isNavigatingAway = true;
+      window.location.replace(redirectTo);
     } catch (submitError) {
       console.error(`[LockInTalks auth form] Unexpected ${mode} error:`, submitError);
       setError(getReadableError(submitError, "Authentication is temporarily unavailable. Please check the Supabase configuration."));
     } finally {
-      setIsSubmitting(false);
-      setStatusText("");
+      if (!isNavigatingAway) {
+        setIsSubmitting(false);
+        setStatusText("");
+      }
     }
   }
 
@@ -130,7 +138,7 @@ export function AuthForm({ mode, initialError = "", nextPath = "/dashboard" }: {
   );
 }
 
-async function waitForServerSession(fallbackRedirect?: string) {
+async function waitForServerSession() {
   for (let attempt = 0; attempt < 12; attempt += 1) {
     const response = await fetch("/api/auth/session", {
       cache: "no-store",
@@ -143,10 +151,7 @@ async function waitForServerSession(fallbackRedirect?: string) {
     }
 
     if (result.authenticated) {
-      return {
-        ...result,
-        redirectTo: result.redirectTo || fallbackRedirect || "/dashboard"
-      };
+      return result;
     }
 
     await sleep(160 + attempt * 45);
