@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getReadableSupabaseError } from "@/lib/readable-error";
+import { getRoleRedirect, getUserRole } from "@/lib/auth/session";
 import { buildAppUrl, getRequestOrigin } from "@/lib/site-url";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
@@ -51,10 +52,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: getReadableSupabaseError(error, "Signup failed.") }, { status: 400 });
     }
 
-    return NextResponse.json({
-      ok: true,
-      needsEmailConfirmation: !data.session
-    });
+    const role = data.user && data.session ? await getUserRole(data.user.id) : "user";
+
+    return NextResponse.json(
+      {
+        ok: true,
+        needsEmailConfirmation: !data.session,
+        role,
+        redirectTo: getRoleRedirect(role)
+      },
+      { headers: { "Cache-Control": "no-store" } }
+    );
   } catch (error) {
     console.error("[LockInTalks auth signup] Unexpected signup error:", error);
     return NextResponse.json({ error: getReadableSupabaseError(error, "Signup is temporarily unavailable.") }, { status: error instanceof SupabaseConfigError ? 503 : 500 });

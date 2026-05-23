@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getReadableSupabaseError } from "@/lib/readable-error";
+import { getRoleRedirect, getUserRole } from "@/lib/auth/session";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -29,8 +30,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: getReadableSupabaseError(error, "Login failed.") }, { status: 401 });
     }
 
-    console.info(`[LockInTalks auth login] Login succeeded. Session set: ${Boolean(data.session)} User set: ${Boolean(data.user)}`);
-    return NextResponse.json({ ok: true });
+    const role = data.user ? await getUserRole(data.user.id) : "user";
+    console.info(`[LockInTalks auth login] Login succeeded. Session set: ${Boolean(data.session)} User set: ${Boolean(data.user)} Role: ${role}`);
+    return NextResponse.json({ ok: true, role, redirectTo: getRoleRedirect(role) }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("[LockInTalks auth login] Unexpected login error:", error);
     return NextResponse.json({ error: getReadableSupabaseError(error, "Login is temporarily unavailable.") }, { status: error instanceof SupabaseConfigError ? 503 : 500 });

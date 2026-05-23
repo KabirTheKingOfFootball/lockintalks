@@ -11,12 +11,22 @@ type AuthResponse = {
   ok?: boolean;
   error?: string;
   needsEmailConfirmation?: boolean;
+  role?: "user" | "admin";
+  redirectTo?: string;
+};
+
+type AuthSessionResponse = {
+  authenticated?: boolean;
+  role?: "user" | "admin" | null;
+  redirectTo?: string;
+  error?: string;
 };
 
 export function AuthForm({ mode, initialError = "", nextPath = "/dashboard" }: { mode: "login" | "signup"; initialError?: string; nextPath?: string }) {
   const router = useRouter();
   const [error, setError] = useState(initialError);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [statusText, setStatusText] = useState("");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const isSignup = mode === "signup";
   const title = useMemo(() => (isSignup ? "Create Your Speaker Account" : "Welcome Back"), [isSignup]);
@@ -40,8 +50,11 @@ export function AuthForm({ mode, initialError = "", nextPath = "/dashboard" }: {
 
     try {
       setIsSubmitting(true);
+      setStatusText(isSignup ? "Creating Account..." : "Signing In...");
       const response = await fetch(isSignup ? "/api/auth/signup" : "/api/auth/login", {
         method: "POST",
+        cache: "no-store",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: form.name,
@@ -63,14 +76,19 @@ export function AuthForm({ mode, initialError = "", nextPath = "/dashboard" }: {
         return;
       }
 
-      window.dispatchEvent(new Event("lockintalks-auth-changed"));
-      router.replace(nextPath);
+      setStatusText("Confirming Session...");
+      const session = await waitForServerSession(result.redirectTo);
+      const redirectTo = session.redirectTo || result.redirectTo || "/dashboard";
+
+      window.dispatchEvent(new CustomEvent("lockintalks-auth-changed", { detail: session }));
+      router.replace(redirectTo);
       router.refresh();
     } catch (submitError) {
       console.error(`[LockInTalks auth form] Unexpected ${mode} error:`, submitError);
       setError(getReadableError(submitError, "Authentication is temporarily unavailable. Please check the Supabase configuration."));
     } finally {
       setIsSubmitting(false);
+      setStatusText("");
     }
   }
 
@@ -106,8 +124,37 @@ export function AuthForm({ mode, initialError = "", nextPath = "/dashboard" }: {
       </div>
       {error && <p className="mt-4 rounded-[8px] border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
       <Button type="submit" className="mt-6 w-full" disabled={isSubmitting}>
-        {isSubmitting ? "Please wait..." : isSignup ? "Create Account" : "Login"}
+        {isSubmitting ? statusText || "Please Wait..." : isSignup ? "Create Account" : "Login"}
       </Button>
     </form>
   );
+}
+
+async function waitForServerSession(fallbackRedirect?: string) {
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const response = await fetch("/api/auth/session", {
+      cache: "no-store",
+      credentials: "same-origin"
+    });
+    const result = await readJsonResponse<AuthSessionResponse>(response);
+
+    if (!response.ok) {
+      throw new Error(result.error || "Could not verify your login session.");
+    }
+
+    if (result.authenticated) {
+      return {
+        ...result,
+        redirectTo: result.redirectTo || fallbackRedirect || "/dashboard"
+      };
+    }
+
+    await sleep(160 + attempt * 45);
+  }
+
+  throw new Error("Login succeeded, but your session is still syncing. Please wait a moment and try opening the dashboard again.");
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

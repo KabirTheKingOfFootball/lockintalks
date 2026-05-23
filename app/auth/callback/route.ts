@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { buildAppUrl, getRequestOrigin, normalizeNextPath } from "@/lib/site-url";
+import { getRoleRedirect, getUserRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { getReadableSupabaseError } from "@/lib/readable-error";
@@ -24,8 +25,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(buildAppUrl(origin, `/login?error=${encodeURIComponent(getReadableSupabaseError(error, "Login could not be completed."))}`));
     }
 
-    console.info(`[LockInTalks auth callback] Code exchange succeeded. Redirecting to ${next}.`);
-    return NextResponse.redirect(buildAppUrl(origin, next));
+    const {
+      data: { user },
+      error: userError
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      console.warn(`[LockInTalks auth callback] Code exchanged, but user could not be resolved: ${userError?.message || "No active session"}`);
+      return NextResponse.redirect(buildAppUrl(origin, next));
+    }
+
+    const role = await getUserRole(user.id);
+    const redirectTo = getRoleRedirect(role);
+    console.info(`[LockInTalks auth callback] Code exchange succeeded. Role: ${role}. Redirecting to ${redirectTo}.`);
+    return NextResponse.redirect(buildAppUrl(origin, redirectTo));
   } catch (error) {
     if (error instanceof SupabaseConfigError) {
       console.error(`[LockInTalks auth callback] ${error.message}`);

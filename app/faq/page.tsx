@@ -24,6 +24,9 @@ export default function FAQPage() {
     <MotionShell className="mx-auto max-w-5xl px-4 py-14 sm:px-6 lg:px-8">
       <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-[#d4af37]">FAQ</p>
       <h1 className="text-4xl font-black sm:text-6xl">Questions Before the Spotlight</h1>
+      <div className="mt-10">
+        <FAQAssistant />
+      </div>
       <div className="mt-10 grid gap-4">
         {faqs.map(([question, answer]) => (
           <Card key={question}>
@@ -37,7 +40,6 @@ export default function FAQPage() {
           </Card>
         ))}
       </div>
-      <FAQAssistant />
     </MotionShell>
   );
 }

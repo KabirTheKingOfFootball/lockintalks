@@ -33,6 +33,16 @@ export default async function HomePage() {
       <section className="relative overflow-hidden">
         <div className="mesh-bg animated-grid absolute inset-0" aria-hidden="true" />
         <div className="stage-light absolute inset-0" aria-hidden="true" />
+        <div className="hero-watermark" aria-hidden="true">
+          <div className="hero-starfield" />
+          <div className="speech-wave speech-wave-one" />
+          <div className="speech-wave speech-wave-two" />
+          <div className="stage-silhouette">
+            <span className="stage-helmet" />
+            <span className="stage-torso" />
+            <span className="stage-mic" />
+          </div>
+        </div>
         <div className="energy-line absolute left-0 top-32 hidden h-px w-1/3 lg:block" aria-hidden="true" />
         <div className="energy-line absolute bottom-24 right-0 hidden h-px w-1/4 lg:block" aria-hidden="true" />
         <div className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8">

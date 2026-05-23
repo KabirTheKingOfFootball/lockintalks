@@ -6,7 +6,6 @@ import { Menu, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ButtonLink } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
 
 type AuthNavState =
   | {
@@ -21,6 +20,12 @@ type AuthNavState =
       status: "in";
       role: "user" | "admin";
     };
+
+type AuthSessionResponse = {
+  authenticated?: boolean;
+  role?: "user" | "admin" | null;
+  error?: string;
+};
 
 const publicLinks = [
   { href: "/", label: "Home" },
@@ -45,17 +50,6 @@ export function Navbar() {
 
   useEffect(() => {
     let mounted = true;
-    let supabase: ReturnType<typeof createClient>;
-
-    try {
-      supabase = createClient();
-    } catch (error) {
-      console.warn("[LockInTalks navbar] Supabase client unavailable:", error);
-      queueMicrotask(() => {
-        if (mounted) setAuthState({ status: "out", role: null });
-      });
-      return;
-    }
 
     async function resolveAuthState({ showLoading = false }: { showLoading?: boolean } = {}) {
       const currentRequest = ++requestId.current;
@@ -65,33 +59,29 @@ export function Navbar() {
       }
 
       try {
-        const {
-          data: { user },
-          error: userError
-        } = await supabase.auth.getUser();
+        const response = await fetch("/api/auth/session", {
+          cache: "no-store",
+          credentials: "same-origin"
+        });
+        const session = (await response.json()) as AuthSessionResponse;
 
         if (!mounted || currentRequest !== requestId.current) return;
 
-        if (userError || !user) {
-          if (userError) {
-            console.warn(`[LockInTalks navbar] Could not resolve user session: ${userError.message}`);
-            if (authRef.current.status === "in" && /fetch|network|timeout|temporarily/i.test(userError.message)) {
-              return;
-            }
+        if (!response.ok) {
+          console.warn(`[LockInTalks navbar] Server session check failed: ${session.error || response.statusText}`);
+          if (authRef.current.status === "in") {
+            return;
           }
           setAuthState({ status: "out", role: null });
           return;
         }
 
-        const { data: profile, error: profileError } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-
-        if (!mounted || currentRequest !== requestId.current) return;
-
-        if (profileError) {
-          console.warn(`[LockInTalks navbar] Could not resolve profile role: ${profileError.message}`);
+        if (!session.authenticated) {
+          setAuthState({ status: "out", role: null });
+          return;
         }
 
-        setAuthState({ status: "in", role: profile?.role === "admin" ? "admin" : "user" });
+        setAuthState({ status: "in", role: session.role === "admin" ? "admin" : "user" });
       } catch (error) {
         console.error("[LockInTalks navbar] Auth state resolution failed:", error);
         if (mounted && authRef.current.status === "loading") {
@@ -101,19 +91,6 @@ export function Navbar() {
     }
 
     void resolveAuthState({ showLoading: true });
-
-    const {
-      data: { subscription }
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT" || !session?.user) {
-        requestId.current += 1;
-        setAuthState({ status: "out", role: null });
-        return;
-      }
-
-      setAuthState({ status: "loading", role: null });
-      void resolveAuthState();
-    });
 
     function handleAuthChanged() {
       setAuthState({ status: "loading", role: null });
@@ -140,7 +117,6 @@ export function Navbar() {
       window.removeEventListener("lockintalks-auth-changed", handleAuthChanged);
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      subscription.unsubscribe();
     };
   }, [pathname, router]);
 

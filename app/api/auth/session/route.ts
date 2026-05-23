@@ -1,0 +1,39 @@
+import { NextResponse } from "next/server";
+import { getRoleRedirect, getUserRole } from "@/lib/auth/session";
+import { createClient } from "@/lib/supabase/server";
+import { SupabaseConfigError } from "@/lib/supabase/env";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error
+    } = await supabase.auth.getUser();
+
+    if (error || !user) {
+      if (error) console.warn(`[LockInTalks auth session] Session check failed: ${error.message}`);
+      return NextResponse.json(
+        { authenticated: false, role: null, redirectTo: "/login" },
+        { status: 200, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+
+    const role = await getUserRole(user.id);
+    return NextResponse.json(
+      { authenticated: true, role, redirectTo: getRoleRedirect(role) },
+      { status: 200, headers: { "Cache-Control": "no-store" } }
+    );
+  } catch (error) {
+    if (error instanceof SupabaseConfigError) {
+      console.error(`[LockInTalks auth session] ${error.message}`);
+      return NextResponse.json({ authenticated: false, role: null, redirectTo: "/login", error: error.message }, { status: 503 });
+    }
+
+    console.error("[LockInTalks auth session] Unexpected session check error:", error);
+    return NextResponse.json({ authenticated: false, role: null, redirectTo: "/login", error: "Could not verify session." }, { status: 500 });
+  }
+}
