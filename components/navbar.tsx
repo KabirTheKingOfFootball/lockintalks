@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { ButtonLink } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 
@@ -30,9 +31,17 @@ const publicLinks = [
 ];
 
 export function Navbar() {
+  const pathname = usePathname();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [auth, setAuth] = useState<AuthNavState>({ status: "loading", role: null });
+  const authRef = useRef<AuthNavState>({ status: "loading", role: null });
   const requestId = useRef(0);
+
+  function setAuthState(nextAuth: AuthNavState) {
+    authRef.current = nextAuth;
+    setAuth(nextAuth);
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -43,13 +52,17 @@ export function Navbar() {
     } catch (error) {
       console.warn("[LockInTalks navbar] Supabase client unavailable:", error);
       queueMicrotask(() => {
-        if (mounted) setAuth({ status: "out", role: null });
+        if (mounted) setAuthState({ status: "out", role: null });
       });
       return;
     }
 
-    async function resolveAuthState() {
+    async function resolveAuthState({ showLoading = false }: { showLoading?: boolean } = {}) {
       const currentRequest = ++requestId.current;
+
+      if (showLoading && authRef.current.status === "loading") {
+        setAuthState({ status: "loading", role: null });
+      }
 
       try {
         const {
@@ -62,8 +75,11 @@ export function Navbar() {
         if (userError || !user) {
           if (userError) {
             console.warn(`[LockInTalks navbar] Could not resolve user session: ${userError.message}`);
+            if (authRef.current.status === "in" && /fetch|network|timeout|temporarily/i.test(userError.message)) {
+              return;
+            }
           }
-          setAuth({ status: "out", role: null });
+          setAuthState({ status: "out", role: null });
           return;
         }
 
@@ -75,33 +91,58 @@ export function Navbar() {
           console.warn(`[LockInTalks navbar] Could not resolve profile role: ${profileError.message}`);
         }
 
-        setAuth({ status: "in", role: profile?.role === "admin" ? "admin" : "user" });
+        setAuthState({ status: "in", role: profile?.role === "admin" ? "admin" : "user" });
       } catch (error) {
         console.error("[LockInTalks navbar] Auth state resolution failed:", error);
-        if (mounted) setAuth({ status: "out", role: null });
+        if (mounted && authRef.current.status === "loading") {
+          setAuthState({ status: "out", role: null });
+        }
       }
     }
 
-    void resolveAuthState();
+    void resolveAuthState({ showLoading: true });
 
     const {
       data: { subscription }
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT" || !session?.user) {
         requestId.current += 1;
-        setAuth({ status: "out", role: null });
+        setAuthState({ status: "out", role: null });
         return;
       }
 
-      setAuth({ status: "loading", role: null });
+      setAuthState({ status: "loading", role: null });
       void resolveAuthState();
     });
 
+    function handleAuthChanged() {
+      setAuthState({ status: "loading", role: null });
+      router.refresh();
+      void resolveAuthState();
+    }
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        void resolveAuthState();
+      }
+    }
+
+    function handleFocus() {
+      void resolveAuthState();
+    }
+
+    window.addEventListener("lockintalks-auth-changed", handleAuthChanged);
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
       mounted = false;
+      window.removeEventListener("lockintalks-auth-changed", handleAuthChanged);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       subscription.unsubscribe();
     };
-  }, []);
+  }, [pathname, router]);
 
   const links = useMemo(() => {
     if (auth.status !== "in") return publicLinks;

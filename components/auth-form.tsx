@@ -63,7 +63,8 @@ export function AuthForm({ mode, initialError = "", nextPath = "/dashboard" }: {
         return;
       }
 
-      router.push(nextPath);
+      window.dispatchEvent(new Event("lockintalks-auth-changed"));
+      router.replace(nextPath);
       router.refresh();
     } catch (submitError) {
       console.error(`[LockInTalks auth form] Unexpected ${mode} error:`, submitError);
