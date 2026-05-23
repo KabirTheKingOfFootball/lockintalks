@@ -1,31 +1,20 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { track } from "@vercel/analytics";
 import { Lock, Mail, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getPostAuthRedirect } from "@/lib/auth/redirect";
 import { getReadableError, readJsonResponse } from "@/lib/readable-error";
 
 type AuthResponse = {
   ok?: boolean;
   error?: string;
   needsEmailConfirmation?: boolean;
-  role?: "user" | "admin";
-  redirectTo?: string;
-};
-
-type AuthSessionResponse = {
-  authenticated?: boolean;
-  role?: "user" | "admin" | null;
-  redirectTo?: string;
-  error?: string;
+  finalizeTo?: string;
 };
 
 export function AuthForm({ mode, initialError = "", nextPath = "/dashboard" }: { mode: "login" | "signup"; initialError?: string; nextPath?: string }) {
-  const router = useRouter();
   const [error, setError] = useState(initialError);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusText, setStatusText] = useState("");
@@ -56,6 +45,8 @@ export function AuthForm({ mode, initialError = "", nextPath = "/dashboard" }: {
       setIsSubmitting(true);
       setStatusText(isSignup ? "Creating Account..." : "Signing In...");
       track(isSignup ? "signup_started" : "login_started");
+      clearLegacyAuthStorage();
+
       const response = await fetch(isSignup ? "/api/auth/signup" : "/api/auth/login", {
         method: "POST",
         cache: "no-store",
@@ -83,17 +74,12 @@ export function AuthForm({ mode, initialError = "", nextPath = "/dashboard" }: {
         return;
       }
 
+      const finalizeTo = getSafeFinalizePath(result.finalizeTo, nextPath);
       setStatusText("Confirming Session...");
-      const session = await waitForServerSession();
-      const role = session.role === "admin" ? "admin" : "user";
-      const redirectTo = getPostAuthRedirect(role, nextPath);
-
-      setStatusText("Redirecting...");
-      track(isSignup ? "signup_completed" : "login_completed", { role, redirectTo });
-      window.dispatchEvent(new CustomEvent("lockintalks-auth-changed", { detail: { ...session, redirectTo } }));
-      router.refresh();
+      track(isSignup ? "signup_completed" : "login_completed", { finalizeTo });
+      window.dispatchEvent(new CustomEvent("lockintalks-auth-changed", { detail: { status: "finalizing" } }));
       isNavigatingAway = true;
-      window.location.replace(redirectTo);
+      window.location.replace(finalizeTo);
     } catch (submitError) {
       console.error(`[LockInTalks auth form] Unexpected ${mode} error:`, submitError);
       setError(getReadableError(submitError, "Authentication is temporarily unavailable. Please check the Supabase configuration."));
@@ -144,28 +130,28 @@ export function AuthForm({ mode, initialError = "", nextPath = "/dashboard" }: {
   );
 }
 
-async function waitForServerSession() {
-  for (let attempt = 0; attempt < 12; attempt += 1) {
-    const response = await fetch("/api/auth/session", {
-      cache: "no-store",
-      credentials: "same-origin"
-    });
-    const result = await readJsonResponse<AuthSessionResponse>(response);
-
-    if (!response.ok) {
-      throw new Error(result.error || "Could not verify your login session.");
-    }
-
-    if (result.authenticated) {
-      return result;
-    }
-
-    await sleep(160 + attempt * 45);
+function getSafeFinalizePath(value: string | undefined, nextPath: string) {
+  if (value?.startsWith("/auth/finalize") && !value.startsWith("//")) {
+    return value;
   }
 
-  throw new Error("Login succeeded, but your session is still syncing. Please wait a moment and try opening the dashboard again.");
+  return `/auth/finalize?next=${encodeURIComponent(nextPath)}`;
 }
 
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function clearLegacyAuthStorage() {
+  if (typeof window === "undefined") return;
+  const storages = [window.localStorage, window.sessionStorage];
+
+  for (const storage of storages) {
+    try {
+      for (let index = storage.length - 1; index >= 0; index -= 1) {
+        const key = storage.key(index);
+        if (!key) continue;
+        const isLegacySupabaseAuthKey = key === "supabase.auth.token" || /^sb-[^-]+-auth-token$/.test(key);
+        if (isLegacySupabaseAuthKey) storage.removeItem(key);
+      }
+    } catch (error) {
+      console.warn("[LockInTalks auth form] Could not clear legacy browser auth storage:", error);
+    }
+  }
 }

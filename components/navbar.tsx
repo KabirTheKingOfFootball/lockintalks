@@ -51,7 +51,6 @@ export function Navbar() {
   useEffect(() => {
     let mounted = true;
     let authChannel: BroadcastChannel | null = null;
-    let authSubscription: { unsubscribe: () => void } | null = null;
 
     async function resolveAuthState({ showLoading = false }: { showLoading?: boolean } = {}) {
       const currentRequest = ++requestId.current;
@@ -102,22 +101,6 @@ export function Navbar() {
       });
     }
 
-    void import("@/lib/supabase/client")
-      .then(({ createClient }) => {
-        if (!mounted) return;
-        const supabase = createClient();
-        const { data } = supabase.auth.onAuthStateChange(() => {
-          if (!mounted) return;
-          authChannel?.postMessage({ type: "auth-changed" });
-          router.refresh();
-          void resolveAuthState();
-        });
-        authSubscription = data.subscription;
-      })
-      .catch((error) => {
-        console.warn("[LockInTalks navbar] Supabase auth event listener unavailable:", error);
-      });
-
     function handleAuthChanged() {
       setAuthState({ status: "loading", role: null });
       authChannel?.postMessage({ type: "auth-changed" });
@@ -141,7 +124,6 @@ export function Navbar() {
 
     return () => {
       mounted = false;
-      authSubscription?.unsubscribe();
       authChannel?.close();
       window.removeEventListener("lockintalks-auth-changed", handleAuthChanged);
       window.removeEventListener("focus", handleFocus);

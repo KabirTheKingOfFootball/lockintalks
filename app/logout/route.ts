@@ -21,5 +21,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(buildAppUrl(origin, "/login"));
+  const response = NextResponse.redirect(buildAppUrl(origin, "/login"));
+  response.headers.set("Cache-Control", "no-store, no-cache, max-age=0, must-revalidate");
+  return response;
 }

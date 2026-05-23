@@ -1,10 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { buildAppUrl, getRequestOrigin, normalizeNextPath } from "@/lib/site-url";
-import { getPostAuthRedirect } from "@/lib/auth/redirect";
-import { getUserRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { getReadableSupabaseError } from "@/lib/readable-error";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
 
   if (!code) {
     console.warn("[LockInTalks auth callback] Missing auth code in callback URL.");
-    return NextResponse.redirect(buildAppUrl(origin, "/login?error=missing-auth-code"));
+    return redirectNoStore(origin, "/login?error=missing-auth-code");
   }
 
   try {
@@ -23,30 +24,24 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error(`[LockInTalks auth callback] Code exchange failed: ${error.message}`);
-      return NextResponse.redirect(buildAppUrl(origin, `/login?error=${encodeURIComponent(getReadableSupabaseError(error, "Login could not be completed."))}`));
+      return redirectNoStore(origin, `/login?error=${encodeURIComponent(getReadableSupabaseError(error, "Login could not be completed."))}`);
     }
 
-    const {
-      data: { user },
-      error: userError
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      console.warn(`[LockInTalks auth callback] Code exchanged, but user could not be resolved: ${userError?.message || "No active session"}`);
-      return NextResponse.redirect(buildAppUrl(origin, next));
-    }
-
-    const role = await getUserRole(user.id);
-    const redirectTo = getPostAuthRedirect(role, next);
-    console.info(`[LockInTalks auth callback] Code exchange succeeded. Role: ${role}. Redirecting to ${redirectTo}.`);
-    return NextResponse.redirect(buildAppUrl(origin, redirectTo));
+    console.info("[LockInTalks auth callback] Code exchange succeeded. Redirecting through finalize.");
+    return redirectNoStore(origin, `/auth/finalize?next=${encodeURIComponent(next)}`);
   } catch (error) {
     if (error instanceof SupabaseConfigError) {
       console.error(`[LockInTalks auth callback] ${error.message}`);
-      return NextResponse.redirect(buildAppUrl(origin, `/login?error=${encodeURIComponent(getReadableSupabaseError(error, "Login could not be completed."))}`));
+      return redirectNoStore(origin, `/login?error=${encodeURIComponent(getReadableSupabaseError(error, "Login could not be completed."))}`);
     }
 
     console.error("[LockInTalks auth callback] Unexpected callback error:", error);
-    return NextResponse.redirect(buildAppUrl(origin, "/login?error=auth-callback-failed"));
+    return redirectNoStore(origin, "/login?error=auth-callback-failed");
   }
+}
+
+function redirectNoStore(origin: string, path: string) {
+  const response = NextResponse.redirect(buildAppUrl(origin, path));
+  response.headers.set("Cache-Control", "no-store, no-cache, max-age=0, must-revalidate");
+  return response;
 }

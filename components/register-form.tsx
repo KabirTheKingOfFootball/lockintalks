@@ -6,9 +6,14 @@ import { track } from "@vercel/analytics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { PublicCompetition } from "@/lib/competitions";
-import { getReadableSupabaseError } from "@/lib/readable-error";
-import { createClient } from "@/lib/supabase/client";
-import { SupabaseConfigError } from "@/lib/supabase/env";
+import { getReadableError, readJsonResponse } from "@/lib/readable-error";
+
+type RegistrationResponse = {
+  ok?: boolean;
+  registrationId?: string;
+  error?: string;
+  loginTo?: string;
+};
 
 export function RegisterForm({ competition }: { competition: PublicCompetition }) {
   const router = useRouter();
@@ -35,64 +40,46 @@ export function RegisterForm({ competition }: { competition: PublicCompetition }
     }
     try {
       setIsSubmitting(true);
-      const supabase = createClient();
-      const {
-        data: { user },
-        error: userError
-      } = await supabase.auth.getUser();
+      track("registration_started", { competition: competition.slug });
+      const response = await fetch("/api/registrations", {
+        method: "POST",
+        cache: "no-store",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          competitionSlug: competition.slug,
+          studentName: form.student.trim(),
+          studentAge: age,
+          guardianName: form.guardian.trim(),
+          guardianEmail: form.email.trim(),
+          city: form.city.trim(),
+          country: form.country.trim()
+        })
+      });
+      const result = await readJsonResponse<RegistrationResponse>(response);
 
-      if (userError || !user) {
+      if (response.status === 401) {
         track("register_clicked_logged_out", { competition: competition.slug });
-        router.push(`/login?next=${encodeURIComponent(`/register/${competition.slug}`)}`);
-        setError("Please Log In or Create an Account Before Registering for a Competition.");
+        setError(result.error || "Please Log In or Create an Account Before Registering for a Competition.");
+        router.push(result.loginTo || `/login?next=${encodeURIComponent(`/register/${competition.slug}`)}`);
         return;
       }
 
-      track("registration_started", { competition: competition.slug });
-      const { data, error: insertError } = await supabase
-        .from("registrations")
-        .insert({
-          user_id: user.id,
-          competition_slug: competition.slug,
-          competition_name: competition.name,
-          student_name: form.student.trim(),
-          student_age: age,
-          guardian_name: form.guardian.trim(),
-          guardian_email: form.email.trim(),
-          city: form.city.trim(),
-          country: form.country.trim(),
-          city_country: `${form.city.trim()}, ${form.country.trim()}`,
-          entry_fee: competition.fee,
-          registration_status: "submitted",
-          age_proof_status: "not_required_yet",
-          payment_required: true,
-          payment_provider: "razorpay",
-          payment_status: "pending"
-        })
-        .select("id")
-        .single();
-
-      if (insertError) {
-        console.error(`[LockInTalks registration] Insert failed: ${insertError.message}`);
-        setError(getReadableSupabaseError(insertError));
+      if (!response.ok || result.error || !result.registrationId) {
+        console.error(`[LockInTalks registration] Save failed: ${result.error || response.statusText}`);
+        setError(result.error || "Registration could not be saved. Please try again.");
         return;
       }
 
       const paymentParams = new URLSearchParams({
         competition: competition.slug,
-        registration: data.id
+        registration: result.registrationId
       });
       track("registration_submitted", { competition: competition.slug });
       router.push(`/payment?${paymentParams.toString()}`);
     } catch (submitError) {
-      if (submitError instanceof SupabaseConfigError) {
-        console.error(`[LockInTalks registration] ${submitError.message}`);
-        setError(submitError.message);
-        return;
-      }
-
       console.error("[LockInTalks registration] Unexpected registration error:", submitError);
-      setError(getReadableSupabaseError(submitError, "Registration is temporarily unavailable. Please check the Supabase setup."));
+      setError(getReadableError(submitError, "Registration is temporarily unavailable. Please try again."));
     } finally {
       setIsSubmitting(false);
     }

@@ -12,11 +12,13 @@ export const config = {
     "/register/:path*",
     "/payment/:path*",
     "/api/auth/:path*",
+    "/api/registrations",
     "/api/admin/:path*",
     "/api/payments/create-order",
     "/api/payments/verify",
     "/api/payments/failed",
     "/auth/callback",
+    "/auth/finalize",
     "/logout"
   ]
 };
