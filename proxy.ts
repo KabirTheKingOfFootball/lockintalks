@@ -7,19 +7,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/admin/:path*",
-    "/dashboard/:path*",
-    "/register/:path*",
-    "/payment/:path*",
-    "/api/auth/:path*",
-    "/api/debug/auth-cookies",
-    "/api/registrations",
-    "/api/admin/:path*",
-    "/api/payments/create-order",
-    "/api/payments/verify",
-    "/api/payments/failed",
-    "/auth/callback",
-    "/auth/finalize",
-    "/logout"
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"
   ]
 };

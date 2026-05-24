@@ -6,7 +6,9 @@ import { Lock, Mail, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export function AuthForm({ mode, initialError = "", initialNotice = "", nextPath = "/dashboard" }: { mode: "login" | "signup"; initialError?: string; initialNotice?: string; nextPath?: string }) {
+type AuthFormAction = (formData: FormData) => void | Promise<void>;
+
+export function AuthForm({ mode, action, initialError = "", initialNotice = "", nextPath = "/dashboard" }: { mode: "login" | "signup"; action: AuthFormAction; initialError?: string; initialNotice?: string; nextPath?: string }) {
   const [error, setError] = useState(initialError);
   const [notice, setNotice] = useState(initialNotice);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,7 +42,7 @@ export function AuthForm({ mode, initialError = "", initialNotice = "", nextPath
   }
 
   return (
-    <form method="post" action={isSignup ? "/api/auth/signup" : "/api/auth/login"} onSubmit={submit} className="glass mx-auto w-full max-w-md rounded-[8px] p-6 sm:p-8">
+    <form action={action} onSubmit={submit} className="glass mx-auto w-full max-w-md rounded-[8px] p-6 sm:p-8">
       <input type="hidden" name="next" value={nextPath} />
       <p className="mb-2 text-xs font-bold uppercase tracking-[0.28em] text-[#d4af37]">{isSignup ? "Sign up" : "Login"}</p>
       <h1 className="text-3xl font-black">{title}</h1>

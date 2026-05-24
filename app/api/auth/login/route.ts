@@ -1,8 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getPostAuthRedirect } from "@/lib/auth/redirect";
+import { getUserRoleFromClient } from "@/lib/auth/session";
+import { authNoStoreHeaders, maskEmail } from "@/lib/auth/http";
 import { getReadableSupabaseError } from "@/lib/readable-error";
 import { buildAppUrl, getRequestOrigin, normalizeNextPath } from "@/lib/site-url";
 import { SupabaseConfigError } from "@/lib/supabase/env";
-import { authNoStoreHeaders, createAuthRouteClient, maskEmail } from "@/lib/supabase/auth-route";
+import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,30 +32,31 @@ export async function POST(request: NextRequest) {
       return authErrorRedirect(origin, next, "Enter a valid email and password.");
     }
 
-    const { supabase, applyAuthCookies, getAuthCookieWriteCount, getAuthCookieWriteNames } = createAuthRouteClient(request, "POST /api/auth/login");
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const supabase = await createClient();
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       console.error(`[LockInTalks auth login] Supabase signIn failed for ${maskEmail(email)}: ${error.message}`);
-      return applyAuthCookies(authErrorRedirect(origin, next, getReadableSupabaseError(error, "Login failed.")));
+      return authErrorRedirect(origin, next, getReadableSupabaseError(error, "Login failed."));
     }
 
-    if (!data.session || !data.user) {
-      console.warn(`[LockInTalks auth login] Supabase signIn returned success but usable session was missing. User exists: ${Boolean(data.user)}. Session exists: ${Boolean(data.session)}.`);
-      return applyAuthCookies(authErrorRedirect(origin, next, "Login could not create a session. Please try again."));
+    const {
+      data: { user },
+      error: userError
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      console.warn(`[LockInTalks auth login] Login succeeded, but server session was not confirmed: ${userError?.message || "No active session"}`);
+      return authErrorRedirect(origin, next, "Your login session could not be confirmed. Please try again.");
     }
 
-    const finalizeTo = `/auth/finalize?next=${encodeURIComponent(next)}`;
-    console.info(`[LockInTalks auth login] Supabase signIn success. User exists: ${Boolean(data.user)}. User id exists: ${Boolean(data.user.id)}. Session exists: ${Boolean(data.session)}.`);
-    console.info(`[LockInTalks auth login] Cookie writes captured: ${getAuthCookieWriteCount()}. Cookie names: ${getAuthCookieWriteNames().join(", ") || "none"}. Finalize target: ${finalizeTo}.`);
-    if (getAuthCookieWriteCount() === 0) {
-      console.warn("[LockInTalks auth login] Login succeeded, but no auth cookie writes were captured.");
-    }
-    const response = NextResponse.redirect(buildAppUrl(origin, finalizeTo), { status: 303 });
+    const role = await getUserRoleFromClient(supabase, user.id);
+    const redirectTo = getPostAuthRedirect(role, next);
+    console.info(`[LockInTalks auth login] Server session confirmed. Role: ${role}. Redirect: ${redirectTo}.`);
+    const response = NextResponse.redirect(buildAppUrl(origin, redirectTo), { status: 303 });
     Object.entries(authNoStoreHeaders).forEach(([header, value]) => response.headers.set(header, value));
-    const finalResponse = applyAuthCookies(response);
-    console.info(`[LockInTalks auth login] Final response status: ${finalResponse.status}. Set-Cookie present: ${finalResponse.headers.has("set-cookie")}.`);
-    return finalResponse;
+    console.info(`[LockInTalks auth login] Final response status: ${response.status}.`);
+    return response;
   } catch (error) {
     console.error("[LockInTalks auth login] Unexpected login error:", error);
     return authErrorRedirect(origin, "/dashboard", getReadableSupabaseError(error, error instanceof SupabaseConfigError ? "Supabase is not configured correctly." : "Login is temporarily unavailable."));

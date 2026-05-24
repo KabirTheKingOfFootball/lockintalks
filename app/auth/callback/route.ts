@@ -1,11 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getPostAuthRedirect } from "@/lib/auth/redirect";
+import { getUserRoleFromClient } from "@/lib/auth/session";
+import { authNoStoreHeaders } from "@/lib/auth/http";
 import { buildAppUrl, getRequestOrigin, normalizeNextPath } from "@/lib/site-url";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { getReadableSupabaseError } from "@/lib/readable-error";
-import { authNoStoreHeaders, createAuthRouteClient } from "@/lib/supabase/auth-route";
+import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -19,19 +24,28 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const { supabase, applyAuthCookies, getAuthCookieWriteCount } = createAuthRouteClient(request, "GET /auth/callback");
+    const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
       console.error(`[LockInTalks auth callback] Code exchange failed: ${error.message}`);
-      return applyAuthCookies(redirectNoStore(origin, `/login?error=${encodeURIComponent(getReadableSupabaseError(error, "Login could not be completed."))}`));
+      return redirectNoStore(origin, `/login?error=${encodeURIComponent(getReadableSupabaseError(error, "Login could not be completed."))}`);
     }
 
-    if (getAuthCookieWriteCount() === 0) {
-      console.warn("[LockInTalks auth callback] Code exchange succeeded, but no auth cookie writes were captured.");
+    const {
+      data: { user },
+      error: userError
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      console.warn(`[LockInTalks auth callback] Code exchange succeeded, but session was not confirmed: ${userError?.message || "No active session"}`);
+      return redirectNoStore(origin, `/login?next=${encodeURIComponent(next)}&error=${encodeURIComponent("Login could not be confirmed. Please try again.")}`);
     }
-    console.info("[LockInTalks auth callback] Code exchange succeeded. Redirecting through finalize.");
-    return applyAuthCookies(redirectNoStore(origin, `/auth/finalize?next=${encodeURIComponent(next)}`));
+
+    const role = await getUserRoleFromClient(supabase, user.id);
+    const redirectTo = getPostAuthRedirect(role, next);
+    console.info(`[LockInTalks auth callback] Session confirmed. Role: ${role}. Redirect: ${redirectTo}.`);
+    return redirectNoStore(origin, redirectTo);
   } catch (error) {
     if (error instanceof SupabaseConfigError) {
       console.error(`[LockInTalks auth callback] ${error.message}`);

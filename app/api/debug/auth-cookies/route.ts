@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { authNoStoreHeaders, getSupabaseAuthCookieNames } from "@/lib/auth/http";
 import { getUserRoleFromClient } from "@/lib/auth/session";
 import { getRequestOrigin } from "@/lib/site-url";
-import { authNoStoreHeaders, createAuthRouteClient, getSupabaseAuthCookieNames } from "@/lib/supabase/auth-route";
 import { getSupabaseEnv } from "@/lib/supabase/env";
+import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -55,7 +56,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const { supabase, applyAuthCookies } = createAuthRouteClient(request, "GET /api/debug/auth-cookies");
+    const supabase = await createClient();
     const {
       data: { user },
       error
@@ -63,7 +64,7 @@ export async function GET(request: NextRequest) {
 
     if (error || !user) {
       if (error) console.warn(`[LockInTalks debug auth cookies] No server session found: ${error.message}`);
-      return applyAuthCookies(NextResponse.json(
+      return NextResponse.json(
         {
           authenticated: false,
           user: null,
@@ -72,12 +73,12 @@ export async function GET(request: NextRequest) {
           ...basePayload
         },
         { status: 200, headers: authNoStoreHeaders }
-      ));
+      );
     }
 
     const role = await getUserRoleFromClient(supabase, user.id);
     console.info("[LockInTalks debug auth cookies] Server session confirmed for debug endpoint.");
-    return applyAuthCookies(NextResponse.json(
+    return NextResponse.json(
       {
         authenticated: true,
         user: {
@@ -88,7 +89,7 @@ export async function GET(request: NextRequest) {
         ...basePayload
       },
       { status: 200, headers: authNoStoreHeaders }
-    ));
+    );
   } catch (error) {
     console.error("[LockInTalks debug auth cookies] Unexpected debug endpoint error:", error);
     return NextResponse.json(

@@ -1,16 +1,19 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { authNoStoreHeaders } from "@/lib/auth/http";
 import { buildAppUrl, getRequestOrigin } from "@/lib/site-url";
 import { SupabaseConfigError } from "@/lib/supabase/env";
-import { authNoStoreHeaders, createAuthRouteClient } from "@/lib/supabase/auth-route";
+import { createClient } from "@/lib/supabase/server";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 export async function GET(request: NextRequest) {
   const origin = getRequestOrigin(request);
-  let applyAuthCookies: ((response: NextResponse) => NextResponse) | null = null;
 
   try {
-    const authRoute = createAuthRouteClient(request, "GET /logout");
-    const supabase = authRoute.supabase;
-    applyAuthCookies = authRoute.applyAuthCookies;
+    const supabase = await createClient();
     const { error } = await supabase.auth.signOut();
 
     if (error) {
@@ -26,5 +29,5 @@ export async function GET(request: NextRequest) {
 
   const response = NextResponse.redirect(buildAppUrl(origin, "/login"));
   Object.entries(authNoStoreHeaders).forEach(([header, value]) => response.headers.set(header, value));
-  return applyAuthCookies ? applyAuthCookies(response) : response;
+  return response;
 }
