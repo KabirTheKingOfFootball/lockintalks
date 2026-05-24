@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { RazorpayConfigError } from "@/lib/razorpay/env";
 import { createRazorpayClient, getPublicRazorpayKey, paymentCurrency } from "@/lib/razorpay/payments";
+import { getServerAuthSession } from "@/lib/auth/server-session";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { isPaymentInProgress, isSeatConfirmed } from "@/lib/payment/status";
 
@@ -28,19 +28,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing registration id." }, { status: 400 });
     }
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: userError
-    } = await supabase.auth.getUser();
-    const userId = user?.id;
+    const session = await getServerAuthSession();
 
-    if (userError || !userId) {
-      console.warn(`[LockInTalks payment order] Unauthenticated order attempt: ${userError?.message || "No user id"}`);
+    if (!session.authenticated) {
+      console.warn("[LockInTalks payment order] Unauthenticated order attempt.");
       return NextResponse.json({ error: "Please log in before paying." }, { status: 401 });
     }
 
-    const { data: registration, error: registrationError } = await supabase
+    const userId = session.user.id;
+    const supabaseAdmin = createAdminClient();
+    const { data: registration, error: registrationError } = await supabaseAdmin
       .from("registrations")
       .select("id, user_id, competition_slug, competition_name, student_name, guardian_email, entry_fee, payment_status, razorpay_order_id, payment_order_id, payment_amount, amount_due, payment_currency")
       .eq("id", body.registrationId)
@@ -56,7 +53,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "This registration is already paid." }, { status: 409 });
     }
 
-    const supabaseAdmin = createAdminClient();
     const { data: competition, error: competitionError } = await supabaseAdmin
       .from("competitions")
       .select("fee_amount, status")

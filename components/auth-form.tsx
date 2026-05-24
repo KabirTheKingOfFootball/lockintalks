@@ -5,15 +5,19 @@ import { track } from "@vercel/analytics";
 import { Lock, Mail, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getSupabaseAuthCookieNames } from "@/lib/auth/http";
-import { getReadableError, getReadableSupabaseError, readJsonResponse } from "@/lib/readable-error";
-import { createClient } from "@/lib/supabase/client";
+import { getReadableError, readJsonResponse } from "@/lib/readable-error";
 
 type AuthSessionResponse = {
   authenticated?: boolean;
   role?: "user" | "admin" | null;
   redirectTo?: string;
   error?: string;
+};
+
+type AuthResponse = AuthSessionResponse & {
+  ok?: boolean;
+  needsEmailConfirmation?: boolean;
+  message?: string;
 };
 
 export function AuthForm({ mode, initialError = "", initialNotice = "", nextPath = "/dashboard" }: { mode: "login" | "signup"; initialError?: string; initialNotice?: string; nextPath?: string }) {
@@ -51,52 +55,34 @@ export function AuthForm({ mode, initialError = "", initialNotice = "", nextPath
       setStatusText(isSignup ? "Creating Account..." : "Signing In...");
       track(isSignup ? "signup_started" : "login_started");
       clearLegacyAuthStorage();
-      const supabase = createClient();
-
-      if (isSignup) {
-        const { data, error: signupError } = await supabase.auth.signUp({
+      const response = await fetch(isSignup ? "/api/auth/signup" : "/api/auth/login", {
+        method: "POST",
+        cache: "no-store",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name.trim(),
           email: form.email.trim(),
           password: form.password,
-          options: {
-            data: {
-              full_name: form.name.trim()
-            },
-            emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`
-          }
-        });
-
-        if (signupError) {
-          console.error(`[LockInTalks auth client] Signup failed: ${signupError.message}`);
-          setError(getReadableSupabaseError(signupError, "Signup failed."));
-          track("signup_failed", { reason: "supabase_error" });
-          return;
-        }
-
-        if (!data.session) {
-          setNotice("Account Created. Please check your email to confirm your account, then log in.");
-          track("signup_completed", { needsEmailConfirmation: true });
-          return;
-        }
-
-        console.info(`[LockInTalks auth client] Signup returned session: ${Boolean(data.session)}. User exists: ${Boolean(data.user)}. Auth cookie names: ${getBrowserSupabaseAuthCookieNames().join(", ") || "none"}.`);
-        await finishWithServerConfirmedSession("signup_completed");
-        return;
-      }
-
-      const { data, error: loginError } = await supabase.auth.signInWithPassword({
-        email: form.email.trim(),
-        password: form.password
+          next: nextPath
+        })
       });
+      const result = await readJsonResponse<AuthResponse>(response);
 
-      if (loginError) {
-        console.error(`[LockInTalks auth client] Login failed: ${loginError.message}`);
-        setError(getReadableSupabaseError(loginError, "Login failed."));
-        track("login_failed", { reason: "supabase_error" });
+      if (!response.ok || result.error) {
+        console.error(`[LockInTalks auth client] ${mode} failed: ${result.error || response.statusText}`);
+        setError(result.error || "Authentication failed. Please try again.");
+        track(isSignup ? "signup_failed" : "login_failed", { reason: "api_error" });
         return;
       }
 
-      console.info(`[LockInTalks auth client] Login returned session: ${Boolean(data.session)}. User exists: ${Boolean(data.user)}. Auth cookie names: ${getBrowserSupabaseAuthCookieNames().join(", ") || "none"}.`);
-      await finishWithServerConfirmedSession("login_completed");
+      if (result.needsEmailConfirmation) {
+        setNotice(result.message || "Account Created. Please check your email to confirm your account, then log in.");
+        track("signup_completed", { needsEmailConfirmation: true });
+        return;
+      }
+
+      await finishWithServerConfirmedSession(isSignup ? "signup_completed" : "login_completed", result.redirectTo);
     } catch (submitError) {
       console.error(`[LockInTalks auth client] Unexpected ${mode} error:`, submitError);
       setError(getReadableError(submitError, "Authentication is temporarily unavailable. Please try again."));
@@ -107,19 +93,18 @@ export function AuthForm({ mode, initialError = "", initialNotice = "", nextPath
     }
   }
 
-  async function finishWithServerConfirmedSession(eventName: "login_completed" | "signup_completed") {
+  async function finishWithServerConfirmedSession(eventName: "login_completed" | "signup_completed", preferredRedirect?: string | null) {
     setStatusText("Confirming Session...");
     const session = await waitForServerSession();
 
     if (!session?.authenticated) {
-      const cookieNames = getBrowserSupabaseAuthCookieNames();
-      console.warn(`[LockInTalks auth client] Browser auth cookies after login: ${cookieNames.join(", ") || "none"}. Server session did not confirm.`);
-      setError("Login worked, but this browser did not store the session cookie. Please allow cookies for lockintalks.vercel.app, clear site data, and try again.");
+      console.warn("[LockInTalks auth client] App session cookie was not confirmed by the server.");
+      setError("Login worked, but the secure app session was not confirmed. Please clear site data and try again.");
       track(eventName === "login_completed" ? "login_failed" : "signup_failed", { reason: "server_session_not_confirmed" });
       return;
     }
 
-    const destination = getPostAuthDestination(nextPath, session);
+    const destination = getPostAuthDestination(nextPath, session, preferredRedirect);
     track(eventName, { destination });
     window.dispatchEvent(new CustomEvent("lockintalks-auth-changed", { detail: { status: "authenticated" } }));
     window.location.replace(destination);
@@ -183,9 +168,13 @@ async function waitForServerSession(maxAttempts = 8) {
   return null;
 }
 
-function getPostAuthDestination(nextPath: string, session: AuthSessionResponse) {
+function getPostAuthDestination(nextPath: string, session: AuthSessionResponse, preferredRedirect?: string | null) {
   if (nextPath.startsWith("/register/") || nextPath.startsWith("/competitions/") || nextPath.startsWith("/payment")) {
     return nextPath;
+  }
+
+  if (preferredRedirect?.startsWith("/") && !preferredRedirect.startsWith("//")) {
+    return preferredRedirect;
   }
 
   if (session.redirectTo?.startsWith("/") && !session.redirectTo.startsWith("//")) {
@@ -193,16 +182,6 @@ function getPostAuthDestination(nextPath: string, session: AuthSessionResponse) 
   }
 
   return session.role === "admin" ? "/admin" : "/dashboard";
-}
-
-function getBrowserSupabaseAuthCookieNames() {
-  if (typeof document === "undefined") return [];
-  const cookieNames = document.cookie
-    .split(";")
-    .map((cookie) => cookie.trim().split("=")[0])
-    .filter(Boolean);
-
-  return getSupabaseAuthCookieNames(cookieNames);
 }
 
 function clearLegacyAuthStorage() {

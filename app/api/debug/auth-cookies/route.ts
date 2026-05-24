@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { appSessionCookieName, AppSessionConfigError, getAppSessionDiagnostics } from "@/lib/auth/app-session";
 import { authNoStoreHeaders, getSupabaseAuthCookieNames } from "@/lib/auth/http";
+import { getServerAuthSession } from "@/lib/auth/server-session";
 import { getUserRoleFromClient } from "@/lib/auth/session";
 import { getRequestOrigin } from "@/lib/site-url";
 import { getSupabaseDiagnostics, getSupabaseEnv } from "@/lib/supabase/env";
@@ -13,8 +15,10 @@ export const fetchCache = "force-no-store";
 export async function GET(request: NextRequest) {
   const cookieNames = request.cookies.getAll().map((cookie) => cookie.name).sort();
   const supabaseAuthCookieNames = getSupabaseAuthCookieNames(cookieNames);
+  const hasAppSessionCookie = cookieNames.includes(appSessionCookieName);
   const env = getSupabaseEnv();
   const diagnostics = getSupabaseDiagnostics();
+  const appSessionDiagnostics = getAppSessionDiagnostics();
   const host = request.headers.get("host") || request.nextUrl.host;
   const protocol = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() || request.nextUrl.protocol.replace(":", "");
   const origin = getRequestOrigin(request);
@@ -24,6 +28,9 @@ export async function GET(request: NextRequest) {
     cookieNames,
     supabaseAuthCookieNames,
     hasSupabaseAuthCookies: supabaseAuthCookieNames.length > 0,
+    appSessionCookieName,
+    hasAppSessionCookie,
+    appSession: appSessionDiagnostics,
     request: {
       host,
       protocol,
@@ -73,11 +80,13 @@ export async function GET(request: NextRequest) {
 
     if (error || !user) {
       if (error) console.warn(`[LockInTalks debug auth cookies] No server session found: ${error.message}`);
+      const fallbackSession = await getServerAuthSession();
       return NextResponse.json(
         {
-          authenticated: false,
-          user: null,
-          role: null,
+          authenticated: fallbackSession.authenticated,
+          authSource: fallbackSession.source,
+          user: fallbackSession.authenticated ? { email: fallbackSession.user.email } : null,
+          role: fallbackSession.role,
           authError: error?.message || "No active server session.",
           ...basePayload
         },
@@ -90,6 +99,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         authenticated: true,
+        authSource: "supabase",
         user: {
           email: user.email || null
         },
@@ -100,6 +110,21 @@ export async function GET(request: NextRequest) {
       { status: 200, headers: authNoStoreHeaders }
     );
   } catch (error) {
+    if (error instanceof AppSessionConfigError) {
+      console.error(`[LockInTalks debug auth cookies] ${error.message}`);
+      return NextResponse.json(
+        {
+          authenticated: false,
+          authSource: null,
+          user: null,
+          role: null,
+          authError: error.message,
+          ...basePayload
+        },
+        { status: 503, headers: authNoStoreHeaders }
+      );
+    }
+
     console.error("[LockInTalks debug auth cookies] Unexpected debug endpoint error:", error);
     return NextResponse.json(
       {

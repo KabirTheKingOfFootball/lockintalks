@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { clearAppSessionCookie } from "@/lib/auth/app-session";
 import { authNoStoreHeaders } from "@/lib/auth/http";
 import { buildAppUrl, getRequestOrigin } from "@/lib/site-url";
 import { SupabaseConfigError } from "@/lib/supabase/env";
@@ -29,5 +30,6 @@ export async function GET(request: NextRequest) {
 
   const response = NextResponse.redirect(buildAppUrl(origin, "/login"));
   Object.entries(authNoStoreHeaders).forEach(([header, value]) => response.headers.set(header, value));
+  clearAppSessionCookie(response);
   return response;
 }

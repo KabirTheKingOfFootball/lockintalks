@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getServerAuthSession } from "@/lib/auth/server-session";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { isSeatConfirmed } from "@/lib/payment/status";
 
@@ -20,17 +20,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing registration id." }, { status: 400 });
     }
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: userError
-    } = await supabase.auth.getUser();
-    const userId = user?.id;
+    const session = await getServerAuthSession();
 
-    if (userError || !userId) {
+    if (!session.authenticated) {
       return NextResponse.json({ error: "Please log in before updating payment status." }, { status: 401 });
     }
 
+    const userId = session.user.id;
     const supabaseAdmin = createAdminClient();
     const { data: registration, error: lookupError } = await supabaseAdmin
       .from("registrations")

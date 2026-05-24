@@ -1,7 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { AppSessionConfigError } from "@/lib/auth/app-session";
+import { getServerAuthSession } from "@/lib/auth/server-session";
 import { getReadableSupabaseError } from "@/lib/readable-error";
 import { SupabaseConfigError } from "@/lib/supabase/env";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,14 +43,10 @@ export async function POST(request: NextRequest) {
       return jsonError("Please enter a valid guardian email.", 400);
     }
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: userError
-    } = await supabase.auth.getUser();
+    const session = await getServerAuthSession();
 
-    if (userError || !user) {
-      console.warn(`[LockInTalks registration] Registration auth check failed: ${userError?.message || "No active session"}`);
+    if (!session.authenticated) {
+      console.warn("[LockInTalks registration] Registration auth check failed: No active server session.");
       return NextResponse.json(
         {
           error: "Please Log In or Create an Account Before Registering for a Competition.",
@@ -58,8 +56,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.info("[LockInTalks registration] Registration auth check passed.");
-    const { data: competition, error: competitionError } = await supabase
+    console.info(`[LockInTalks registration] Registration auth check passed from ${session.source}.`);
+    const supabaseAdmin = createAdminClient();
+    const { data: competition, error: competitionError } = await supabaseAdmin
       .from("competitions")
       .select("slug,name,fee_label,status")
       .eq("slug", competitionSlug)
@@ -75,10 +74,10 @@ export async function POST(request: NextRequest) {
       return jsonError("This competition is not available for registration right now.", 404);
     }
 
-    const { data, error: insertError } = await supabase
+    const { data, error: insertError } = await supabaseAdmin
       .from("registrations")
       .insert({
-        user_id: user.id,
+        user_id: session.user.id,
         competition_slug: competition.slug,
         competition_name: competition.name,
         student_name: studentName,
@@ -105,7 +104,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true, registrationId: data.id }, { status: 200, headers: noStoreHeaders });
   } catch (error) {
-    if (error instanceof SupabaseConfigError) {
+    if (error instanceof SupabaseConfigError || error instanceof AppSessionConfigError) {
       console.error(`[LockInTalks registration] ${error.message}`);
       return jsonError(error.message, 503);
     }

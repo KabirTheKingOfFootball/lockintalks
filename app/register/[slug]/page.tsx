@@ -5,8 +5,9 @@ import { RegisterForm } from "@/components/register-form";
 import { MotionShell } from "@/components/motion-shell";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { AppSessionConfigError } from "@/lib/auth/app-session";
+import { getServerAuthSession } from "@/lib/auth/server-session";
 import { getLiveCompetitionBySlug, getLiveCompetitions } from "@/lib/competitions";
-import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -29,18 +30,19 @@ export default async function RegisterPage({ params }: { params: Promise<{ slug:
   const { competition } = await getLiveCompetitionBySlug(slug);
   if (!competition) notFound();
   const nextPath = `/register/${competition.slug}`;
-  let isLoggedIn = false;
+  let session: Awaited<ReturnType<typeof getServerAuthSession>>;
 
   try {
-    const supabase = await createClient();
-    const {
-      data: { user }
-    } = await supabase.auth.getUser();
-
-    isLoggedIn = Boolean(user);
+    session = await getServerAuthSession();
   } catch (error) {
-    console.error("[LockInTalks registration page] Could not confirm session:", error);
+    if (error instanceof AppSessionConfigError) {
+      console.error(`[LockInTalks registration page] ${error.message}`);
+      session = { authenticated: false, source: null, user: null, role: null, redirectTo: "/login" };
+    } else {
+      throw error;
+    }
   }
+  const isLoggedIn = session.authenticated;
 
   if (!isLoggedIn) {
     return <LoginRequired competitionName={competition.name} nextPath={nextPath} />;

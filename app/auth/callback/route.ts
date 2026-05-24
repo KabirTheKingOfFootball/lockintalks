@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getPostAuthRedirect } from "@/lib/auth/redirect";
+import { setAppSessionCookie, AppSessionConfigError } from "@/lib/auth/app-session";
 import { getUserRoleFromClient } from "@/lib/auth/session";
 import { authNoStoreHeaders } from "@/lib/auth/http";
 import { buildAppUrl, getRequestOrigin, normalizeNextPath } from "@/lib/site-url";
@@ -45,9 +46,15 @@ export async function GET(request: NextRequest) {
     const role = await getUserRoleFromClient(supabase, user.id);
     const redirectTo = getPostAuthRedirect(role, next);
     console.info(`[LockInTalks auth callback] Session confirmed. Role: ${role}. Redirect: ${redirectTo}.`);
-    return redirectNoStore(origin, redirectTo);
+    const response = redirectNoStore(origin, redirectTo);
+    setAppSessionCookie(response, {
+      userId: user.id,
+      email: user.email || "",
+      role
+    });
+    return response;
   } catch (error) {
-    if (error instanceof SupabaseConfigError) {
+    if (error instanceof SupabaseConfigError || error instanceof AppSessionConfigError) {
       console.error(`[LockInTalks auth callback] ${error.message}`);
       return redirectNoStore(origin, `/login?error=${encodeURIComponent(getReadableSupabaseError(error, "Login could not be completed."))}`);
     }

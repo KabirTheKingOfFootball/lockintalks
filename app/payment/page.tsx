@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { PaymentForm } from "@/components/payment-form";
 import { MotionShell } from "@/components/motion-shell";
-import { createClient } from "@/lib/supabase/server";
+import { getServerAuthSession } from "@/lib/auth/server-session";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 
 export const metadata: Metadata = {
@@ -26,19 +27,16 @@ async function getPaymentSummary(registrationId: string | null) {
   if (!registrationId) return null;
 
   try {
-    const supabase = await createClient();
-    const {
-      data: { user }
-    } = await supabase.auth.getUser();
-    const userId = user?.id;
+    const session = await getServerAuthSession();
 
-    if (!userId) return null;
+    if (!session.authenticated) return null;
 
-    const { data, error } = await supabase
+    const supabaseAdmin = createAdminClient();
+    const { data, error } = await supabaseAdmin
       .from("registrations")
       .select("competition_slug, competition_name, entry_fee")
       .eq("id", registrationId)
-      .eq("user_id", userId)
+      .eq("user_id", session.user.id)
       .maybeSingle();
 
     if (error || !data) {
@@ -46,7 +44,7 @@ async function getPaymentSummary(registrationId: string | null) {
       return null;
     }
 
-    const { data: competition } = await supabase
+    const { data: competition } = await supabaseAdmin
       .from("competitions")
       .select("event_date, event_time, timezone")
       .eq("slug", data.competition_slug)

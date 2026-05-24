@@ -2,8 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { RazorpayConfigError } from "@/lib/razorpay/env";
 import { fetchRazorpayPayment, isRazorpayPaymentCaptured, verifyRazorpaySignature } from "@/lib/razorpay/payments";
 import { isSeatConfirmed } from "@/lib/payment/status";
+import { getServerAuthSession } from "@/lib/auth/server-session";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 
 export const runtime = "nodejs";
@@ -25,19 +25,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing Razorpay verification details." }, { status: 400 });
     }
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: userError
-    } = await supabase.auth.getUser();
-    const userId = user?.id;
+    const session = await getServerAuthSession();
 
-    if (userError || !userId) {
-      console.warn(`[LockInTalks payment verify] Unauthenticated verification attempt: ${userError?.message || "No user id"}`);
+    if (!session.authenticated) {
+      console.warn("[LockInTalks payment verify] Unauthenticated verification attempt.");
       return NextResponse.json({ error: "Please log in before verifying payment." }, { status: 401 });
     }
 
-    const { data: registration, error: registrationError } = await supabase
+    const userId = session.user.id;
+    const supabaseAdmin = createAdminClient();
+    const { data: registration, error: registrationError } = await supabaseAdmin
       .from("registrations")
       .select("id, user_id, razorpay_order_id, payment_order_id, payment_status")
       .eq("id", registrationId)
@@ -73,7 +70,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Payment verification failed." }, { status: 400 });
     }
 
-    const supabaseAdmin = createAdminClient();
     const payment = await fetchRazorpayPayment(paymentId);
 
     if (payment.order_id && payment.order_id !== storedOrderId) {
