@@ -12,6 +12,7 @@ export const config = {
     "/register/:path*",
     "/payment/:path*",
     "/api/auth/:path*",
+    "/api/debug/auth-cookies",
     "/api/registrations",
     "/api/admin/:path*",
     "/api/payments/create-order",

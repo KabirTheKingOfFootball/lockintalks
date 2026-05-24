@@ -6,6 +6,8 @@ import { authNoStoreHeaders, createAuthRouteClient } from "@/lib/supabase/auth-r
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 type SignupRequest = {
   name?: string;
@@ -15,8 +17,10 @@ type SignupRequest = {
 };
 
 export async function POST(request: NextRequest) {
+  const origin = getRequestOrigin(request);
+
   try {
-    const body = (await request.json()) as SignupRequest;
+    const body = await readSignupRequest(request);
     const name = String(body.name || "").trim();
     const email = String(body.email || "").trim();
     const password = String(body.password || "");
@@ -24,14 +28,13 @@ export async function POST(request: NextRequest) {
     console.info("[LockInTalks auth signup] Signup request received.");
 
     if (name.length < 2) {
-      return NextResponse.json({ error: "Please enter the student's name." }, { status: 400, headers: authNoStoreHeaders });
+      return signupRedirect(origin, next, "Please enter the student's name.");
     }
 
     if (!/^\S+@\S+\.\S+$/.test(email) || password.length < 6) {
-      return NextResponse.json({ error: "Enter a valid email and a password with at least 6 characters." }, { status: 400, headers: authNoStoreHeaders });
+      return signupRedirect(origin, next, "Enter a valid email and a password with at least 6 characters.");
     }
 
-    const origin = getRequestOrigin(request);
     const emailRedirectTo = buildAppUrl(origin, `/auth/callback?next=${encodeURIComponent(next)}`);
     console.info(`[LockInTalks auth signup] Using email redirect origin ${origin} and callback ${emailRedirectTo}`);
 
@@ -49,18 +52,12 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error(`[LockInTalks auth signup] Supabase signup failed: ${error.message}`);
-      return applyAuthCookies(NextResponse.json({ error: getReadableSupabaseError(error, "Signup failed.") }, { status: 400, headers: authNoStoreHeaders }));
+      return applyAuthCookies(signupRedirect(origin, next, getReadableSupabaseError(error, "Signup failed.")));
     }
 
     if (!data.session) {
       console.info("[LockInTalks auth signup] Signup succeeded. Email confirmation is required before login.");
-      return applyAuthCookies(NextResponse.json(
-        {
-          ok: true,
-          needsEmailConfirmation: true
-        },
-        { headers: authNoStoreHeaders }
-      ));
+      return applyAuthCookies(loginNoticeRedirect(origin, next, "Account Created. Please check your email to confirm your account, then log in."));
     }
 
     if (getAuthCookieWriteCount() === 0) {
@@ -68,16 +65,41 @@ export async function POST(request: NextRequest) {
     }
     console.info("[LockInTalks auth signup] Signup succeeded with active session. Redirecting through finalize.");
 
-    return applyAuthCookies(NextResponse.json(
-      {
-        ok: true,
-        needsEmailConfirmation: false,
-        finalizeTo: `/auth/finalize?next=${encodeURIComponent(next)}`
-      },
-      { headers: authNoStoreHeaders }
-    ));
+    const response = NextResponse.redirect(buildAppUrl(origin, `/auth/finalize?next=${encodeURIComponent(next)}`), { status: 303 });
+    Object.entries(authNoStoreHeaders).forEach(([header, value]) => response.headers.set(header, value));
+    return applyAuthCookies(response);
   } catch (error) {
     console.error("[LockInTalks auth signup] Unexpected signup error:", error);
-    return NextResponse.json({ error: getReadableSupabaseError(error, "Signup is temporarily unavailable.") }, { status: error instanceof SupabaseConfigError ? 503 : 500, headers: authNoStoreHeaders });
+    return signupRedirect(origin, "/dashboard", getReadableSupabaseError(error, error instanceof SupabaseConfigError ? "Supabase is not configured correctly." : "Signup is temporarily unavailable."));
   }
+}
+
+async function readSignupRequest(request: NextRequest): Promise<SignupRequest> {
+  const contentType = request.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    return (await request.json()) as SignupRequest;
+  }
+
+  const formData = await request.formData();
+  return {
+    name: String(formData.get("name") || ""),
+    email: String(formData.get("email") || ""),
+    password: String(formData.get("password") || ""),
+    next: String(formData.get("next") || "")
+  };
+}
+
+function signupRedirect(origin: string, next: string, message: string) {
+  const safeNext = normalizeNextPath(next, "/dashboard");
+  const response = NextResponse.redirect(buildAppUrl(origin, `/signup?next=${encodeURIComponent(safeNext)}&error=${encodeURIComponent(message)}`), { status: 303 });
+  Object.entries(authNoStoreHeaders).forEach(([header, value]) => response.headers.set(header, value));
+  return response;
+}
+
+function loginNoticeRedirect(origin: string, next: string, message: string) {
+  const safeNext = normalizeNextPath(next, "/dashboard");
+  const response = NextResponse.redirect(buildAppUrl(origin, `/login?next=${encodeURIComponent(safeNext)}&notice=${encodeURIComponent(message)}`), { status: 303 });
+  Object.entries(authNoStoreHeaders).forEach(([header, value]) => response.headers.set(header, value));
+  return response;
 }

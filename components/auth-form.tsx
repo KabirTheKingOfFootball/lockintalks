@@ -5,95 +5,43 @@ import { track } from "@vercel/analytics";
 import { Lock, Mail, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getReadableError, readJsonResponse } from "@/lib/readable-error";
 
-type AuthResponse = {
-  ok?: boolean;
-  error?: string;
-  needsEmailConfirmation?: boolean;
-  finalizeTo?: string;
-};
-
-export function AuthForm({ mode, initialError = "", nextPath = "/dashboard" }: { mode: "login" | "signup"; initialError?: string; nextPath?: string }) {
+export function AuthForm({ mode, initialError = "", initialNotice = "", nextPath = "/dashboard" }: { mode: "login" | "signup"; initialError?: string; initialNotice?: string; nextPath?: string }) {
   const [error, setError] = useState(initialError);
+  const [notice, setNotice] = useState(initialNotice);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [statusText, setStatusText] = useState("");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const isSignup = mode === "signup";
   const title = useMemo(() => (isSignup ? "Create Your Speaker Account" : "Welcome Back"), [isSignup]);
 
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function submit(event: React.FormEvent<HTMLFormElement>) {
     setError("");
+    setNotice("");
 
     if (isSignup && form.name.trim().length < 2) {
+      event.preventDefault();
       setError("Please enter the student's name.");
       return;
     }
     if (!/^\S+@\S+\.\S+$/.test(form.email)) {
+      event.preventDefault();
       setError("Please enter a valid email address.");
       return;
     }
     if (form.password.length < 6) {
+      event.preventDefault();
       setError("Password must be at least 6 characters.");
       return;
     }
 
-    let isNavigatingAway = false;
-
-    try {
-      setIsSubmitting(true);
-      setStatusText(isSignup ? "Creating Account..." : "Signing In...");
-      track(isSignup ? "signup_started" : "login_started");
-      clearLegacyAuthStorage();
-
-      const response = await fetch(isSignup ? "/api/auth/signup" : "/api/auth/login", {
-        method: "POST",
-        cache: "no-store",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name,
-          email: form.email,
-          password: form.password,
-          next: nextPath
-        })
-      });
-      const result = await readJsonResponse<AuthResponse>(response);
-
-      if (!response.ok || result.error) {
-        console.error(`[LockInTalks auth form] ${mode} failed: ${result.error || response.statusText}`);
-        setError(result.error || "Authentication failed.");
-        track(isSignup ? "signup_failed" : "login_failed", { reason: "api_error" });
-        return;
-      }
-
-      if (result.needsEmailConfirmation) {
-        setError("Account Created. Please check your email to confirm your account, then log in.");
-        track("signup_completed", { needsEmailConfirmation: true });
-        return;
-      }
-
-      const finalizeTo = getSafeFinalizePath(result.finalizeTo, nextPath);
-      setStatusText("Confirming Session...");
-      track(isSignup ? "signup_completed" : "login_completed", { finalizeTo });
-      window.dispatchEvent(new CustomEvent("lockintalks-auth-changed", { detail: { status: "finalizing" } }));
-      isNavigatingAway = true;
-      window.location.replace(finalizeTo);
-    } catch (submitError) {
-      console.error(`[LockInTalks auth form] Unexpected ${mode} error:`, submitError);
-      setError(getReadableError(submitError, "Authentication is temporarily unavailable. Please check the Supabase configuration."));
-      track(isSignup ? "signup_failed" : "login_failed", { reason: "unexpected_error" });
-    } finally {
-      if (!isNavigatingAway) {
-        setIsSubmitting(false);
-        setStatusText("");
-      }
-    }
+    setIsSubmitting(true);
+    track(isSignup ? "signup_started" : "login_started");
+    clearLegacyAuthStorage();
   }
 
   return (
-    <form onSubmit={submit} className="glass mx-auto w-full max-w-md rounded-[8px] p-6 sm:p-8">
+    <form method="post" action={isSignup ? "/api/auth/signup" : "/api/auth/login"} onSubmit={submit} className="glass mx-auto w-full max-w-md rounded-[8px] p-6 sm:p-8">
+      <input type="hidden" name="next" value={nextPath} />
       <p className="mb-2 text-xs font-bold uppercase tracking-[0.28em] text-[#d4af37]">{isSignup ? "Sign up" : "Login"}</p>
       <h1 className="text-3xl font-black">{title}</h1>
       <p className="mt-3 text-sm leading-6 text-white/60">Secure email and password authentication powered by Supabase sessions.</p>
@@ -103,7 +51,7 @@ export function AuthForm({ mode, initialError = "", nextPath = "/dashboard" }: {
             Student Name
             <span className="relative">
               <UserRound className="pointer-events-none absolute left-4 top-3.5 text-white/40" size={18} />
-              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Student Name" className="pl-11" />
+              <Input name="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Student Name" className="pl-11" />
             </span>
           </label>
         )}
@@ -111,31 +59,24 @@ export function AuthForm({ mode, initialError = "", nextPath = "/dashboard" }: {
           Email
           <span className="relative">
             <Mail className="pointer-events-none absolute left-4 top-3.5 text-white/40" size={18} />
-            <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="student@example.com" className="pl-11" />
+            <Input name="email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="student@example.com" className="pl-11" />
           </span>
         </label>
         <label className="grid gap-2 text-sm font-bold text-white/80">
           Password
           <span className="relative">
             <Lock className="pointer-events-none absolute left-4 top-3.5 text-white/40" size={18} />
-            <Input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Minimum 6 characters" className="pl-11" />
+            <Input name="password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Minimum 6 characters" className="pl-11" />
           </span>
         </label>
       </div>
+      {notice && <p className="mt-4 rounded-[8px] border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">{notice}</p>}
       {error && <p className="mt-4 rounded-[8px] border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
       <Button type="submit" className="mt-6 w-full" disabled={isSubmitting}>
-        {isSubmitting ? statusText || "Please Wait..." : isSignup ? "Create Account" : "Login"}
+        {isSubmitting ? (isSignup ? "Creating Account..." : "Signing In...") : isSignup ? "Create Account" : "Login"}
       </Button>
     </form>
   );
-}
-
-function getSafeFinalizePath(value: string | undefined, nextPath: string) {
-  if (value?.startsWith("/auth/finalize") && !value.startsWith("//")) {
-    return value;
-  }
-
-  return `/auth/finalize?next=${encodeURIComponent(nextPath)}`;
 }
 
 function clearLegacyAuthStorage() {

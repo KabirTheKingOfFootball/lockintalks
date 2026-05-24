@@ -9,13 +9,14 @@ export const metadata: Metadata = {
   description: "Create a LockInTalks account and register for online speaking competitions."
 };
 
-export default async function SignUpPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
-  const { next } = await searchParams;
+export default async function SignUpPage({ searchParams }: { searchParams: Promise<{ error?: string; next?: string }> }) {
+  const { error, next } = await searchParams;
+  const readableError = error ? decodeURIComponent(error).replaceAll("-", " ") : "";
   const nextPath = next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
 
   return (
     <MotionShell className="px-4 py-16">
-      <AuthForm mode="signup" nextPath={nextPath} />
+      <AuthForm mode="signup" initialError={readableError} nextPath={nextPath} />
       <div className="mx-auto mt-6 grid max-w-md gap-3">
         <Card>
           <p className="text-sm font-bold text-[#d4af37]">After Signup</p>

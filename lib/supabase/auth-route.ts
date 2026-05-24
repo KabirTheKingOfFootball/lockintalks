@@ -47,13 +47,27 @@ export function createAuthRouteClient(request: NextRequest, context: string) {
       response.cookies.set(name, value, cookieOptions);
     });
 
-    console.info(`[LockInTalks auth cookies] ${context}: ${cookieUpdates.length} auth cookie write(s) attached to response.`);
+    console.info(
+      `[LockInTalks auth cookies] ${context}: ${cookieUpdates.length} auth cookie write(s) attached to response. Names: ${cookieUpdates.map(({ name }) => name).join(", ") || "none"}. Final response has Set-Cookie: ${response.headers.has("set-cookie")}. Status: ${response.status}.`
+    );
     return response;
   }
 
   return {
     supabase,
     applyAuthCookies,
-    getAuthCookieWriteCount: () => cookieUpdates.length
+    getAuthCookieWriteCount: () => cookieUpdates.length,
+    getAuthCookieWriteNames: () => cookieUpdates.map(({ name }) => name)
   };
+}
+
+export function getSupabaseAuthCookieNames(cookieNames: string[]) {
+  return cookieNames.filter((name) => name === "supabase.auth.token" || /^sb-.+-auth-token(?:\.[0-9]+)?$/.test(name));
+}
+
+export function maskEmail(value: string) {
+  const [name = "", domain = ""] = value.split("@");
+  if (!name || !domain) return "invalid-email";
+  const visibleName = name.length <= 2 ? `${name[0] || ""}*` : `${name.slice(0, 2)}***${name.slice(-1)}`;
+  return `${visibleName}@${domain}`;
 }
