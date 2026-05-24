@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { getSupabaseAuthCookieNames } from "@/lib/auth/http";
 import { requireSupabaseEnv } from "@/lib/supabase/env";
 
 export async function createClient() {
@@ -12,12 +13,18 @@ export async function createClient() {
         return cookieStore.getAll();
       },
       setAll(cookiesToSet) {
+        const cookieNames = cookiesToSet.map(({ name }) => name);
+        const authCookieNames = getSupabaseAuthCookieNames(cookieNames);
+
         try {
           cookiesToSet.forEach(({ name, value, options }) => {
             cookieStore.set(name, value, options);
           });
+          if (authCookieNames.length > 0) {
+            console.info(`[LockInTalks Supabase server] Wrote auth cookie name(s): ${authCookieNames.join(", ")}.`);
+          }
         } catch {
-          // Server Components cannot always write cookies. The proxy refreshes sessions.
+          console.warn(`[LockInTalks Supabase server] Could not write auth cookie name(s): ${authCookieNames.join(", ") || "none"}. Server Components cannot write cookies; Server Actions and Route Handlers should be able to.`);
         }
       }
     }

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { signupAction } from "@/app/auth/actions";
 import { AuthForm } from "@/components/auth-form";
 import { MotionShell } from "@/components/motion-shell";
 import { Card } from "@/components/ui/card";
@@ -17,7 +16,7 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
 
   return (
     <MotionShell className="px-4 py-16">
-      <AuthForm mode="signup" action={signupAction} initialError={readableError} nextPath={nextPath} />
+      <AuthForm mode="signup" initialError={readableError} nextPath={nextPath} />
       <div className="mx-auto mt-6 grid max-w-md gap-3">
         <Card>
           <p className="text-sm font-bold text-[#d4af37]">After Signup</p>

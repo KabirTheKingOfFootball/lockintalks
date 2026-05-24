@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { authNoStoreHeaders, getSupabaseAuthCookieNames } from "@/lib/auth/http";
 import { getUserRoleFromClient } from "@/lib/auth/session";
 import { getRequestOrigin } from "@/lib/site-url";
-import { getSupabaseEnv } from "@/lib/supabase/env";
+import { getSupabaseDiagnostics, getSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
   const cookieNames = request.cookies.getAll().map((cookie) => cookie.name).sort();
   const supabaseAuthCookieNames = getSupabaseAuthCookieNames(cookieNames);
   const env = getSupabaseEnv();
+  const diagnostics = getSupabaseDiagnostics();
   const host = request.headers.get("host") || request.nextUrl.host;
   const protocol = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() || request.nextUrl.protocol.replace(":", "");
   const origin = getRequestOrigin(request);
@@ -32,13 +33,21 @@ export async function GET(request: NextRequest) {
       configured: env.ok,
       urlHost: supabaseUrlHost,
       keySource: env.ok ? env.keySource : null,
+      serviceRoleKeyConfigured: diagnostics.serviceRoleKeyConfigured,
       error: env.ok ? null : env.message
     },
     environment: {
       nodeEnv: process.env.NODE_ENV || "unknown",
       vercel: process.env.VERCEL === "1",
       vercelEnvironment: process.env.VERCEL_ENV || null,
-      vercelUrlConfigured: Boolean(process.env.VERCEL_URL)
+      vercelUrlConfigured: Boolean(process.env.VERCEL_URL),
+      vercelUrl: process.env.VERCEL_URL || null
+    },
+    deployment: {
+      commitSha: process.env.VERCEL_GIT_COMMIT_SHA || null,
+      commitRef: process.env.VERCEL_GIT_COMMIT_REF || null,
+      repo: process.env.VERCEL_GIT_REPO_SLUG || null,
+      owner: process.env.VERCEL_GIT_REPO_OWNER || null
     }
   };
 

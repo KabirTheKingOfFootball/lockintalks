@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { loginAction } from "@/app/auth/actions";
 import { AuthForm } from "@/components/auth-form";
 import { MotionShell } from "@/components/motion-shell";
 
@@ -17,7 +16,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
 
   return (
     <MotionShell className="px-4 py-16">
-      <AuthForm mode="login" action={loginAction} initialError={readableError} initialNotice={readableNotice} nextPath={nextPath} />
+      <AuthForm mode="login" initialError={readableError} initialNotice={readableNotice} nextPath={nextPath} />
       <p className="mt-6 text-center text-sm text-white/60">
         New to LockInTalks? <Link href={`/signup?next=${encodeURIComponent(nextPath)}`} className="font-bold text-[#d4af37]">Create an Account</Link>
       </p>
