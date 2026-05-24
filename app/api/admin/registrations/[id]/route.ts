@@ -1,14 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { checkAdmin } from "@/lib/admin/auth";
+import { adminNoStoreHeaders, checkAdmin } from "@/lib/admin/auth";
 import { ageProofStatuses, isSeatConfirmed, isPaymentStatus, registrationStatuses } from "@/lib/payment/status";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const admin = await checkAdmin();
-  if (!admin.ok) return NextResponse.json({ error: admin.message }, { status: admin.status });
+  const admin = await checkAdmin("PATCH /api/admin/registrations/[id]");
+  if (!admin.ok) return NextResponse.json({ error: admin.message }, { status: admin.status, headers: adminNoStoreHeaders });
 
   const { id } = await params;
 
@@ -20,19 +22,19 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const updates: Record<string, string | null> = { updated_at: new Date().toISOString() };
 
     if (!paymentStatus && !registrationStatus && !ageProofStatus) {
-      return NextResponse.json({ error: "No registration update was provided." }, { status: 400 });
+      return NextResponse.json({ error: "No registration update was provided." }, { status: 400, headers: adminNoStoreHeaders });
     }
 
     if (paymentStatus && !isPaymentStatus(paymentStatus)) {
-      return NextResponse.json({ error: "Invalid payment status." }, { status: 400 });
+      return NextResponse.json({ error: "Invalid payment status." }, { status: 400, headers: adminNoStoreHeaders });
     }
 
     if (registrationStatus && !registrationStatuses.includes(registrationStatus as (typeof registrationStatuses)[number])) {
-      return NextResponse.json({ error: "Invalid registration status." }, { status: 400 });
+      return NextResponse.json({ error: "Invalid registration status." }, { status: 400, headers: adminNoStoreHeaders });
     }
 
     if (ageProofStatus && !ageProofStatuses.includes(ageProofStatus as (typeof ageProofStatuses)[number])) {
-      return NextResponse.json({ error: "Invalid age proof status." }, { status: 400 });
+      return NextResponse.json({ error: "Invalid age proof status." }, { status: 400, headers: adminNoStoreHeaders });
     }
 
     if (paymentStatus) {
@@ -56,12 +58,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     if (error) {
       console.error(`[LockInTalks admin registrations] PATCH failed for ${id}: ${error.message}`);
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return NextResponse.json({ error: error.message }, { status: 400, headers: adminNoStoreHeaders });
     }
 
-    return NextResponse.json({ registration: data });
+    return NextResponse.json({ registration: data }, { headers: adminNoStoreHeaders });
   } catch (error) {
     console.error(`[LockInTalks admin registrations] Unexpected PATCH error for ${id}:`, error);
-    return NextResponse.json({ error: "Could not update registration." }, { status: 500 });
+    return NextResponse.json({ error: "Could not update registration." }, { status: 500, headers: adminNoStoreHeaders });
   }
 }

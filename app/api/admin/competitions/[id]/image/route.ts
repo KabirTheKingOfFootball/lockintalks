@@ -1,13 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { checkAdmin } from "@/lib/admin/auth";
+import { adminNoStoreHeaders, checkAdmin } from "@/lib/admin/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const admin = await checkAdmin();
-  if (!admin.ok) return NextResponse.json({ error: admin.message }, { status: admin.status });
+  const admin = await checkAdmin("POST /api/admin/competitions/[id]/image");
+  if (!admin.ok) return NextResponse.json({ error: admin.message }, { status: admin.status, headers: adminNoStoreHeaders });
 
   const { id } = await params;
 
@@ -16,11 +18,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const file = formData.get("image");
 
     if (!(file instanceof File)) {
-      return NextResponse.json({ error: "Please choose an image file." }, { status: 400 });
+      return NextResponse.json({ error: "Please choose an image file." }, { status: 400, headers: adminNoStoreHeaders });
     }
 
     if (!file.type.startsWith("image/")) {
-      return NextResponse.json({ error: "Only image uploads are allowed." }, { status: 400 });
+      return NextResponse.json({ error: "Only image uploads are allowed." }, { status: 400, headers: adminNoStoreHeaders });
     }
 
     const extension = sanitizeExtension(file.name.split(".").pop());
@@ -35,7 +37,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     if (uploadError) {
       console.error(`[LockInTalks admin image] Upload failed for ${id}: ${uploadError.message}`);
-      return NextResponse.json({ error: uploadError.message }, { status: 400 });
+      return NextResponse.json({ error: uploadError.message }, { status: 400, headers: adminNoStoreHeaders });
     }
 
     const { data: publicUrlData } = supabaseAdmin.storage.from("competition-images").getPublicUrl(path);
@@ -44,13 +46,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     if (updateError) {
       console.error(`[LockInTalks admin image] Could not save image URL for ${id}: ${updateError.message}`);
-      return NextResponse.json({ error: "Image uploaded, but the competition could not be updated." }, { status: 500 });
+      return NextResponse.json({ error: "Image uploaded, but the competition could not be updated." }, { status: 500, headers: adminNoStoreHeaders });
     }
 
-    return NextResponse.json({ imageUrl });
+    return NextResponse.json({ imageUrl }, { headers: adminNoStoreHeaders });
   } catch (error) {
     console.error(`[LockInTalks admin image] Unexpected upload error for ${id}:`, error);
-    return NextResponse.json({ error: "Could not upload image." }, { status: 500 });
+    return NextResponse.json({ error: "Could not upload image." }, { status: 500, headers: adminNoStoreHeaders });
   }
 }
 

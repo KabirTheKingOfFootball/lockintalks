@@ -1,20 +1,22 @@
 import { NextResponse } from "next/server";
-import { checkAdmin } from "@/lib/admin/auth";
+import { adminNoStoreHeaders, checkAdmin } from "@/lib/admin/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 export async function GET() {
-  const admin = await checkAdmin();
-  if (!admin.ok) return NextResponse.json({ error: admin.message }, { status: admin.status });
+  const admin = await checkAdmin("GET /api/admin/registrations/export");
+  if (!admin.ok) return NextResponse.json({ error: admin.message }, { status: admin.status, headers: adminNoStoreHeaders });
 
   const supabaseAdmin = createAdminClient();
   const { data, error } = await supabaseAdmin.from("registrations").select("*").order("created_at", { ascending: false });
 
   if (error) {
     console.error(`[LockInTalks admin export] Export failed: ${error.message}`);
-    return NextResponse.json({ error: "Could not export registrations." }, { status: 500 });
+    return NextResponse.json({ error: "Could not export registrations." }, { status: 500, headers: adminNoStoreHeaders });
   }
 
   const headers = [
@@ -46,6 +48,7 @@ export async function GET() {
   return new NextResponse(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
+      ...adminNoStoreHeaders,
       "Content-Disposition": `attachment; filename="lockintalks-registrations.csv"`
     }
   });

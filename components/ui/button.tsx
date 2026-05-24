@@ -29,23 +29,36 @@ export function ButtonLink({
   children,
   className,
   variant = "gold",
-  ariaLabel
+  ariaLabel,
+  prefetch
 }: {
   href: string;
   children: React.ReactNode;
   className?: string;
   variant?: "gold" | "glass" | "ghost";
   ariaLabel?: string;
+  prefetch?: boolean;
 }) {
+  const classNameValue = cn(
+    "focus-ring inline-flex min-h-11 items-center justify-center rounded-full px-5 py-2.5 text-sm font-bold transition duration-300 hover:-translate-y-0.5",
+    variants[variant],
+    className
+  );
+
+  if (prefetch === false && (href.startsWith("/admin") || href.startsWith("/api/admin"))) {
+    return (
+      <a href={href} aria-label={ariaLabel} className={classNameValue}>
+        {children}
+      </a>
+    );
+  }
+
   return (
     <Link
       href={href}
       aria-label={ariaLabel}
-      className={cn(
-        "focus-ring inline-flex min-h-11 items-center justify-center rounded-full px-5 py-2.5 text-sm font-bold transition duration-300 hover:-translate-y-0.5",
-        variants[variant],
-        className
-      )}
+      prefetch={prefetch}
+      className={classNameValue}
     >
       {children}
     </Link>

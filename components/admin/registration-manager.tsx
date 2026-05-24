@@ -37,6 +37,8 @@ export function RegistrationManager({ registrations }: { registrations: Registra
     try {
       const response = await fetch(`/api/admin/registrations/${encodeURIComponent(id)}`, {
         method: "PATCH",
+        cache: "no-store",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
@@ -60,7 +62,7 @@ export function RegistrationManager({ registrations }: { registrations: Registra
           <h2 className="text-2xl font-black">Registrations</h2>
           <p className="mt-1 text-sm text-white/55">{filteredRegistrations.length} Visible of {rows.length}</p>
         </div>
-        <ButtonLink href="/api/admin/registrations/export" className="gap-2"><Download size={16} /> Export CSV</ButtonLink>
+        <ButtonLink href="/api/admin/registrations/export" className="gap-2" prefetch={false}><Download size={16} /> Export CSV</ButtonLink>
       </div>
       {error && <p className="mb-4 rounded-[8px] border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
       {message && <p className="mb-4 rounded-[8px] border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">{message}</p>}

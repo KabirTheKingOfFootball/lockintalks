@@ -15,6 +15,8 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 function formatStatus(status: string) {
   return status
@@ -24,7 +26,7 @@ function formatStatus(status: string) {
 }
 
 export default async function AdminPage() {
-  const admin = await checkAdmin();
+  const admin = await checkAdmin("/admin");
   if (!admin.ok) return <AdminGate message={admin.message} />;
 
   const { competitions, error: competitionError } = await getAdminCompetitions();
@@ -49,9 +51,9 @@ export default async function AdminPage() {
         <Card>
           <h2 className="text-xl font-black">Quick Actions</h2>
           <div className="mt-5 grid gap-3">
-            <ButtonLink href="/admin/competitions">Create Competition</ButtonLink>
-            <ButtonLink href="/admin/registrations" variant="glass">Review Registrations</ButtonLink>
-            <ButtonLink href="/api/admin/registrations/export" variant="glass">Export CSV</ButtonLink>
+            <ButtonLink href="/admin/competitions" prefetch={false}>Create Competition</ButtonLink>
+            <ButtonLink href="/admin/registrations" variant="glass" prefetch={false}>Review Registrations</ButtonLink>
+            <ButtonLink href="/api/admin/registrations/export" variant="glass" prefetch={false}>Export CSV</ButtonLink>
           </div>
         </Card>
         <Card>

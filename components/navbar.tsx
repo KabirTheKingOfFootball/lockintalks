@@ -152,11 +152,7 @@ export function Navbar() {
           <span className="text-lg font-black tracking-wide">LockIn<span className="gold-text">Talks</span></span>
         </Link>
         <div className="hidden items-center gap-1 md:flex">
-          {links.map((link) => (
-            <Link key={link.href} href={link.href} className="focus-ring rounded-full px-4 py-2 text-sm font-semibold text-white/72 transition hover:bg-white/10 hover:text-white">
-              {link.label}
-            </Link>
-          ))}
+          {links.map((link) => <NavLink key={link.href} href={link.href} label={link.label} />)}
         </div>
         <div className="hidden items-center gap-3 md:flex">
           <AuthActions auth={auth} />
@@ -168,11 +164,7 @@ export function Navbar() {
       {open && (
         <div className="border-t border-white/10 bg-[#020817]/95 px-4 py-5 md:hidden">
           <div className="flex flex-col gap-2">
-            {links.map((link) => (
-              <Link key={link.href} href={link.href} className="rounded-[8px] px-3 py-3 text-sm font-semibold text-white/80 hover:bg-white/10" onClick={() => setOpen(false)}>
-                {link.label}
-              </Link>
-            ))}
+            {links.map((link) => <NavLink key={link.href} href={link.href} label={link.label} mobile onClick={() => setOpen(false)} />)}
             <div className="mt-2 grid grid-cols-2 gap-3" onClick={() => setOpen(false)}>
               <AuthActions auth={auth} mobile />
             </div>
@@ -180,6 +172,26 @@ export function Navbar() {
         </div>
       )}
     </header>
+  );
+}
+
+function NavLink({ href, label, mobile = false, onClick }: { href: string; label: string; mobile?: boolean; onClick?: () => void }) {
+  const className = mobile
+    ? "rounded-[8px] px-3 py-3 text-sm font-semibold text-white/80 hover:bg-white/10"
+    : "focus-ring rounded-full px-4 py-2 text-sm font-semibold text-white/72 transition hover:bg-white/10 hover:text-white";
+
+  if (href.startsWith("/admin")) {
+    return (
+      <a href={href} className={className} onClick={onClick}>
+        {label}
+      </a>
+    );
+  }
+
+  return (
+    <Link href={href} className={className} onClick={onClick}>
+      {label}
+    </Link>
   );
 }
 

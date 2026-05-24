@@ -83,6 +83,8 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
     try {
       const response = await fetch(editing ? `/api/admin/competitions/${encodeURIComponent(form.id)}` : "/api/admin/competitions", {
         method: editing ? "PUT" : "POST",
+        cache: "no-store",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form)
       });
@@ -108,7 +110,11 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
     setError("");
 
     try {
-      const response = await fetch(`/api/admin/competitions/${encodeURIComponent(competition.id)}`, { method: "DELETE" });
+      const response = await fetch(`/api/admin/competitions/${encodeURIComponent(competition.id)}`, {
+        method: "DELETE",
+        cache: "no-store",
+        credentials: "same-origin"
+      });
       const result = await readJsonResponse<{ error?: string }>(response);
       if (!response.ok) throw new Error(result.error || "Could not delete competition.");
       setCompetitions((current) => current.filter((item) => item.id !== competition.id));
@@ -140,6 +146,8 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
     try {
       const response = await fetch(`/api/admin/competitions/${encodeURIComponent(competition.id)}`, {
         method: "PUT",
+        cache: "no-store",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body)
       });
@@ -163,7 +171,12 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
     formData.append("image", file);
 
     try {
-      const response = await fetch(`/api/admin/competitions/${encodeURIComponent(id)}/image`, { method: "POST", body: formData });
+      const response = await fetch(`/api/admin/competitions/${encodeURIComponent(id)}/image`, {
+        method: "POST",
+        cache: "no-store",
+        credentials: "same-origin",
+        body: formData
+      });
       const result = await readJsonResponse<{ error?: string; imageUrl?: string }>(response);
       if (!response.ok || !result.imageUrl) throw new Error(result.error || "Could not upload image.");
       const imageUrl = result.imageUrl;

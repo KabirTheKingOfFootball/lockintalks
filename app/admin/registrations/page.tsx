@@ -12,9 +12,11 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 export default async function AdminRegistrationsPage() {
-  const admin = await checkAdmin();
+  const admin = await checkAdmin("/admin/registrations");
   if (!admin.ok) return <AdminGate message={admin.message} />;
 
   let registrations: RegistrationRow[] = [];

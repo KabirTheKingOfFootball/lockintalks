@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 
 const adminLinks = [
@@ -20,9 +19,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
         <nav className="flex flex-wrap gap-2" aria-label="Admin navigation">
           {adminLinks.map((link) => (
-            <Link key={link.href} href={link.href} className="focus-ring rounded-full border border-white/10 px-4 py-2 text-sm font-bold text-white/70 hover:border-[#d4af37]/50 hover:text-white">
+            <a key={link.href} href={link.href} className="focus-ring rounded-full border border-white/10 px-4 py-2 text-sm font-bold text-white/70 hover:border-[#d4af37]/50 hover:text-white">
               {link.label}
-            </Link>
+            </a>
           ))}
         </nav>
       </div>

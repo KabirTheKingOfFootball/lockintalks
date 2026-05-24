@@ -1,5 +1,8 @@
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+
+export const adminNoStoreHeaders = {
+  "Cache-Control": "no-store, no-cache, max-age=0, must-revalidate"
+};
 
 export type AdminCheck =
   | {
@@ -13,7 +16,9 @@ export type AdminCheck =
       message: string;
     };
 
-export async function checkAdmin(): Promise<AdminCheck> {
+export async function checkAdmin(context = "admin route"): Promise<AdminCheck> {
+  console.info(`[LockInTalks admin] Admin check started for ${context}.`);
+
   try {
     const supabase = await createClient();
     const {
@@ -23,22 +28,35 @@ export async function checkAdmin(): Promise<AdminCheck> {
     const userId = user?.id;
 
     if (userError || !userId) {
-      console.warn(`[LockInTalks admin] Unauthorized admin access: ${userError?.message || "No active session"}`);
+      console.warn(`[LockInTalks admin] User not found for ${context}: ${userError?.message || "No active session"}`);
+      console.warn(`[LockInTalks admin] Admin denied for ${context}.`);
       return { ok: false, status: 401, message: "Please log in with an admin account." };
     }
 
-    const supabaseAdmin = createAdminClient();
-    const { data: profile, error: profileError } = await supabaseAdmin.from("profiles").select("role").eq("id", userId).single();
+    console.info(`[LockInTalks admin] User id found for ${context}: ${userId}.`);
+    const { data: profile, error: profileError } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
 
     if (profileError) {
-      console.error(`[LockInTalks admin] Could not load admin profile: ${profileError.message}`);
+      console.error(`[LockInTalks admin] Profile role lookup failed for ${context}: ${profileError.message}`);
+      console.warn(`[LockInTalks admin] Admin denied for ${context}.`);
       return { ok: false, status: 403, message: "Your admin profile is not configured yet." };
     }
 
+    if (!profile?.role) {
+      console.warn(`[LockInTalks admin] Profile role missing for ${context}.`);
+      console.warn(`[LockInTalks admin] Admin denied for ${context}.`);
+      return { ok: false, status: 403, message: "Your admin profile is not configured yet." };
+    }
+
+    console.info(`[LockInTalks admin] Profile role found for ${context}: ${profile.role}.`);
+
     if (profile?.role !== "admin") {
-      console.warn(`[LockInTalks admin] Non-admin user attempted admin access: ${userId}`);
+      console.warn(`[LockInTalks admin] Non-admin user attempted ${context}: ${userId}`);
+      console.warn(`[LockInTalks admin] Admin denied for ${context}.`);
       return { ok: false, status: 403, message: "You do not have admin access." };
     }
+
+    console.info(`[LockInTalks admin] Admin allowed for ${context}.`);
 
     return {
       ok: true,
@@ -46,7 +64,7 @@ export async function checkAdmin(): Promise<AdminCheck> {
       email: user.email || ""
     };
   } catch (error) {
-    console.error("[LockInTalks admin] Admin authorization failed:", error);
+    console.error(`[LockInTalks admin] Admin authorization failed for ${context}:`, error);
     return { ok: false, status: 503, message: "Admin authorization is temporarily unavailable." };
   }
 }
