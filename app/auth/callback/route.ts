@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { buildAppUrl, getRequestOrigin, normalizeNextPath } from "@/lib/site-url";
-import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { getReadableSupabaseError } from "@/lib/readable-error";
+import { authNoStoreHeaders, createAuthRouteClient } from "@/lib/supabase/auth-route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,16 +19,19 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const supabase = await createClient();
+    const { supabase, applyAuthCookies, getAuthCookieWriteCount } = createAuthRouteClient(request, "GET /auth/callback");
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
       console.error(`[LockInTalks auth callback] Code exchange failed: ${error.message}`);
-      return redirectNoStore(origin, `/login?error=${encodeURIComponent(getReadableSupabaseError(error, "Login could not be completed."))}`);
+      return applyAuthCookies(redirectNoStore(origin, `/login?error=${encodeURIComponent(getReadableSupabaseError(error, "Login could not be completed."))}`));
     }
 
+    if (getAuthCookieWriteCount() === 0) {
+      console.warn("[LockInTalks auth callback] Code exchange succeeded, but no auth cookie writes were captured.");
+    }
     console.info("[LockInTalks auth callback] Code exchange succeeded. Redirecting through finalize.");
-    return redirectNoStore(origin, `/auth/finalize?next=${encodeURIComponent(next)}`);
+    return applyAuthCookies(redirectNoStore(origin, `/auth/finalize?next=${encodeURIComponent(next)}`));
   } catch (error) {
     if (error instanceof SupabaseConfigError) {
       console.error(`[LockInTalks auth callback] ${error.message}`);
@@ -42,6 +45,6 @@ export async function GET(request: NextRequest) {
 
 function redirectNoStore(origin: string, path: string) {
   const response = NextResponse.redirect(buildAppUrl(origin, path));
-  response.headers.set("Cache-Control", "no-store, no-cache, max-age=0, must-revalidate");
+  Object.entries(authNoStoreHeaders).forEach(([header, value]) => response.headers.set(header, value));
   return response;
 }

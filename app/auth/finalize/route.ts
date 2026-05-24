@@ -4,7 +4,7 @@ import { getUserRoleFromClient } from "@/lib/auth/session";
 import { getReadableSupabaseError } from "@/lib/readable-error";
 import { buildAppUrl, getRequestOrigin, normalizeNextPath } from "@/lib/site-url";
 import { SupabaseConfigError } from "@/lib/supabase/env";
-import { createClient } from "@/lib/supabase/server";
+import { authNoStoreHeaders, createAuthRouteClient } from "@/lib/supabase/auth-route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
   try {
     console.info("[LockInTalks auth finalize] Finalize request received.");
-    const supabase = await createClient();
+    const { supabase, applyAuthCookies } = createAuthRouteClient(request, "GET /auth/finalize");
     const {
       data: { user },
       error: userError
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     if (userError || !user) {
       console.warn(`[LockInTalks auth finalize] Session not confirmed: ${userError?.message || "No active session"}`);
-      return redirectNoStore(origin, `/login?next=${encodeURIComponent(next)}&error=${encodeURIComponent("Your login session could not be confirmed. Please log in again.")}`);
+      return applyAuthCookies(redirectNoStore(origin, `/login?next=${encodeURIComponent(next)}&error=${encodeURIComponent("Your login session could not be confirmed. Please log in again.")}`));
     }
 
     console.info("[LockInTalks auth finalize] Session confirmed.");
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     const redirectTo = getPostAuthRedirect(role, next);
     console.info(`[LockInTalks auth finalize] Role loaded: ${role}. Redirect target selected: ${redirectTo}`);
 
-    return redirectNoStore(origin, redirectTo);
+    return applyAuthCookies(redirectNoStore(origin, redirectTo));
   } catch (error) {
     if (error instanceof SupabaseConfigError) {
       console.error(`[LockInTalks auth finalize] ${error.message}`);
@@ -46,6 +46,6 @@ export async function GET(request: NextRequest) {
 
 function redirectNoStore(origin: string, path: string) {
   const response = NextResponse.redirect(buildAppUrl(origin, path));
-  response.headers.set("Cache-Control", "no-store, no-cache, max-age=0, must-revalidate");
+  Object.entries(authNoStoreHeaders).forEach(([header, value]) => response.headers.set(header, value));
   return response;
 }

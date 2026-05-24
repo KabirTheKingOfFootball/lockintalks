@@ -1,17 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { getRoleRedirect } from "@/lib/auth/redirect";
 import { getUserRoleFromClient } from "@/lib/auth/session";
-import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
+import { authNoStoreHeaders, createAuthRouteClient } from "@/lib/supabase/auth-route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const noStoreHeaders = { "Cache-Control": "no-store, no-cache, max-age=0, must-revalidate" };
-
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const { supabase, applyAuthCookies } = createAuthRouteClient(request, "GET /api/auth/session");
     const {
       data: { user },
       error
@@ -19,25 +17,25 @@ export async function GET() {
 
     if (error || !user) {
       if (error) console.warn(`[LockInTalks auth session] Session check failed: ${error.message}`);
-      return NextResponse.json(
+      return applyAuthCookies(NextResponse.json(
         { authenticated: false, user: null, role: null, redirectTo: "/login" },
-        { status: 200, headers: noStoreHeaders }
-      );
+        { status: 200, headers: authNoStoreHeaders }
+      ));
     }
 
     console.info("[LockInTalks auth session] Session confirmed.");
     const role = await getUserRoleFromClient(supabase, user.id);
-    return NextResponse.json(
+    return applyAuthCookies(NextResponse.json(
       { authenticated: true, user: { id: user.id, email: user.email || "" }, role, redirectTo: getRoleRedirect(role) },
-      { status: 200, headers: noStoreHeaders }
-    );
+      { status: 200, headers: authNoStoreHeaders }
+    ));
   } catch (error) {
     if (error instanceof SupabaseConfigError) {
       console.error(`[LockInTalks auth session] ${error.message}`);
-      return NextResponse.json({ authenticated: false, user: null, role: null, redirectTo: "/login", error: error.message }, { status: 503, headers: noStoreHeaders });
+      return NextResponse.json({ authenticated: false, user: null, role: null, redirectTo: "/login", error: error.message }, { status: 503, headers: authNoStoreHeaders });
     }
 
     console.error("[LockInTalks auth session] Unexpected session check error:", error);
-    return NextResponse.json({ authenticated: false, user: null, role: null, redirectTo: "/login", error: "Could not verify session." }, { status: 500, headers: noStoreHeaders });
+    return NextResponse.json({ authenticated: false, user: null, role: null, redirectTo: "/login", error: "Could not verify session." }, { status: 500, headers: authNoStoreHeaders });
   }
 }
