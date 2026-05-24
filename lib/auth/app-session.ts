@@ -51,9 +51,15 @@ export function clearAppSessionCookie(response: NextResponse) {
 }
 
 export function getAppSessionDiagnostics() {
-  const secret = process.env.APP_SESSION_SECRET || "";
+  const appSecret = process.env.APP_SESSION_SECRET || "";
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+  const appSessionSecretConfigured = isUsableSecret(appSecret);
+  const serviceRoleFallbackAvailable = isUsableSecret(serviceRoleKey);
+
   return {
-    appSessionSecretConfigured: Boolean(secret) && secret.length >= 32 && !placeholderSecrets.has(secret || "")
+    appSessionSecretConfigured,
+    appSessionSigningReady: appSessionSecretConfigured || serviceRoleFallbackAvailable,
+    appSessionSecretSource: appSessionSecretConfigured ? "APP_SESSION_SECRET" : serviceRoleFallbackAvailable ? "SUPABASE_SERVICE_ROLE_KEY_FALLBACK" : null
   };
 }
 
@@ -100,9 +106,20 @@ function fromBase64Url(value: string) {
 }
 
 function getAppSessionSecret() {
-  const secret = process.env.APP_SESSION_SECRET;
-  if (!secret || secret.length < 32 || placeholderSecrets.has(secret)) {
-    throw new AppSessionConfigError("APP_SESSION_SECRET is missing, too short, or still using the example value. Add a secure random value of at least 32 characters in Vercel Environment Variables, then redeploy.");
+  const appSecret = process.env.APP_SESSION_SECRET || "";
+  if (isUsableSecret(appSecret)) {
+    return appSecret;
   }
-  return secret;
+
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+  if (isUsableSecret(serviceRoleKey)) {
+    console.warn("[LockInTalks app session] APP_SESSION_SECRET is missing. Using server-only SUPABASE_SERVICE_ROLE_KEY as a temporary signing fallback.");
+    return serviceRoleKey;
+  }
+
+  throw new AppSessionConfigError("APP_SESSION_SECRET is missing, too short, or still using the example value. Add a secure random value of at least 32 characters in Vercel Environment Variables, then redeploy.");
+}
+
+function isUsableSecret(value: string) {
+  return Boolean(value) && value.length >= 32 && !placeholderSecrets.has(value);
 }
