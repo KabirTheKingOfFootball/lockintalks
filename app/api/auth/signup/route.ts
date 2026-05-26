@@ -99,7 +99,6 @@ export async function POST(request: NextRequest) {
       email: data.user.email || email,
       role
     });
-    setLoginDiagnosticCookie(response, { status: "success", reason: "signup-session-created", redirectTo, source: "app-session" });
     clearSupabaseAuthCookies(response, request.cookies.getAll().map((cookie) => cookie.name));
 
     const responseCookieNames = response.cookies.getAll().map((cookie) => cookie.name);
