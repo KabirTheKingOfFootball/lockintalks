@@ -1,13 +1,19 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getSupabaseAuthCookieNames } from "@/lib/auth/http";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
   const env = getSupabaseEnv();
+  const cookieNames = request.cookies.getAll().map((cookie) => cookie.name);
 
   if (!env.ok) {
     console.error(`[LockInTalks Supabase proxy] ${env.message}`);
+    return supabaseResponse;
+  }
+
+  if (getSupabaseAuthCookieNames(cookieNames).length === 0) {
     return supabaseResponse;
   }
 
