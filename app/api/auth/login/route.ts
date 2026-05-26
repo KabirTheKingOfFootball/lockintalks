@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     const role = await getUserRole(data.user.id);
     const redirectTo = getPostAuthRedirect(role, next);
     const response = formPost
-      ? redirectNoStore(request, redirectTo)
+      ? htmlRedirectNoStore(redirectTo)
       : NextResponse.json(
           {
             ok: true,
@@ -103,6 +103,19 @@ function redirectNoStore(request: NextRequest, path: string) {
   return response;
 }
 
+function htmlRedirectNoStore(path: string) {
+  const safePath = path.startsWith("/") && !path.startsWith("//") ? path : "/";
+  const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="robots" content="noindex"><meta http-equiv="refresh" content="0;url=${escapeHtmlAttribute(safePath)}"><title>Signing In</title></head><body style="background:#020817;color:white;font-family:system-ui,sans-serif;display:grid;min-height:100vh;place-items:center;margin:0"><main style="text-align:center"><h1>Signing You In...</h1><p>Please wait while LockInTalks opens your account.</p></main><script>window.location.replace(${JSON.stringify(safePath)});</script></body></html>`;
+  return new NextResponse(html, {
+    status: 200,
+    headers: {
+      ...authNoStoreHeaders,
+      "Content-Type": "text/html; charset=utf-8",
+      "X-LockInTalks-Redirect": safePath
+    }
+  });
+}
+
 function normalizeNextPath(value: string | null | undefined, fallback = "/dashboard") {
   if (!value || !value.startsWith("/") || value.startsWith("//")) return fallback;
   return value;
@@ -116,4 +129,8 @@ function isFormPost(request: NextRequest) {
 function buildSameHostUrl(request: NextRequest, path: string) {
   const safePath = path.startsWith("/") && !path.startsWith("//") ? path : "/";
   return new URL(safePath, request.url);
+}
+
+function escapeHtmlAttribute(value: string) {
+  return value.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }

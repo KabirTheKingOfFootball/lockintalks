@@ -13,9 +13,10 @@ try {
   await checkPage("/login");
   await checkPage("/signup");
   await checkJson("/api/debug/auth-cookies");
-  await checkNoStore("/api/auth/session");
-  await checkNoStore("/api/debug/auth-cookies");
-  await checkFirstPartyCookie();
+await checkNoStore("/api/auth/session");
+await checkNoStore("/api/debug/auth-cookies");
+await checkFirstPartyCookie();
+await checkAuthStyleCookie();
 
   if (testEmail && testPassword) {
     await checkRealLogin();
@@ -68,6 +69,16 @@ async function checkFirstPartyCookie() {
   else console.log("[auth-smoke] First-party test cookie set/read works.");
 }
 
+async function checkAuthStyleCookie() {
+  const set = await request("/api/debug/set-auth-style-cookie");
+  if (set.response.status !== 303) fail(`/api/debug/set-auth-style-cookie returned ${set.response.status}`);
+
+  const read = await request("/api/debug/read-test-cookie");
+  if (!read.response.ok) fail(`/api/debug/read-test-cookie returned ${read.response.status} after auth-style cookie set`);
+  if (!read.body?.authStylePresent) fail("Auth-style httpOnly redirect cookie was not readable by the server.");
+  else console.log("[auth-smoke] Auth-style httpOnly redirect cookie set/read works.");
+}
+
 async function checkRealLogin() {
   const login = await request("/api/auth/login", {
     method: "POST",
@@ -79,7 +90,7 @@ async function checkRealLogin() {
     }).toString()
   });
 
-  if (login.response.status !== 303) {
+  if (login.response.status !== 200 && login.response.status !== 303) {
     fail(`/api/auth/login failed (${login.response.status}): ${safeError(login.body)}`);
     return;
   }
@@ -91,9 +102,9 @@ async function checkRealLogin() {
     console.log(`[auth-smoke] Login stored auth cookie name(s): ${cookieNames.filter(isAuthCookieName).join(", ") || "none"}.`);
   }
 
-  const location = login.response.headers.get("location") || "";
+  const location = login.response.headers.get("location") || login.response.headers.get("x-lockintalks-redirect") || "";
   if (!location.includes("/dashboard") && !location.includes("/admin")) {
-    fail(`Login redirect target was unexpected: ${location || "missing Location header"}.`);
+    fail(`Login redirect target was unexpected: ${location || "missing redirect header"}.`);
   } else {
     console.log(`[auth-smoke] Login redirected to ${location}.`);
   }
