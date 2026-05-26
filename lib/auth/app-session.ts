@@ -53,8 +53,7 @@ export function setAppSessionCookie(response: NextResponse, session: Omit<AppSes
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: Math.floor(sessionLifetimeMs / 1000),
-    expires: new Date(expiresAt)
+    maxAge: Math.floor(sessionLifetimeMs / 1000)
   });
 }
 
