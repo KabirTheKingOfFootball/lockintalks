@@ -1,12 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getPostAuthRedirect } from "@/lib/auth/redirect";
 import { setAppSessionCookie, AppSessionConfigError } from "@/lib/auth/app-session";
-import { authNoStoreHeaders, maskEmail } from "@/lib/auth/http";
+import { authNoStoreHeaders, clearSupabaseAuthCookies, maskEmail } from "@/lib/auth/http";
 import { setLoginDiagnosticCookie } from "@/lib/auth/login-diagnostics";
 import { getUserRole } from "@/lib/auth/session";
 import { getReadableSupabaseError } from "@/lib/readable-error";
-import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
+import { createPublicClient } from "@/lib/supabase/public";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       return authError(request, formPost, "Enter a valid email and password.", 400, next, "failed", "invalid-form");
     }
 
-    const supabase = await createClient();
+    const supabase = createPublicClient();
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error || !data.user || !data.session) {
@@ -65,6 +65,7 @@ export async function POST(request: NextRequest) {
       role
     });
     setLoginDiagnosticCookie(response, { status: "success", reason: "supabase-session-created", redirectTo, source: "app-session" });
+    clearSupabaseAuthCookies(response, request.cookies.getAll().map((cookie) => cookie.name));
 
     const responseCookieNames = response.cookies.getAll().map((cookie) => cookie.name);
     console.info(`[LockInTalks auth login] Login verified. Response cookie write count: ${responseCookieNames.length}. Cookie names: ${responseCookieNames.join(", ") || "none"}. Set-Cookie header present: ${Boolean(response.headers.get("set-cookie"))}. Role: ${role}. Redirect: ${redirectTo}.`);

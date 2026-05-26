@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { appSessionCookieName } from "@/lib/auth/app-session";
 import { getSupabaseAuthCookieNames } from "@/lib/auth/http";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 
@@ -10,6 +11,13 @@ export async function updateSession(request: NextRequest) {
 
   if (!env.ok) {
     console.error(`[LockInTalks Supabase proxy] ${env.message}`);
+    return supabaseResponse;
+  }
+
+  // The signed LockInTalks app session is the production auth source of truth.
+  // When it is present, avoid refreshing Supabase cookies on navigation because
+  // a stale Supabase cookie was causing route-to-route auth disagreement.
+  if (cookieNames.includes(appSessionCookieName)) {
     return supabaseResponse;
   }
 

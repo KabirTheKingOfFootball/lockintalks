@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
           authSource: fallbackSession.source,
           user: fallbackSession.authenticated ? { email: fallbackSession.user.email } : null,
           role: fallbackSession.role,
-          authError: error?.message || "No active server session.",
+          authError: fallbackSession.authenticated ? null : error?.message || "No active server session.",
           ...basePayload
         },
         { status: 200, headers: authNoStoreHeaders }

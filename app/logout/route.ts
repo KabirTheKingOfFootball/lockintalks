@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { clearAppSessionCookie } from "@/lib/auth/app-session";
-import { authNoStoreHeaders } from "@/lib/auth/http";
+import { authNoStoreHeaders, clearSupabaseAuthCookies } from "@/lib/auth/http";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -28,5 +28,6 @@ export async function GET(request: NextRequest) {
   const response = NextResponse.redirect(new URL("/login", request.url), 303);
   Object.entries(authNoStoreHeaders).forEach(([header, value]) => response.headers.set(header, value));
   clearAppSessionCookie(response);
+  clearSupabaseAuthCookies(response, request.cookies.getAll().map((cookie) => cookie.name));
   return response;
 }

@@ -24,8 +24,19 @@ export type ServerAuthSession =
 
 export async function getServerAuthSession(): Promise<ServerAuthSession> {
   // Protected pages and APIs must use this helper as the auth source of truth.
-  // It prefers official Supabase SSR cookies, then falls back to the signed
-  // httpOnly app session used while production Supabase cookies are unreliable.
+  // It prefers the signed httpOnly app session because production testing showed
+  // Supabase SSR auth cookies could exist but still fail getUser() between pages.
+  const appSession = await readAppSession();
+  if (appSession) {
+    return {
+      authenticated: true,
+      source: "app-session",
+      user: { id: appSession.userId, email: appSession.email },
+      role: appSession.role,
+      redirectTo: getRoleRedirect(appSession.role)
+    };
+  }
+
   try {
     const supabase = await createClient();
     const {
@@ -45,17 +56,6 @@ export async function getServerAuthSession(): Promise<ServerAuthSession> {
     }
   } catch (error) {
     console.warn("[LockInTalks auth session] Supabase session check skipped:", error);
-  }
-
-  const appSession = await readAppSession();
-  if (appSession) {
-    return {
-      authenticated: true,
-      source: "app-session",
-      user: { id: appSession.userId, email: appSession.email },
-      role: appSession.role,
-      redirectTo: getRoleRedirect(appSession.role)
-    };
   }
 
   return {
