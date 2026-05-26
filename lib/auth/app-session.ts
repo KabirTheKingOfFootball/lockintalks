@@ -48,24 +48,11 @@ export async function inspectAppSessionCookie() {
 
 export function setAppSessionCookie(response: NextResponse, session: Omit<AppSession, "expiresAt">) {
   const expiresAt = Date.now() + sessionLifetimeMs;
-  response.cookies.set(appSessionCookieName, signAppSessionValue({ ...session, expiresAt }), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: Math.floor(sessionLifetimeMs / 1000)
-  });
+  appendAppSessionCookie(response, signAppSessionValue({ ...session, expiresAt }), Math.floor(sessionLifetimeMs / 1000));
 }
 
 export function clearAppSessionCookie(response: NextResponse) {
-  response.cookies.set(appSessionCookieName, "", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    expires: new Date(0),
-    maxAge: 0
-  });
+  appendAppSessionCookie(response, "", 0);
 }
 
 export function getAppSessionDiagnostics() {
@@ -121,6 +108,22 @@ function toBase64Url(value: string) {
 
 function fromBase64Url(value: string) {
   return Buffer.from(value, "base64url").toString("utf8");
+}
+
+function appendAppSessionCookie(response: NextResponse, value: string, maxAge: number) {
+  const parts = [
+    `${appSessionCookieName}=${value}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    `Max-Age=${maxAge}`
+  ];
+
+  if (process.env.NODE_ENV === "production") {
+    parts.push("Secure");
+  }
+
+  response.headers.append("Set-Cookie", parts.join("; "));
 }
 
 function getAppSessionSecret() {
