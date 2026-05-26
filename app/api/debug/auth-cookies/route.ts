@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { appSessionCookieName, AppSessionConfigError, getAppSessionDiagnostics } from "@/lib/auth/app-session";
+import { appSessionCookieName, AppSessionConfigError, getAppSessionDiagnostics, inspectAppSessionCookie } from "@/lib/auth/app-session";
 import { authNoStoreHeaders, getSupabaseAuthCookieNames } from "@/lib/auth/http";
 import { getServerAuthSession } from "@/lib/auth/server-session";
 import { getUserRoleFromClient } from "@/lib/auth/session";
@@ -19,7 +19,9 @@ export async function GET(request: NextRequest) {
   const env = getSupabaseEnv();
   const diagnostics = getSupabaseDiagnostics();
   const appSessionDiagnostics = getAppSessionDiagnostics();
+  const appSessionCookie = await inspectAppSessionCookie();
   const host = request.headers.get("host") || request.nextUrl.host;
+  const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim() || null;
   const protocol = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() || request.nextUrl.protocol.replace(":", "");
   const origin = getRequestOrigin(request);
   const supabaseUrlHost = env.ok ? safeHost(env.url) : null;
@@ -31,10 +33,13 @@ export async function GET(request: NextRequest) {
     appSessionCookieName,
     hasAppSessionCookie,
     appSession: appSessionDiagnostics,
+    appSessionCookie,
     request: {
       host,
+      forwardedHost,
       protocol,
-      origin
+      origin,
+      nextUrlOrigin: request.nextUrl.origin
     },
     supabase: {
       configured: env.ok,

@@ -71,15 +71,15 @@ async function checkFirstPartyCookie() {
 async function checkRealLogin() {
   const login = await request("/api/auth/login", {
     method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
       email: testEmail,
       password: testPassword,
       next: "/dashboard"
-    })
+    }).toString()
   });
 
-  if (!login.response.ok || !login.body?.ok) {
+  if (login.response.status !== 303) {
     fail(`/api/auth/login failed (${login.response.status}): ${safeError(login.body)}`);
     return;
   }
@@ -89,6 +89,13 @@ async function checkRealLogin() {
     fail("Login response did not store an app-session or Supabase auth cookie in the smoke-test cookie jar.");
   } else {
     console.log(`[auth-smoke] Login stored auth cookie name(s): ${cookieNames.filter(isAuthCookieName).join(", ") || "none"}.`);
+  }
+
+  const location = login.response.headers.get("location") || "";
+  if (!location.includes("/dashboard") && !location.includes("/admin")) {
+    fail(`Login redirect target was unexpected: ${location || "missing Location header"}.`);
+  } else {
+    console.log(`[auth-smoke] Login redirected to ${location}.`);
   }
 
   const session = await request("/api/auth/session");

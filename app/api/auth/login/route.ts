@@ -4,7 +4,6 @@ import { setAppSessionCookie, AppSessionConfigError } from "@/lib/auth/app-sessi
 import { authNoStoreHeaders, maskEmail } from "@/lib/auth/http";
 import { getUserRole } from "@/lib/auth/session";
 import { getReadableSupabaseError } from "@/lib/readable-error";
-import { buildAppUrl, getRequestOrigin } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 
@@ -99,7 +98,7 @@ async function readLoginRequest(request: NextRequest, formPost: boolean): Promis
 }
 
 function redirectNoStore(request: NextRequest, path: string) {
-  const response = NextResponse.redirect(buildAppUrl(getRequestOrigin(request), path), 303);
+  const response = NextResponse.redirect(buildSameHostUrl(request, path), 303);
   Object.entries(authNoStoreHeaders).forEach(([header, value]) => response.headers.set(header, value));
   return response;
 }
@@ -112,4 +111,9 @@ function normalizeNextPath(value: string | null | undefined, fallback = "/dashbo
 function isFormPost(request: NextRequest) {
   const contentType = request.headers.get("content-type") || "";
   return contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data");
+}
+
+function buildSameHostUrl(request: NextRequest, path: string) {
+  const safePath = path.startsWith("/") && !path.startsWith("//") ? path : "/";
+  return new URL(safePath, request.url);
 }

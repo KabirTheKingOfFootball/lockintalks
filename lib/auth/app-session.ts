@@ -31,6 +31,21 @@ export async function readAppSession() {
   return verifyAppSessionValue(rawSession);
 }
 
+export async function inspectAppSessionCookie() {
+  const cookieStore = await cookies();
+  const rawSession = cookieStore.get(appSessionCookieName)?.value;
+  if (!rawSession) {
+    return { present: false, valid: false, reason: "missing" };
+  }
+
+  const session = verifyAppSessionValue(rawSession);
+  return {
+    present: true,
+    valid: Boolean(session),
+    reason: session ? "valid" : "invalid-signature-or-expired"
+  };
+}
+
 export function setAppSessionCookie(response: NextResponse, session: Omit<AppSession, "expiresAt">) {
   const expiresAt = Date.now() + sessionLifetimeMs;
   response.cookies.set(appSessionCookieName, signAppSessionValue({ ...session, expiresAt }), {
@@ -38,6 +53,7 @@ export function setAppSessionCookie(response: NextResponse, session: Omit<AppSes
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
+    maxAge: Math.floor(sessionLifetimeMs / 1000),
     expires: new Date(expiresAt)
   });
 }
