@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getPostAuthRedirect } from "@/lib/auth/redirect";
 import { setAppSessionCookie, AppSessionConfigError } from "@/lib/auth/app-session";
 import { authNoStoreHeaders, maskEmail } from "@/lib/auth/http";
+import { setLoginDiagnosticCookie } from "@/lib/auth/login-diagnostics";
 import { getUserRole } from "@/lib/auth/session";
 import { getReadableSupabaseError } from "@/lib/readable-error";
 import { createClient } from "@/lib/supabase/server";
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
     console.info(`[LockInTalks auth login] Login route hit for ${maskEmail(email)}.`);
 
     if (!/^\S+@\S+\.\S+$/.test(email) || password.length < 6) {
-      return authError(request, formPost, "Enter a valid email and password.", 400, next);
+      return authError(request, formPost, "Enter a valid email and password.", 400, next, "failed", "invalid-form");
     }
 
     const supabase = await createClient();
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     if (error || !data.user || !data.session) {
       console.warn(`[LockInTalks auth login] Supabase login failed for ${maskEmail(email)}: ${error?.message || "No session returned"}`);
-      return authError(request, formPost, getReadableSupabaseError(error, "Invalid login credentials."), 401, next);
+      return authError(request, formPost, getReadableSupabaseError(error, "Invalid login credentials."), 401, next, "failed", normalizeDiagnosticReason(error?.message || "no-session-returned"));
     }
 
     console.info(`[LockInTalks auth login] Supabase sign-in succeeded for ${maskEmail(email)}. User exists: ${Boolean(data.user)}. Session exists: ${Boolean(data.session)}.`);
@@ -63,6 +64,7 @@ export async function POST(request: NextRequest) {
       email: data.user.email || email,
       role
     });
+    setLoginDiagnosticCookie(response, { status: "success", reason: "supabase-session-created", redirectTo, source: "app-session" });
 
     const responseCookieNames = response.cookies.getAll().map((cookie) => cookie.name);
     console.info(`[LockInTalks auth login] Login verified. Response cookie write count: ${responseCookieNames.length}. Cookie names: ${responseCookieNames.join(", ") || "none"}. Set-Cookie header present: ${Boolean(response.headers.get("set-cookie"))}. Role: ${role}. Redirect: ${redirectTo}.`);
@@ -70,11 +72,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof AppSessionConfigError || error instanceof SupabaseConfigError) {
       console.error(`[LockInTalks auth login] ${error.message}`);
-      return authError(request, formPost, error.message, 503, next);
+      return authError(request, formPost, error.message, 503, next, "config-error", error.name);
     }
 
     console.error("[LockInTalks auth login] Unexpected login error:", error);
-    return authError(request, formPost, "Login is temporarily unavailable. Please try again.", 500, next);
+    return authError(request, formPost, "Login is temporarily unavailable. Please try again.", 500, next, "unexpected-error", "unexpected");
   }
 }
 
@@ -82,9 +84,15 @@ function jsonError(error: string, status: number) {
   return NextResponse.json({ ok: false, error }, { status, headers: authNoStoreHeaders });
 }
 
-function authError(request: NextRequest, formPost: boolean, error: string, status: number, nextPath: string) {
-  if (!formPost) return jsonError(error, status);
-  return redirectNoStore(request, `/login?next=${encodeURIComponent(nextPath)}&error=${encodeURIComponent(error)}`);
+function authError(request: NextRequest, formPost: boolean, error: string, status: number, nextPath: string, diagnosticStatus: "failed" | "config-error" | "unexpected-error", diagnosticReason: string) {
+  if (!formPost) {
+    const response = jsonError(error, status);
+    setLoginDiagnosticCookie(response, { status: diagnosticStatus, reason: diagnosticReason });
+    return response;
+  }
+  const response = redirectNoStore(request, `/login?next=${encodeURIComponent(nextPath)}&error=${encodeURIComponent(error)}`);
+  setLoginDiagnosticCookie(response, { status: diagnosticStatus, reason: diagnosticReason });
+  return response;
 }
 
 async function readLoginRequest(request: NextRequest, formPost: boolean): Promise<LoginRequest> {
@@ -133,4 +141,13 @@ function buildSameHostUrl(request: NextRequest, path: string) {
 
 function escapeHtmlAttribute(value: string) {
   return value.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+
+function normalizeDiagnosticReason(value: string) {
+  const normalized = value.toLowerCase();
+  if (normalized.includes("email not confirmed")) return "email-not-confirmed";
+  if (normalized.includes("invalid login") || normalized.includes("invalid credentials")) return "invalid-credentials";
+  if (normalized.includes("too many")) return "rate-limited";
+  if (normalized.includes("failed to fetch") || normalized.includes("fetch failed")) return "supabase-network";
+  return "supabase-login-failed";
 }

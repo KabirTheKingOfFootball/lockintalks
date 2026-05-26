@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getPostAuthRedirect } from "@/lib/auth/redirect";
 import { setAppSessionCookie, AppSessionConfigError } from "@/lib/auth/app-session";
 import { authNoStoreHeaders, maskEmail } from "@/lib/auth/http";
+import { setLoginDiagnosticCookie } from "@/lib/auth/login-diagnostics";
 import { getUserRole } from "@/lib/auth/session";
 import { getReadableSupabaseError } from "@/lib/readable-error";
 import { buildAppUrl, getRequestOrigin } from "@/lib/site-url";
@@ -35,11 +36,11 @@ export async function POST(request: NextRequest) {
     console.info(`[LockInTalks auth signup] Signup route hit for ${maskEmail(email)}.`);
 
     if (name.length < 2) {
-      return authError(request, formPost, "Please enter the student's name.", 400, next);
+      return authError(request, formPost, "Please enter the student's name.", 400, next, "failed", "invalid-name");
     }
 
     if (!/^\S+@\S+\.\S+$/.test(email) || password.length < 6) {
-      return authError(request, formPost, "Enter a valid email and a password with at least 6 characters.", 400, next);
+      return authError(request, formPost, "Enter a valid email and a password with at least 6 characters.", 400, next, "failed", "invalid-form");
     }
 
     const supabase = await createClient();
@@ -56,13 +57,15 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.warn(`[LockInTalks auth signup] Supabase signup failed for ${maskEmail(email)}: ${error.message}`);
-      return authError(request, formPost, getReadableSupabaseError(error, "Signup failed."), 400, next);
+      return authError(request, formPost, getReadableSupabaseError(error, "Signup failed."), 400, next, "failed", normalizeDiagnosticReason(error.message));
     }
 
     if (!data.session || !data.user) {
       console.info(`[LockInTalks auth signup] Signup created account for ${maskEmail(email)}. Email confirmation is required.`);
       if (formPost) {
-        return redirectNoStore(request, `/login?next=${encodeURIComponent(next)}&notice=${encodeURIComponent("Account Created. Please check your email to confirm your account, then log in.")}`);
+        const response = redirectNoStore(request, `/login?next=${encodeURIComponent(next)}&notice=${encodeURIComponent("Account Created. Please check your email to confirm your account, then log in.")}`);
+        setLoginDiagnosticCookie(response, { status: "success", reason: "signup-email-confirmation-required", redirectTo: "/login" });
+        return response;
       }
 
       return NextResponse.json(
@@ -96,6 +99,7 @@ export async function POST(request: NextRequest) {
       email: data.user.email || email,
       role
     });
+    setLoginDiagnosticCookie(response, { status: "success", reason: "signup-session-created", redirectTo, source: "app-session" });
 
     const responseCookieNames = response.cookies.getAll().map((cookie) => cookie.name);
     console.info(`[LockInTalks auth signup] Signup verified. Response cookie write count: ${responseCookieNames.length}. Cookie names: ${responseCookieNames.join(", ") || "none"}. Set-Cookie header present: ${Boolean(response.headers.get("set-cookie"))}. Role: ${role}. Redirect: ${redirectTo}.`);
@@ -103,11 +107,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof AppSessionConfigError || error instanceof SupabaseConfigError) {
       console.error(`[LockInTalks auth signup] ${error.message}`);
-      return authError(request, formPost, error.message, 503, next);
+      return authError(request, formPost, error.message, 503, next, "config-error", error.name);
     }
 
     console.error("[LockInTalks auth signup] Unexpected signup error:", error);
-    return authError(request, formPost, "Signup is temporarily unavailable. Please try again.", 500, next);
+    return authError(request, formPost, "Signup is temporarily unavailable. Please try again.", 500, next, "unexpected-error", "unexpected");
   }
 }
 
@@ -115,9 +119,15 @@ function jsonError(error: string, status: number) {
   return NextResponse.json({ ok: false, error }, { status, headers: authNoStoreHeaders });
 }
 
-function authError(request: NextRequest, formPost: boolean, error: string, status: number, nextPath: string) {
-  if (!formPost) return jsonError(error, status);
-  return redirectNoStore(request, `/signup?next=${encodeURIComponent(nextPath)}&error=${encodeURIComponent(error)}`);
+function authError(request: NextRequest, formPost: boolean, error: string, status: number, nextPath: string, diagnosticStatus: "failed" | "config-error" | "unexpected-error", diagnosticReason: string) {
+  if (!formPost) {
+    const response = jsonError(error, status);
+    setLoginDiagnosticCookie(response, { status: diagnosticStatus, reason: diagnosticReason });
+    return response;
+  }
+  const response = redirectNoStore(request, `/signup?next=${encodeURIComponent(nextPath)}&error=${encodeURIComponent(error)}`);
+  setLoginDiagnosticCookie(response, { status: diagnosticStatus, reason: diagnosticReason });
+  return response;
 }
 
 async function readSignupRequest(request: NextRequest, formPost: boolean): Promise<SignupRequest> {
@@ -167,4 +177,13 @@ function buildSameHostUrl(request: NextRequest, path: string) {
 
 function escapeHtmlAttribute(value: string) {
   return value.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+
+function normalizeDiagnosticReason(value: string) {
+  const normalized = value.toLowerCase();
+  if (normalized.includes("already registered") || normalized.includes("already exists")) return "account-already-exists";
+  if (normalized.includes("email")) return "email-related";
+  if (normalized.includes("password")) return "password-related";
+  if (normalized.includes("failed to fetch") || normalized.includes("fetch failed")) return "supabase-network";
+  return "supabase-signup-failed";
 }

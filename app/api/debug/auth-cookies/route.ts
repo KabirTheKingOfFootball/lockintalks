@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { appSessionCookieName, AppSessionConfigError, getAppSessionDiagnostics, inspectAppSessionCookie } from "@/lib/auth/app-session";
 import { authNoStoreHeaders, getSupabaseAuthCookieNames } from "@/lib/auth/http";
+import { loginDiagnosticCookieName } from "@/lib/auth/login-diagnostics";
 import { getServerAuthSession } from "@/lib/auth/server-session";
 import { getUserRoleFromClient } from "@/lib/auth/session";
 import { getRequestOrigin } from "@/lib/site-url";
@@ -20,6 +21,7 @@ export async function GET(request: NextRequest) {
   const diagnostics = getSupabaseDiagnostics();
   const appSessionDiagnostics = getAppSessionDiagnostics();
   const appSessionCookie = await inspectAppSessionCookie();
+  const loginDiagnostic = readLoginDiagnostic(request.cookies.get(loginDiagnosticCookieName)?.value);
   const host = request.headers.get("host") || request.nextUrl.host;
   const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim() || null;
   const protocol = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() || request.nextUrl.protocol.replace(":", "");
@@ -34,6 +36,8 @@ export async function GET(request: NextRequest) {
     hasAppSessionCookie,
     appSession: appSessionDiagnostics,
     appSessionCookie,
+    loginDiagnosticCookieName,
+    loginDiagnostic,
     request: {
       host,
       forwardedHost,
@@ -149,5 +153,22 @@ function safeHost(value: string) {
     return new URL(value).host;
   } catch {
     return null;
+  }
+}
+
+function readLoginDiagnostic(value: string | undefined) {
+  if (!value) return null;
+
+  try {
+    const diagnostic = JSON.parse(value) as Record<string, unknown>;
+    return {
+      status: typeof diagnostic.status === "string" ? diagnostic.status : null,
+      reason: typeof diagnostic.reason === "string" ? diagnostic.reason : null,
+      redirectTo: typeof diagnostic.redirectTo === "string" ? diagnostic.redirectTo : null,
+      source: typeof diagnostic.source === "string" ? diagnostic.source : null,
+      at: typeof diagnostic.at === "string" ? diagnostic.at : null
+    };
+  } catch {
+    return { status: "unreadable", reason: "invalid-json", redirectTo: null, source: null, at: null };
   }
 }
