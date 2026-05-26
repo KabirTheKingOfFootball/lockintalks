@@ -4,6 +4,7 @@ import { setAppSessionCookie, AppSessionConfigError } from "@/lib/auth/app-sessi
 import { authNoStoreHeaders, maskEmail } from "@/lib/auth/http";
 import { getUserRole } from "@/lib/auth/session";
 import { getReadableSupabaseError } from "@/lib/readable-error";
+import { buildAppUrl, getRequestOrigin } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 
@@ -19,16 +20,19 @@ type LoginRequest = {
 };
 
 export async function POST(request: NextRequest) {
+  const formPost = isFormPost(request);
+  let next = "/dashboard";
+
   try {
-    const body = (await request.json()) as LoginRequest;
+    const body = await readLoginRequest(request, formPost);
     const email = String(body.email || "").trim();
     const password = String(body.password || "");
-    const next = normalizeNextPath(body.next, "/dashboard");
+    next = normalizeNextPath(body.next, "/dashboard");
 
     console.info(`[LockInTalks auth login] Login route hit for ${maskEmail(email)}.`);
 
     if (!/^\S+@\S+\.\S+$/.test(email) || password.length < 6) {
-      return jsonError("Enter a valid email and password.", 400);
+      return authError(request, formPost, "Enter a valid email and password.", 400, next);
     }
 
     const supabase = await createClient();
@@ -36,22 +40,24 @@ export async function POST(request: NextRequest) {
 
     if (error || !data.user || !data.session) {
       console.warn(`[LockInTalks auth login] Supabase login failed for ${maskEmail(email)}: ${error?.message || "No session returned"}`);
-      return jsonError(getReadableSupabaseError(error, "Invalid login credentials."), 401);
+      return authError(request, formPost, getReadableSupabaseError(error, "Invalid login credentials."), 401, next);
     }
 
     console.info(`[LockInTalks auth login] Supabase sign-in succeeded for ${maskEmail(email)}. User exists: ${Boolean(data.user)}. Session exists: ${Boolean(data.session)}.`);
     const role = await getUserRole(data.user.id);
     const redirectTo = getPostAuthRedirect(role, next);
-    const response = NextResponse.json(
-      {
-        ok: true,
-        authSource: "app-session",
-        user: { id: data.user.id, email: data.user.email || email },
-        role,
-        redirectTo
-      },
-      { status: 200, headers: authNoStoreHeaders }
-    );
+    const response = formPost
+      ? redirectNoStore(request, redirectTo)
+      : NextResponse.json(
+          {
+            ok: true,
+            authSource: "app-session",
+            user: { id: data.user.id, email: data.user.email || email },
+            role,
+            redirectTo
+          },
+          { status: 200, headers: authNoStoreHeaders }
+        );
 
     setAppSessionCookie(response, {
       userId: data.user.id,
@@ -65,11 +71,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof AppSessionConfigError || error instanceof SupabaseConfigError) {
       console.error(`[LockInTalks auth login] ${error.message}`);
-      return jsonError(error.message, 503);
+      return authError(request, formPost, error.message, 503, next);
     }
 
     console.error("[LockInTalks auth login] Unexpected login error:", error);
-    return jsonError("Login is temporarily unavailable. Please try again.", 500);
+    return authError(request, formPost, "Login is temporarily unavailable. Please try again.", 500, next);
   }
 }
 
@@ -77,7 +83,33 @@ function jsonError(error: string, status: number) {
   return NextResponse.json({ ok: false, error }, { status, headers: authNoStoreHeaders });
 }
 
+function authError(request: NextRequest, formPost: boolean, error: string, status: number, nextPath: string) {
+  if (!formPost) return jsonError(error, status);
+  return redirectNoStore(request, `/login?next=${encodeURIComponent(nextPath)}&error=${encodeURIComponent(error)}`);
+}
+
+async function readLoginRequest(request: NextRequest, formPost: boolean): Promise<LoginRequest> {
+  if (!formPost) return (await request.json()) as LoginRequest;
+  const formData = await request.formData();
+  return {
+    email: String(formData.get("email") || ""),
+    password: String(formData.get("password") || ""),
+    next: String(formData.get("next") || "")
+  };
+}
+
+function redirectNoStore(request: NextRequest, path: string) {
+  const response = NextResponse.redirect(buildAppUrl(getRequestOrigin(request), path), 303);
+  Object.entries(authNoStoreHeaders).forEach(([header, value]) => response.headers.set(header, value));
+  return response;
+}
+
 function normalizeNextPath(value: string | null | undefined, fallback = "/dashboard") {
   if (!value || !value.startsWith("/") || value.startsWith("//")) return fallback;
   return value;
+}
+
+function isFormPost(request: NextRequest) {
+  const contentType = request.headers.get("content-type") || "";
+  return contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data");
 }
