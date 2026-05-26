@@ -8,11 +8,13 @@ export const fetchCache = "force-no-store";
 
 const testCookieName = "lockintalks_test";
 const authStyleCookieName = "lockintalks_auth_style_test";
+const htmlAuthStyleCookieName = "lockintalks_html_auth_style_test";
 
 export function GET(request: NextRequest) {
   const cookieNames = request.cookies.getAll().map((cookie) => cookie.name).sort();
   const present = cookieNames.includes(testCookieName);
   const authStylePresent = cookieNames.includes(authStyleCookieName);
+  const htmlAuthStylePresent = cookieNames.includes(htmlAuthStyleCookieName);
 
   return NextResponse.json(
     {
@@ -21,6 +23,8 @@ export function GET(request: NextRequest) {
       present,
       authStyleCookieName,
       authStylePresent,
+      htmlAuthStyleCookieName,
+      htmlAuthStylePresent,
       cookieNames,
       requestHost: request.headers.get("host") || request.nextUrl.host
     },

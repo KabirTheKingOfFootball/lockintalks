@@ -17,6 +17,7 @@ await checkNoStore("/api/auth/session");
 await checkNoStore("/api/debug/auth-cookies");
 await checkFirstPartyCookie();
 await checkAuthStyleCookie();
+await checkHtmlAuthStyleCookie();
 
   if (testEmail && testPassword) {
     await checkRealLogin();
@@ -77,6 +78,16 @@ async function checkAuthStyleCookie() {
   if (!read.response.ok) fail(`/api/debug/read-test-cookie returned ${read.response.status} after auth-style cookie set`);
   if (!read.body?.authStylePresent) fail("Auth-style httpOnly redirect cookie was not readable by the server.");
   else console.log("[auth-smoke] Auth-style httpOnly redirect cookie set/read works.");
+}
+
+async function checkHtmlAuthStyleCookie() {
+  const set = await request("/api/debug/set-html-auth-style-cookie");
+  if (set.response.status !== 200) fail(`/api/debug/set-html-auth-style-cookie returned ${set.response.status}`);
+
+  const read = await request("/api/debug/read-test-cookie");
+  if (!read.response.ok) fail(`/api/debug/read-test-cookie returned ${read.response.status} after html auth-style cookie set`);
+  if (!read.body?.htmlAuthStylePresent) fail("HTML auth-style httpOnly cookie was not readable by the server.");
+  else console.log("[auth-smoke] HTML auth-style httpOnly cookie set/read works.");
 }
 
 async function checkRealLogin() {

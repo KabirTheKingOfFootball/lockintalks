@@ -139,7 +139,7 @@ function redirectNoStore(request: NextRequest, path: string) {
 
 function htmlRedirectNoStore(path: string) {
   const safePath = path.startsWith("/") && !path.startsWith("//") ? path : "/";
-  const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="robots" content="noindex"><meta http-equiv="refresh" content="0;url=${escapeHtmlAttribute(safePath)}"><title>Creating Account</title></head><body style="background:#020817;color:white;font-family:system-ui,sans-serif;display:grid;min-height:100vh;place-items:center;margin:0"><main style="text-align:center"><h1>Opening Your Account...</h1><p>Please wait while LockInTalks prepares your dashboard.</p></main><script>window.location.replace(${JSON.stringify(safePath)});</script></body></html>`;
+  const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="robots" content="noindex"><meta http-equiv="refresh" content="2;url=${escapeHtmlAttribute(safePath)}"><title>Creating Account</title></head><body style="background:#020817;color:white;font-family:system-ui,sans-serif;display:grid;min-height:100vh;place-items:center;margin:0"><main style="text-align:center"><h1>Opening Your Account...</h1><p>Please wait while LockInTalks prepares your dashboard.</p></main><script>setTimeout(function(){window.location.replace(${JSON.stringify(safePath)});},900);</script></body></html>`;
   return new NextResponse(html, {
     status: 200,
     headers: {
