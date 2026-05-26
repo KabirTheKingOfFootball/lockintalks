@@ -12,5 +12,5 @@ export function maskEmail(value: string) {
 }
 
 export function getSupabaseAuthCookieNames(cookieNames: string[]) {
-  return cookieNames.filter((name) => name === "supabase.auth.token" || /^sb-.+-auth-token(?:\.[0-9]+)?$/.test(name));
+  return cookieNames.filter((name) => name === "supabase.auth.token" || (name.startsWith("sb-") && name.includes("auth-token")));
 }

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getPostAuthRedirect } from "@/lib/auth/redirect";
 import { setAppSessionCookie, AppSessionConfigError } from "@/lib/auth/app-session";
-import { getUserRoleFromClient } from "@/lib/auth/session";
+import { getUserRole } from "@/lib/auth/session";
 import { authNoStoreHeaders } from "@/lib/auth/http";
 import { buildAppUrl, getRequestOrigin, normalizeNextPath } from "@/lib/site-url";
 import { SupabaseConfigError } from "@/lib/supabase/env";
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
       return redirectNoStore(origin, `/login?next=${encodeURIComponent(next)}&error=${encodeURIComponent("Login could not be confirmed. Please try again.")}`);
     }
 
-    const role = await getUserRoleFromClient(supabase, user.id);
+    const role = await getUserRole(user.id);
     const redirectTo = getPostAuthRedirect(role, next);
     console.info(`[LockInTalks auth callback] Session confirmed. Role: ${role}. Redirect: ${redirectTo}.`);
     const response = redirectNoStore(origin, redirectTo);

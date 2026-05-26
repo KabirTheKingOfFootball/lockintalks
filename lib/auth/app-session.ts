@@ -7,6 +7,9 @@ export const appSessionCookieName = "lockintalks_app_session";
 const sessionLifetimeMs = 1000 * 60 * 60 * 24 * 7;
 const placeholderSecrets = new Set(["replace-with-a-secure-random-32-byte-secret"]);
 
+// Beta fallback: Supabase still verifies credentials, then this signed httpOnly
+// cookie gives server pages/APIs one stable session to read when Supabase auth
+// cookies are not being stored by the production browser flow.
 export type AppSession = {
   userId: string;
   email: string;

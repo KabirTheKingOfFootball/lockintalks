@@ -1,6 +1,6 @@
 import { getRoleRedirect, type AppRole } from "@/lib/auth/redirect";
 import { readAppSession } from "@/lib/auth/app-session";
-import { getUserRoleFromClient } from "@/lib/auth/session";
+import { getUserRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 
 export type ServerAuthSession =
@@ -23,6 +23,9 @@ export type ServerAuthSession =
     };
 
 export async function getServerAuthSession(): Promise<ServerAuthSession> {
+  // Protected pages and APIs must use this helper as the auth source of truth.
+  // It prefers official Supabase SSR cookies, then falls back to the signed
+  // httpOnly app session used while production Supabase cookies are unreliable.
   try {
     const supabase = await createClient();
     const {
@@ -31,7 +34,7 @@ export async function getServerAuthSession(): Promise<ServerAuthSession> {
     } = await supabase.auth.getUser();
 
     if (!error && user) {
-      const role = await getUserRoleFromClient(supabase, user.id);
+      const role = await getUserRole(user.id);
       return {
         authenticated: true,
         source: "supabase",

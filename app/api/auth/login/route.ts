@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getPostAuthRedirect } from "@/lib/auth/redirect";
 import { setAppSessionCookie, AppSessionConfigError } from "@/lib/auth/app-session";
 import { authNoStoreHeaders, maskEmail } from "@/lib/auth/http";
-import { getUserRoleFromClient } from "@/lib/auth/session";
+import { getUserRole } from "@/lib/auth/session";
 import { getReadableSupabaseError } from "@/lib/readable-error";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
@@ -39,7 +39,8 @@ export async function POST(request: NextRequest) {
       return jsonError(getReadableSupabaseError(error, "Invalid login credentials."), 401);
     }
 
-    const role = await getUserRoleFromClient(supabase, data.user.id);
+    console.info(`[LockInTalks auth login] Supabase sign-in succeeded for ${maskEmail(email)}. User exists: ${Boolean(data.user)}. Session exists: ${Boolean(data.session)}.`);
+    const role = await getUserRole(data.user.id);
     const redirectTo = getPostAuthRedirect(role, next);
     const response = NextResponse.json(
       {
@@ -58,7 +59,8 @@ export async function POST(request: NextRequest) {
       role
     });
 
-    console.info(`[LockInTalks auth login] Login verified. App session cookie set. Role: ${role}. Redirect: ${redirectTo}.`);
+    const responseCookieNames = response.cookies.getAll().map((cookie) => cookie.name);
+    console.info(`[LockInTalks auth login] Login verified. Response cookie write count: ${responseCookieNames.length}. Cookie names: ${responseCookieNames.join(", ") || "none"}. Set-Cookie header present: ${Boolean(response.headers.get("set-cookie"))}. Role: ${role}. Redirect: ${redirectTo}.`);
     return response;
   } catch (error) {
     if (error instanceof AppSessionConfigError || error instanceof SupabaseConfigError) {
