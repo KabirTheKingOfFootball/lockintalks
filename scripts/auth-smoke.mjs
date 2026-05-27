@@ -127,7 +127,7 @@ async function checkRealLogin() {
     console.log(`[auth-smoke] Session authenticated as ${maskEmail(session.body.user?.email || testEmail)} with role ${session.body.role || "unknown"}.`);
   }
 
-  await request("/logout");
+  await request("/logout", { method: "POST" });
   const afterLogout = await request("/api/auth/session");
   if (afterLogout.body?.authenticated) fail("/api/auth/session stayed authenticated after logout.");
   else console.log("[auth-smoke] Logout clears the server session.");

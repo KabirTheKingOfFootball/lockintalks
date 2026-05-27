@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getPostAuthRedirect } from "@/lib/auth/redirect";
 import { setAppSessionCookie, AppSessionConfigError } from "@/lib/auth/app-session";
 import { getUserRole } from "@/lib/auth/session";
-import { authNoStoreHeaders, clearSupabaseAuthCookies } from "@/lib/auth/http";
+import { authNoStoreHeaders } from "@/lib/auth/http";
 import { normalizeNextPath } from "@/lib/site-url";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { getReadableSupabaseError } from "@/lib/readable-error";
@@ -41,7 +41,6 @@ export async function GET(request: NextRequest) {
       email: data.user.email || "",
       role
     });
-    clearSupabaseAuthCookies(response, request.cookies.getAll().map((cookie) => cookie.name));
     return response;
   } catch (error) {
     if (error instanceof SupabaseConfigError || error instanceof AppSessionConfigError) {

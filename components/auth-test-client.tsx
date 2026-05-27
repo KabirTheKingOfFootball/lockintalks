@@ -148,6 +148,7 @@ export function AuthTestClient() {
       }
 
       await fetch("/logout", {
+        method: "POST",
         cache: "no-store",
         credentials: "same-origin"
       });

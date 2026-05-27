@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ButtonLink } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 
 type AuthNavState =
   | {
@@ -207,7 +207,9 @@ function AuthActions({ auth, mobile = false }: { auth: AuthNavState; mobile?: bo
 
   if (auth.status === "in") {
     return (
-      <ButtonLink href="/logout" variant={mobile ? "glass" : "ghost"} className={mobile ? "col-span-2" : undefined}>Logout</ButtonLink>
+      <form action="/logout" method="post" className={mobile ? "col-span-2" : undefined}>
+        <Button type="submit" variant={mobile ? "glass" : "ghost"} className="w-full">Logout</Button>
+      </form>
     );
   }
 

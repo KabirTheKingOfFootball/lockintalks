@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getPostAuthRedirect } from "@/lib/auth/redirect";
 import { setAppSessionCookie, AppSessionConfigError } from "@/lib/auth/app-session";
-import { authNoStoreHeaders, clearSupabaseAuthCookies, maskEmail } from "@/lib/auth/http";
+import { authNoStoreHeaders, maskEmail } from "@/lib/auth/http";
 import { getUserRole } from "@/lib/auth/session";
 import { getReadableSupabaseError } from "@/lib/readable-error";
 import { buildAppUrl, getRequestOrigin } from "@/lib/site-url";
@@ -86,7 +86,6 @@ export async function POST(request: NextRequest) {
       email: data.user.email || email,
       role
     });
-    clearSupabaseAuthCookies(response, request.cookies.getAll().map((cookie) => cookie.name));
 
     console.info(`[LockInTalks auth signup] Signup session created for ${maskEmail(email)}. Role: ${role}. Redirect: ${redirectTo}. Set-Cookie header: ${Boolean(response.headers.get("set-cookie"))}.`);
     return response;
