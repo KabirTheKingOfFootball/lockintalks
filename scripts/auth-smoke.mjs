@@ -13,11 +13,11 @@ try {
   await checkPage("/login");
   await checkPage("/signup");
   await checkJson("/api/debug/auth-cookies");
-await checkNoStore("/api/auth/session");
-await checkNoStore("/api/debug/auth-cookies");
-await checkFirstPartyCookie();
-await checkAuthStyleCookie();
-await checkHtmlAuthStyleCookie();
+  await checkNoStore("/api/auth/session");
+  await checkNoStore("/api/debug/auth-cookies");
+  await checkFirstPartyCookie();
+  await checkAuthStyleCookie();
+  await checkHtmlAuthStyleCookie();
 
   if (testEmail && testPassword) {
     await checkRealLogin();
@@ -93,15 +93,15 @@ async function checkHtmlAuthStyleCookie() {
 async function checkRealLogin() {
   const login = await request("/api/auth/login", {
     method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
       email: testEmail,
       password: testPassword,
       next: "/dashboard"
-    }).toString()
+    })
   });
 
-  if (login.response.status !== 200 && login.response.status !== 303) {
+  if (login.response.status !== 200) {
     fail(`/api/auth/login failed (${login.response.status}): ${safeError(login.body)}`);
     return;
   }
@@ -113,11 +113,11 @@ async function checkRealLogin() {
     console.log(`[auth-smoke] Login stored auth cookie name(s): ${cookieNames.filter(isAuthCookieName).join(", ") || "none"}.`);
   }
 
-  const location = login.response.headers.get("location") || login.response.headers.get("x-lockintalks-redirect") || "";
-  if (!location.includes("/dashboard") && !location.includes("/admin")) {
-    fail(`Login redirect target was unexpected: ${location || "missing redirect header"}.`);
+  const redirectTo = typeof login.body?.redirectTo === "string" ? login.body.redirectTo : "";
+  if (!redirectTo.includes("/dashboard") && !redirectTo.includes("/admin")) {
+    fail(`Login redirect target was unexpected: ${redirectTo || "missing redirectTo"}.`);
   } else {
-    console.log(`[auth-smoke] Login redirected to ${location}.`);
+    console.log(`[auth-smoke] Login selected redirect ${redirectTo}.`);
   }
 
   const session = await request("/api/auth/session");

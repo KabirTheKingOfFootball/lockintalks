@@ -25,30 +25,20 @@ export async function GET(request: NextRequest) {
 
   try {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-    if (error) {
-      console.error(`[LockInTalks auth callback] Code exchange failed: ${error.message}`);
+    if (error || !data.user) {
+      console.error(`[LockInTalks auth callback] Code exchange failed: ${error?.message || "No user returned"}`);
       return redirectNoStore(request, `/login?error=${encodeURIComponent(getReadableSupabaseError(error, "Login could not be completed."))}`);
     }
 
-    const {
-      data: { user },
-      error: userError
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      console.warn(`[LockInTalks auth callback] Code exchange succeeded, but session was not confirmed: ${userError?.message || "No active session"}`);
-      return redirectNoStore(request, `/login?next=${encodeURIComponent(next)}&error=${encodeURIComponent("Login could not be confirmed. Please try again.")}`);
-    }
-
-    const role = await getUserRole(user.id);
+    const role = await getUserRole(data.user.id);
     const redirectTo = getPostAuthRedirect(role, next);
     console.info(`[LockInTalks auth callback] Session confirmed. Role: ${role}. Redirect: ${redirectTo}.`);
     const response = redirectNoStore(request, redirectTo);
     setAppSessionCookie(response, {
-      userId: user.id,
-      email: user.email || "",
+      userId: data.user.id,
+      email: data.user.email || "",
       role
     });
     clearSupabaseAuthCookies(response, request.cookies.getAll().map((cookie) => cookie.name));
