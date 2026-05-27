@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       }, 500);
     }
 
-    await admin.from("profiles").upsert({ id: userId, email, role: "user" }, { onConflict: "id" });
+    await admin.from("profiles").upsert({ id: userId, email, role: "admin" }, { onConflict: "id" });
 
     const loginResponse = await fetch(new URL("/api/auth/login", request.url), {
       method: "POST",
@@ -55,6 +55,15 @@ export async function GET(request: NextRequest) {
       : null;
     const sessionBody = sessionResponse ? await safeJson(sessionResponse) : null;
 
+    const adminChecks = appSessionCookie
+      ? await Promise.all([
+          probeProtectedPath(request, "/admin", appSessionCookie),
+          probeProtectedPath(request, "/admin/competitions", appSessionCookie),
+          probeProtectedPath(request, "/admin/registrations", appSessionCookie),
+          probeProtectedPath(request, "/api/admin/competitions", appSessionCookie)
+        ])
+      : [];
+
     return json({
       ok: Boolean(loginResponse.ok && appSessionCookie && sessionBody?.authenticated),
       createdUser: Boolean(userId),
@@ -73,7 +82,8 @@ export async function GET(request: NextRequest) {
         source: typeof sessionBody?.source === "string" ? sessionBody.source : null,
         role: typeof sessionBody?.role === "string" ? sessionBody.role : null,
         emailMatches: sessionBody?.user?.email === email
-      }
+      },
+      adminChecks
     });
   } catch (error) {
     return json({
@@ -87,6 +97,20 @@ export async function GET(request: NextRequest) {
       await admin.from("profiles").delete().eq("id", userId);
     }
   }
+}
+
+async function probeProtectedPath(request: NextRequest, path: string, setCookieHeader: string) {
+  const response = await fetch(new URL(path, request.url), {
+    headers: { Cookie: setCookieHeader.split(";")[0] },
+    cache: "no-store",
+    redirect: "manual"
+  });
+  const text = await response.text();
+  return {
+    path,
+    status: response.status,
+    denied: text.includes("Please log in with an admin account") || text.includes("You do not have admin access")
+  };
 }
 
 function json(payload: unknown, status = 200) {
