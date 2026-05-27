@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   description: "Login to your LockInTalks account."
 };
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; notice?: string; next?: string }> }) {
   const { error, notice, next } = await searchParams;
   const readableError = error ? decodeURIComponent(error).replaceAll("-", " ") : "";

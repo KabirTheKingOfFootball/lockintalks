@@ -9,6 +9,10 @@ export const metadata: Metadata = {
   description: "Create a LockInTalks account and register for online speaking competitions."
 };
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 export default async function SignUpPage({ searchParams }: { searchParams: Promise<{ error?: string; next?: string }> }) {
   const { error, next } = await searchParams;
   const readableError = error ? decodeURIComponent(error).replaceAll("-", " ") : "";

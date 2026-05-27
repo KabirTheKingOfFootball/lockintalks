@@ -68,6 +68,12 @@ export function AuthForm({ mode, initialError = "", initialNotice = "", nextPath
         return;
       }
 
+      const sessionConfirmed = await waitForServerSession();
+      if (!sessionConfirmed) {
+        setError("Login succeeded, but this browser did not store the session yet. Please clear site data for LockInTalks, reload, and try once more.");
+        return;
+      }
+
       window.location.assign(result.redirectTo || nextPath);
     } catch (submitError) {
       console.error(`[LockInTalks auth form] Unexpected ${mode} error:`, submitError);
@@ -114,4 +120,22 @@ export function AuthForm({ mode, initialError = "", initialNotice = "", nextPath
       </Button>
     </form>
   );
+}
+
+async function waitForServerSession() {
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const response = await fetch("/api/auth/session", {
+      cache: "no-store",
+      credentials: "same-origin"
+    });
+    const session = (await response.json().catch(() => null)) as { authenticated?: boolean } | null;
+
+    if (session?.authenticated) {
+      return true;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
+
+  return false;
 }
