@@ -9,13 +9,15 @@ import { Card } from "@/components/ui/card";
 import { faqCorpus, findFAQAnswer, normalizeFAQText } from "@/lib/faq/knowledge";
 
 const suggestions = [
-  "Is LockInTalks good for a 7-year-old?",
-  "Can shy students join?",
+  "My child is 7. Can they join?",
+  "I am shy. Is this okay?",
   "How do online competitions work?",
   "How are winners chosen?",
   "Do competitions have cash prizes?",
   "Is age proof required?",
   "What if payment is pending?",
+  "What details are required?",
+  "Do students get certificates?",
   "Who should I contact for help?"
 ];
 
@@ -32,8 +34,8 @@ export function FAQAssistant() {
   function answerQuestion(value: string) {
     const result = findFAQAnswer(value);
     setReply(result);
-    track("faq_question_submitted", { fallback: result.isFallback, title: result.title });
-    track(result.isFallback ? "faq_fallback_served" : "faq_answer_served", { title: result.title });
+    safeTrack("faq_question_submitted", { fallback: result.isFallback, title: result.title });
+    safeTrack(result.isFallback ? "faq_fallback_served" : "faq_answer_served", { title: result.title });
   }
 
   function ask(event: React.FormEvent<HTMLFormElement>) {
@@ -77,7 +79,11 @@ export function FAQAssistant() {
           </div>
           <div className="mt-5 rounded-[8px] border border-white/10 bg-white/[0.055] p-4 text-sm leading-7 text-white/74">
             <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#d4af37]"><Sparkles size={14} /> {reply.title}</div>
-            <p>{reply.answer}</p>
+            <div className="space-y-3">
+              {reply.answer.split("\n\n").map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+            </div>
             {(reply.answer.includes("lockintalks@gmail.com") || normalizedQuestion.includes("contact")) && (
               <a className="mt-3 inline-flex font-bold text-[#d4af37]" href="mailto:lockintalks@gmail.com">Email lockintalks@gmail.com</a>
             )}
@@ -101,4 +107,12 @@ export function FAQAssistant() {
       </div>
     </Card>
   );
+}
+
+function safeTrack(event: string, properties: Record<string, string | boolean>) {
+  try {
+    track(event, properties);
+  } catch {
+    // Analytics should never break the FAQ assistant.
+  }
 }
