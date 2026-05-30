@@ -8,6 +8,7 @@ import { getServerAuthSession } from "@/lib/auth/server-session";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { RegistrationRow } from "@/lib/registrations";
+import { getUserLockInPointsBalance } from "@/lib/rewards/points";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -36,6 +37,7 @@ export default async function DashboardPage() {
 
   let registrations: RegistrationRow[] = [];
   let dataError: string | undefined;
+  let lockInPointsBalance = 0;
 
   try {
     const supabaseAdmin = createAdminClient();
@@ -51,6 +53,7 @@ export default async function DashboardPage() {
     }
 
     registrations = (data || []) as RegistrationRow[];
+    lockInPointsBalance = await getUserLockInPointsBalance(session.user.id);
   } catch (error) {
     if (error instanceof SupabaseConfigError) {
       console.error(`[LockInTalks dashboard] ${error.message}`);
@@ -66,7 +69,7 @@ export default async function DashboardPage() {
 
   return (
     <MotionShell>
-      <DashboardClient user={{ name: displayName, email }} registrations={registrations} dataError={dataError} />
+      <DashboardClient user={{ name: displayName, email }} registrations={registrations} dataError={dataError} lockInPointsBalance={lockInPointsBalance} />
     </MotionShell>
   );
 }

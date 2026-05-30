@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { MotionShell, Reveal } from "@/components/motion-shell";
 import { Section } from "@/components/section";
 import { getLiveCompetitions } from "@/lib/competitions";
+import { formatPrizePoolBadge } from "@/lib/rewards/prize-pool";
 
 const reasons = [
   { icon: ShieldCheck, title: "Improve Confidence", text: "Practice structured speaking in a supportive, high-standard environment." },
@@ -174,6 +175,11 @@ export default async function HomePage() {
                 </div>
                 <h3 className="text-lg font-black">{competition.name}</h3>
                 <p className="mt-2 text-sm text-white/58">{competition.ageGroup} | {competition.fee} | Cash Prizes</p>
+                {competition.prizePool.showBadge && (
+                  <p className="mt-3 rounded-[8px] border border-[#d4af37]/45 bg-[#d4af37]/12 p-2 text-xs font-black uppercase tracking-[0.12em] text-[#f7dc83]">
+                    {formatPrizePoolBadge(competition.prizePool.amount)}
+                  </p>
+                )}
                 <ButtonLink href={`/competitions/${competition.slug}`} variant="glass" className="mt-5 w-full">View Details</ButtonLink>
               </Card>
             ))}

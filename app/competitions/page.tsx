@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { MotionShell } from "@/components/motion-shell";
 import { Countdown } from "@/components/countdown";
 import { getLiveCompetitions } from "@/lib/competitions";
+import { formatInr, formatPrizePoolBadge } from "@/lib/rewards/prize-pool";
 
 export const metadata: Metadata = {
   title: "Competitions",
@@ -57,6 +58,16 @@ export default async function CompetitionsPage() {
                 <span className="flex items-center gap-2"><Clock3 size={16} className="text-[#d4af37]" /> Maximum Participants: {competition.maxParticipants}</span>
                 <span className="flex items-center gap-2"><Trophy size={16} className="text-[#d4af37]" /> Every Competition Includes Cash Prizes</span>
               </div>
+              {competition.prizePool.showBadge && (
+                <div className="mt-5 rounded-[8px] border border-[#d4af37]/50 bg-[#d4af37]/15 p-3 text-sm font-black uppercase tracking-[0.14em] text-[#f7dc83] shadow-[0_0_28px_rgba(212,175,55,0.18)]">
+                  {formatPrizePoolBadge(competition.prizePool.amount)}
+                </div>
+              )}
+              {competition.prizePool.enabled && (
+                <p className="mt-3 text-xs leading-5 text-white/45">
+                  Prize pool increases by {formatInr(competition.prizePool.perPaidParticipant * 5)} for every 5 successfully paid participants.
+                </p>
+              )}
               <div className="mt-5"><Countdown targetIso={competition.dateIso} /></div>
               <ButtonLink href={`/competitions/${competition.slug}`} className="mt-6 w-full">View Details</ButtonLink>
             </div>

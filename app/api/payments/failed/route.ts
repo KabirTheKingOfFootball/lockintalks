@@ -3,6 +3,7 @@ import { getServerAuthSession } from "@/lib/auth/server-session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { isSeatConfirmed } from "@/lib/payment/status";
+import { syncLockInPointsForRegistration } from "@/lib/rewards/points";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,6 +59,8 @@ export async function POST(request: NextRequest) {
       console.error(`[LockInTalks payment failed] Could not update failed status: ${error.message}`);
       return NextResponse.json({ error: "Could not update payment status." }, { status: 500 });
     }
+
+    await syncLockInPointsForRegistration(body.registrationId, "payment_failed_route");
 
     return NextResponse.json({ ok: true });
   } catch (error) {

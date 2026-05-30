@@ -31,6 +31,10 @@ create table if not exists public.competitions (
   max_participants integer not null default 50 check (max_participants > 0),
   fee_label text not null,
   fee_amount integer not null default 0,
+  prize_pool_enabled boolean not null default true,
+  prize_pool_per_paid_participant integer not null default 100 check (prize_pool_per_paid_participant >= 0),
+  prize_pool_display_threshold integer not null default 1000 check (prize_pool_display_threshold >= 0),
+  points_enabled boolean not null default true,
   summary text not null,
   description text not null,
   image_url text,
@@ -51,7 +55,11 @@ add column if not exists event_time text not null default 'TBA',
 add column if not exists timezone text not null default 'IST',
 add column if not exists registration_deadline text,
 add column if not exists max_participants integer not null default 50,
-add column if not exists criteria text[] not null default '{}';
+add column if not exists criteria text[] not null default '{}',
+add column if not exists prize_pool_enabled boolean not null default true,
+add column if not exists prize_pool_per_paid_participant integer not null default 100,
+add column if not exists prize_pool_display_threshold integer not null default 1000,
+add column if not exists points_enabled boolean not null default true;
 
 alter table public.competitions
 drop constraint if exists competitions_max_participants_check;
@@ -69,6 +77,20 @@ update public.competitions set status = 'closed' where status = 'archived';
 alter table public.competitions
 add constraint competitions_status_check
 check (status in ('draft', 'live', 'closed'));
+
+alter table public.competitions
+drop constraint if exists competitions_prize_pool_per_paid_participant_check;
+
+alter table public.competitions
+add constraint competitions_prize_pool_per_paid_participant_check
+check (prize_pool_per_paid_participant >= 0);
+
+alter table public.competitions
+drop constraint if exists competitions_prize_pool_display_threshold_check;
+
+alter table public.competitions
+add constraint competitions_prize_pool_display_threshold_check
+check (prize_pool_display_threshold >= 0);
 
 drop policy if exists "Anyone can read published competitions" on public.competitions;
 drop policy if exists "Anyone can read live competitions" on public.competitions;
@@ -111,6 +133,8 @@ create table if not exists public.registrations (
   razorpay_signature text,
   amount_due integer,
   amount_paid integer,
+  points_redeemed integer not null default 0 check (points_redeemed >= 0),
+  points_discount_amount integer not null default 0 check (points_discount_amount >= 0),
   payment_amount integer,
   payment_currency text default 'INR',
   seat_confirmed_at timestamptz,
@@ -133,6 +157,8 @@ add column if not exists razorpay_payment_id text,
 add column if not exists razorpay_signature text,
 add column if not exists amount_due integer,
 add column if not exists amount_paid integer,
+add column if not exists points_redeemed integer not null default 0,
+add column if not exists points_discount_amount integer not null default 0,
 add column if not exists payment_amount integer,
 add column if not exists payment_currency text default 'INR',
 add column if not exists seat_confirmed_at timestamptz,
@@ -153,6 +179,12 @@ drop constraint if exists registrations_registration_status_check;
 
 alter table public.registrations
 drop constraint if exists registrations_age_proof_status_check;
+
+alter table public.registrations
+drop constraint if exists registrations_points_redeemed_check;
+
+alter table public.registrations
+drop constraint if exists registrations_points_discount_amount_check;
 
 update public.registrations
 set payment_status = 'order_created'
@@ -184,6 +216,14 @@ alter table public.registrations
 add constraint registrations_age_proof_status_check
 check (age_proof_status in ('not_required_yet', 'requested', 'submitted', 'approved', 'rejected'));
 
+alter table public.registrations
+add constraint registrations_points_redeemed_check
+check (points_redeemed >= 0);
+
+alter table public.registrations
+add constraint registrations_points_discount_amount_check
+check (points_discount_amount >= 0);
+
 create index if not exists registrations_user_id_idx
 on public.registrations (user_id);
 
@@ -213,6 +253,47 @@ on public.competitions (status);
 
 create index if not exists competitions_slug_idx
 on public.competitions (slug);
+
+create table if not exists public.lockin_points_ledger (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  registration_id uuid references public.registrations(id) on delete set null,
+  competition_slug text,
+  points integer not null check (points <> 0),
+  type text not null check (type in ('participation', 'milestone', 'winner', 'redemption', 'refund_reversal', 'admin_adjustment')),
+  description text not null,
+  created_at timestamptz not null default now(),
+  created_by uuid references auth.users(id) on delete set null
+);
+
+alter table public.lockin_points_ledger enable row level security;
+
+create index if not exists lockin_points_ledger_user_id_idx
+on public.lockin_points_ledger (user_id);
+
+create index if not exists lockin_points_ledger_registration_id_idx
+on public.lockin_points_ledger (registration_id);
+
+create index if not exists lockin_points_ledger_type_idx
+on public.lockin_points_ledger (type);
+
+create index if not exists lockin_points_ledger_created_at_idx
+on public.lockin_points_ledger (created_at desc);
+
+drop policy if exists "Users can read own Lock-in Points ledger" on public.lockin_points_ledger;
+create policy "Users can read own Lock-in Points ledger"
+on public.lockin_points_ledger
+for select
+to authenticated
+using (auth.uid() = user_id);
+
+drop policy if exists "Admins can manage Lock-in Points ledger" on public.lockin_points_ledger;
+create policy "Admins can manage Lock-in Points ledger"
+on public.lockin_points_ledger
+for all
+to authenticated
+using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'))
+with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'));
 
 alter table public.registrations enable row level security;
 

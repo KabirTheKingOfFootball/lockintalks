@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { MotionShell } from "@/components/motion-shell";
 import { Countdown } from "@/components/countdown";
 import { getLiveCompetitionBySlug, getLiveCompetitions } from "@/lib/competitions";
+import { formatInr, formatPrizePoolBadge } from "@/lib/rewards/prize-pool";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +69,18 @@ export default async function CompetitionDetailsPage({ params }: { params: Promi
               <p className="flex items-center gap-2"><Clock3 size={16} className="text-[#d4af37]" /> Maximum Participants: {competition.maxParticipants}</p>
               <p className="flex items-center gap-2"><Trophy size={16} className="text-[#d4af37]" /> Top Performers Win Cash Awards</p>
             </div>
+            {competition.prizePool.showBadge && (
+              <div className="mt-5 rounded-[8px] border border-[#d4af37]/50 bg-[#d4af37]/15 p-3 text-sm font-black uppercase tracking-[0.14em] text-[#f7dc83] shadow-[0_0_28px_rgba(212,175,55,0.18)]">
+                {formatPrizePoolBadge(competition.prizePool.amount)}
+              </div>
+            )}
+            {competition.prizePool.enabled && (
+              <div className="mt-4 rounded-[8px] border border-white/10 bg-white/[0.045] p-4 text-xs leading-6 text-white/62">
+                <p>The prize pool increases by {formatInr(competition.prizePool.perPaidParticipant * 5)} for every 5 successfully paid participants.</p>
+                <p>Only successfully verified payments count toward the prize pool.</p>
+                <p>1st Place: 45%, 2nd Place: 30%, 3rd Place: 25%. Prizes may be given as cash or Amazon gift cards.</p>
+              </div>
+            )}
             <div className="mt-5"><Countdown targetIso={competition.dateIso} /></div>
             <ButtonLink href={`/register/${competition.slug}`} className="mt-7 w-full">Register for This Competition</ButtonLink>
           </Card>

@@ -39,6 +39,8 @@ export async function GET() {
     "razorpay_payment_id",
     "amount_due",
     "amount_paid",
+    "points_redeemed",
+    "points_discount_amount",
     "seat_confirmed_at",
     "created_at",
     "updated_at"

@@ -5,6 +5,7 @@ import { isSeatConfirmed } from "@/lib/payment/status";
 import { getServerAuthSession } from "@/lib/auth/server-session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SupabaseConfigError } from "@/lib/supabase/env";
+import { syncLockInPointsForRegistration } from "@/lib/rewards/points";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (isSeatConfirmed(registration.payment_status)) {
+      await syncLockInPointsForRegistration(registration.id, "razorpay_verify_already_confirmed");
       return NextResponse.json({ ok: true, status: registration.payment_status, alreadyConfirmed: true });
     }
 
@@ -118,6 +120,8 @@ export async function POST(request: NextRequest) {
       },
       { onConflict: "provider,provider_order_id" }
     );
+
+    await syncLockInPointsForRegistration(registration.id, "razorpay_verify");
 
     return NextResponse.json({ ok: true, status: captured ? "captured" : "signature_verified", pending: !captured }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {

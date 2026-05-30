@@ -5,12 +5,14 @@ import { getServerAuthSession } from "@/lib/auth/server-session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { isPaymentInProgress, isSeatConfirmed } from "@/lib/payment/status";
+import { calculateLockInPointCheckout, getUserLockInPointsBalance } from "@/lib/rewards/points";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type CreateOrderRequest = {
   registrationId?: string;
+  lockInPointsToApply?: number;
 };
 
 type RazorpayOrder = {
@@ -39,7 +41,7 @@ export async function POST(request: NextRequest) {
     const supabaseAdmin = createAdminClient();
     const { data: registration, error: registrationError } = await supabaseAdmin
       .from("registrations")
-      .select("id, user_id, competition_slug, competition_name, student_name, guardian_email, entry_fee, payment_status, razorpay_order_id, payment_order_id, payment_amount, amount_due, payment_currency")
+      .select("id, user_id, competition_slug, competition_name, student_name, guardian_email, entry_fee, payment_status, razorpay_order_id, payment_order_id, payment_amount, amount_due, payment_currency, points_redeemed")
       .eq("id", body.registrationId)
       .eq("user_id", userId)
       .single();
@@ -68,15 +70,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "This competition is not currently accepting payments." }, { status: 409 });
     }
 
-    const amount = Number(competition.fee_amount);
-    if (!Number.isFinite(amount) || amount <= 0) {
+    const feeAmount = Number(competition.fee_amount);
+    if (!Number.isFinite(feeAmount) || feeAmount <= 0) {
       return NextResponse.json({ error: "This competition does not have a valid payment amount configured." }, { status: 400 });
     }
+
+    const availablePoints = await getUserLockInPointsBalance(userId);
+    const checkout = calculateLockInPointCheckout({
+      feeAmountPaise: feeAmount,
+      requestedPoints: Number(body.lockInPointsToApply || 0),
+      availablePoints
+    });
+    const amount = checkout.payableAmountPaise;
 
     const existingOrderId = registration.payment_order_id || registration.razorpay_order_id;
     const existingAmount = Number(registration.amount_due || registration.payment_amount || 0);
 
-    if (existingOrderId && isPaymentInProgress(registration.payment_status) && existingAmount === amount) {
+    if (existingOrderId && isPaymentInProgress(registration.payment_status) && existingAmount === amount && Number(registration.points_redeemed || 0) === checkout.appliedPoints) {
       await savePaymentAttempt({
         registrationId: registration.id,
         userId,
@@ -91,6 +101,8 @@ export async function POST(request: NextRequest) {
           keyId: getPublicRazorpayKey(),
           orderId: existingOrderId,
           amount,
+          originalAmount: checkout.feeAmountPaise,
+          lockInPoints: checkout,
           currency: registration.payment_currency || paymentCurrency,
           name: "LockInTalks",
           description: registration.competition_name,
@@ -125,6 +137,8 @@ export async function POST(request: NextRequest) {
         payment_order_id: order.id,
         payment_amount: amount,
         amount_due: amount,
+        points_redeemed: checkout.appliedPoints,
+        points_discount_amount: checkout.discountAmountPaise,
         payment_currency: paymentCurrency,
         updated_at: new Date().toISOString()
       })
@@ -150,6 +164,8 @@ export async function POST(request: NextRequest) {
         keyId: getPublicRazorpayKey(),
         orderId: order.id,
         amount: order.amount,
+        originalAmount: checkout.feeAmountPaise,
+        lockInPoints: checkout,
         currency: order.currency,
         name: "LockInTalks",
         description: registration.competition_name,

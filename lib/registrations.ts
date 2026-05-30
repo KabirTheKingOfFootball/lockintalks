@@ -25,6 +25,8 @@ export type RegistrationRow = {
   razorpay_signature: string | null;
   amount_due: number | null;
   amount_paid: number | null;
+  points_redeemed: number | null;
+  points_discount_amount: number | null;
   payment_amount: number | null;
   payment_currency: string | null;
   seat_confirmed_at: string | null;

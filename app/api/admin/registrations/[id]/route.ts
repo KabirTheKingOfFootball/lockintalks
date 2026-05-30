@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { adminNoStoreHeaders, checkAdmin } from "@/lib/admin/auth";
 import { ageProofStatuses, isSeatConfirmed, isPaymentStatus, registrationStatuses } from "@/lib/payment/status";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { syncLockInPointsForRegistration } from "@/lib/rewards/points";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -60,6 +61,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       console.error(`[LockInTalks admin registrations] PATCH failed for ${id}: ${error.message}`);
       return NextResponse.json({ error: error.message }, { status: 400, headers: adminNoStoreHeaders });
     }
+
+    if (paymentStatus) await syncLockInPointsForRegistration(id, "admin_registration_status_update");
 
     return NextResponse.json({ registration: data }, { headers: adminNoStoreHeaders });
   } catch (error) {

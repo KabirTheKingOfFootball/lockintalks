@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { track } from "@vercel/analytics";
 import { CheckCircle2, CreditCard, Landmark, Smartphone, WalletCards, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { getReadableError, readJsonResponse } from "@/lib/readable-error";
 
 type PaymentStep = "idle" | "creating" | "checkout" | "verifying" | "pending" | "success" | "failed";
@@ -13,6 +14,10 @@ type PaymentSummary = {
   competitionName: string;
   competitionDate: string;
   entryFee: string;
+  feeAmount: number;
+  availablePoints: number;
+  maxUsablePoints: number;
+  previouslyAppliedPoints: number;
 };
 
 type CreateOrderResponse = {
@@ -20,7 +25,15 @@ type CreateOrderResponse = {
   keyId: string;
   orderId: string;
   amount: number;
+  originalAmount?: number;
   currency: string;
+  lockInPoints?: {
+    availablePoints: number;
+    maxUsablePoints: number;
+    appliedPoints: number;
+    discountAmountPaise: number;
+    payableAmountPaise: number;
+  };
   name: string;
   description: string;
   registrationId: string;
@@ -86,6 +99,12 @@ export function PaymentForm({ registrationId, summary }: { registrationId: strin
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [step, setStep] = useState<PaymentStep>("idle");
+  const [pointsToApply, setPointsToApply] = useState(summary?.previouslyAppliedPoints || 0);
+  const availablePoints = Math.max(0, Math.floor(Number(summary?.availablePoints || 0)));
+  const maxUsablePoints = Math.min(availablePoints, Math.max(0, Math.floor(Number(summary?.maxUsablePoints || 0))));
+  const appliedPointsPreview = Math.min(Math.max(0, Math.floor(Number(pointsToApply) || 0)), maxUsablePoints);
+  const discountPreview = appliedPointsPreview * 100;
+  const finalAmountPreview = Math.max(0, Number(summary?.feeAmount || 0) - discountPreview);
 
   async function startPayment() {
     setError("");
@@ -110,7 +129,7 @@ export function PaymentForm({ registrationId, summary }: { registrationId: strin
         cache: "no-store",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ registrationId })
+        body: JSON.stringify({ registrationId, lockInPointsToApply: appliedPointsPreview })
       });
       const order = await readJsonResponse<CreateOrderResponse>(orderResponse);
 
@@ -220,6 +239,34 @@ export function PaymentForm({ registrationId, summary }: { registrationId: strin
             </div>
           ))}
         </div>
+        {summary && (
+          <div className="mt-6 rounded-[8px] border border-[#d4af37]/25 bg-[#d4af37]/10 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-sm font-black text-[#f7dc83]">Lock-in Points</p>
+                <p className="mt-1 text-xs leading-5 text-white/58">
+                  Available: {availablePoints} points. You can use up to {maxUsablePoints} points on this checkout. 1 point = INR 1 discount.
+                </p>
+              </div>
+              <label className="grid gap-2 text-xs font-bold text-white/72 sm:w-44">
+                Points To Apply
+                <Input
+                  min={0}
+                  max={maxUsablePoints}
+                  type="number"
+                  value={pointsToApply}
+                  onChange={(event) => setPointsToApply(Number(event.target.value))}
+                  disabled={isBusy || maxUsablePoints === 0}
+                />
+              </label>
+            </div>
+            <div className="mt-4 grid gap-2 text-sm text-white/68 sm:grid-cols-3">
+              <p><span className="font-bold text-white">Discount:</span> {formatPaise(discountPreview)}</p>
+              <p><span className="font-bold text-white">Applied:</span> {appliedPointsPreview} points</p>
+              <p><span className="font-bold text-white">Final Payable:</span> {formatPaise(finalAmountPreview)}</p>
+            </div>
+          </div>
+        )}
         {step !== "idle" && (
           <p className="mt-5 rounded-[8px] border border-[#d4af37]/30 bg-[#d4af37]/10 p-3 text-sm text-[#f7dc83]">
             {step === "creating" && "Creating secure Razorpay order..."}
@@ -233,7 +280,7 @@ export function PaymentForm({ registrationId, summary }: { registrationId: strin
         {message && <p className="mt-4 rounded-[8px] border border-[#d4af37]/30 bg-[#d4af37]/10 p-3 text-sm text-[#f7dc83]">{message}</p>}
         {error && <p className="mt-4 rounded-[8px] border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
         <Button type="button" onClick={startPayment} className="mt-6 w-full" disabled={isBusy}>
-          {isBusy ? "Processing..." : `Pay ${summary?.entryFee || "now"}`}
+          {isBusy ? "Processing..." : `Pay ${summary ? formatPaise(finalAmountPreview) : "now"}`}
         </Button>
       </div>
       <aside className="glass rounded-[8px] p-6">
@@ -243,11 +290,17 @@ export function PaymentForm({ registrationId, summary }: { registrationId: strin
           <p><span className="font-bold text-white">Competition:</span> {summary?.competitionName || "Registration selected"}</p>
           <p><span className="font-bold text-white">Date:</span> {summary?.competitionDate || "See competition details"}</p>
           <p><span className="font-bold text-white">Entry Fee:</span> {summary?.entryFee || "Calculated at Checkout"}</p>
+          {summary && <p><span className="font-bold text-white">Lock-in Points Discount:</span> {formatPaise(discountPreview)}</p>}
+          {summary && <p><span className="font-bold text-white">Final Payable:</span> {formatPaise(finalAmountPreview)}</p>}
           <p><span className="font-bold text-white">Gateway:</span> Razorpay Checkout</p>
         </div>
       </aside>
     </div>
   );
+}
+
+function formatPaise(amountPaise: number) {
+  return `INR ${(Math.max(0, Math.floor(Number(amountPaise) || 0)) / 100).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 }
 
 async function loadRazorpayScript() {

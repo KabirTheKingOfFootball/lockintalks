@@ -4,6 +4,7 @@ import { verifyRazorpayWebhookSignature } from "@/lib/razorpay/payments";
 import { isSeatConfirmed } from "@/lib/payment/status";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SupabaseConfigError } from "@/lib/supabase/env";
+import { syncLockInPointsForRegistration } from "@/lib/rewards/points";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -79,6 +80,7 @@ export async function POST(request: NextRequest) {
     const now = new Date().toISOString();
     const captured = eventType === "payment.captured" || payment.status === "captured" || payment.captured === true;
     const failed = eventType === "payment.failed" || payment.status === "failed";
+    const refunded = eventType.includes("refund") || payment.status === "refunded";
     const update =
       captured
         ? {
@@ -104,15 +106,25 @@ export async function POST(request: NextRequest) {
               razorpay_payment_id: payment.id || null,
               updated_at: now
             }
-          : {
-              payment_status: "signature_verified",
-              registration_status: "payment_pending",
-              payment_provider: "razorpay",
-              payment_order_id: payment.order_id,
-              payment_id: payment.id || null,
-              razorpay_payment_id: payment.id || null,
-              updated_at: now
-            };
+          : refunded
+            ? {
+                payment_status: "refunded",
+                registration_status: "payment_pending",
+                payment_provider: "razorpay",
+                payment_order_id: payment.order_id,
+                payment_id: payment.id || null,
+                razorpay_payment_id: payment.id || null,
+                updated_at: now
+              }
+            : {
+                payment_status: "signature_verified",
+                registration_status: "payment_pending",
+                payment_provider: "razorpay",
+                payment_order_id: payment.order_id,
+                payment_id: payment.id || null,
+                razorpay_payment_id: payment.id || null,
+                updated_at: now
+              };
 
     const orderFilter = `razorpay_order_id.eq.${payment.order_id},payment_order_id.eq.${payment.order_id}`;
     const { data: existingRegistration, error: lookupError } = await supabaseAdmin
@@ -134,7 +146,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true, unmatched: true });
     }
 
-    if (isSeatConfirmed(existingRegistration.payment_status) && !captured) {
+    if (isSeatConfirmed(existingRegistration.payment_status) && !captured && !refunded) {
       await supabaseAdmin
         .from("payment_events")
         .update({ registration_id: existingRegistration.id, processed: true, processed_at: now, processing_error: null })
@@ -178,12 +190,14 @@ export async function POST(request: NextRequest) {
       { onConflict: "provider,provider_order_id" }
     );
 
+    await syncLockInPointsForRegistration(registration.id, `razorpay_webhook:${eventType}`);
+
     await supabaseAdmin
       .from("payment_events")
       .update({ registration_id: registration.id, processed: true, processed_at: now, processing_error: null })
       .eq("provider_event_id", eventId);
 
-    return NextResponse.json({ ok: true, status: captured ? "captured" : failed ? "failed" : "signature_verified" });
+    return NextResponse.json({ ok: true, status: captured ? "captured" : failed ? "failed" : refunded ? "refunded" : "signature_verified" });
   } catch (error) {
     if (error instanceof RazorpayConfigError || error instanceof SupabaseConfigError) {
       console.error(`[LockInTalks Razorpay webhook] ${error.message}`);

@@ -1,5 +1,7 @@
 import { createPublicClient } from "@/lib/supabase/public";
 import { SupabaseConfigError } from "@/lib/supabase/env";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { calculatePrizePool, type PrizePoolSummary } from "@/lib/rewards/prize-pool";
 
 export type CompetitionStatus = "draft" | "live" | "closed";
 
@@ -16,6 +18,10 @@ export type CompetitionRecord = {
   max_participants: number | null;
   fee_label: string;
   fee_amount: number;
+  prize_pool_enabled?: boolean | null;
+  prize_pool_per_paid_participant?: number | null;
+  prize_pool_display_threshold?: number | null;
+  points_enabled?: boolean | null;
   summary: string;
   description: string;
   image_url: string | null;
@@ -42,6 +48,7 @@ export type PublicCompetition = {
   registrationDeadline: string | null;
   fee: string;
   feeAmount: number;
+  prizePool: PrizePoolSummary;
   status: CompetitionStatus;
   slotsRemaining: number;
   maxParticipants: number;
@@ -86,7 +93,9 @@ export async function getLiveCompetitions(limit?: number) {
       return { competitions: [] as PublicCompetition[], error: error.message };
     }
 
-    return { competitions: (data || []).map(mapCompetitionRecord), error: null };
+    const paidCounts = await getVerifiedPaidParticipantCounts((data || []).map((record) => String(record.slug)));
+
+    return { competitions: (data || []).map((record) => mapCompetitionRecord(record as CompetitionRecord, paidCounts.get(String(record.slug)) || 0)), error: null };
   } catch (error) {
     if (error instanceof SupabaseConfigError) {
       console.error(`[LockInTalks competitions] ${error.message}`);
@@ -108,7 +117,9 @@ export async function getLiveCompetitionBySlug(slug: string) {
       return { competition: null, error: error.message };
     }
 
-    return { competition: data ? mapCompetitionRecord(data as CompetitionRecord) : null, error: null };
+    const paidCounts = data ? await getVerifiedPaidParticipantCounts([String(data.slug)]) : new Map<string, number>();
+
+    return { competition: data ? mapCompetitionRecord(data as CompetitionRecord, paidCounts.get(String(data.slug)) || 0) : null, error: null };
   } catch (error) {
     if (error instanceof SupabaseConfigError) {
       console.error(`[LockInTalks competitions] ${error.message}`);
@@ -120,10 +131,16 @@ export async function getLiveCompetitionBySlug(slug: string) {
   }
 }
 
-export function mapCompetitionRecord(record: CompetitionRecord): PublicCompetition {
+export function mapCompetitionRecord(record: CompetitionRecord, paidParticipants = 0): PublicCompetition {
   const dateIso = getDateIso(record.event_date, record.event_time || "");
   const accent = accents[Math.abs(hashString(record.slug)) % accents.length];
   const maxParticipants = Number(record.max_participants || 50);
+  const prizePool = calculatePrizePool({
+    enabled: record.prize_pool_enabled,
+    paidParticipants,
+    perPaidParticipant: record.prize_pool_per_paid_participant,
+    displayThreshold: record.prize_pool_display_threshold
+  });
 
   return {
     id: record.id,
@@ -138,6 +155,7 @@ export function mapCompetitionRecord(record: CompetitionRecord): PublicCompetiti
     registrationDeadline: record.registration_deadline || null,
     fee: record.fee_label,
     feeAmount: record.fee_amount,
+    prizePool,
     status: record.status,
     slotsRemaining: maxParticipants,
     maxParticipants,
@@ -153,6 +171,35 @@ export function mapCompetitionRecord(record: CompetitionRecord): PublicCompetiti
     judges: record.judges || [],
     criteria: record.criteria?.length ? record.criteria : defaultCriteria
   };
+}
+
+async function getVerifiedPaidParticipantCounts(slugs: string[]) {
+  const counts = new Map<string, number>();
+  const uniqueSlugs = [...new Set(slugs.filter(Boolean))];
+  if (uniqueSlugs.length === 0) return counts;
+
+  try {
+    const supabaseAdmin = createAdminClient();
+    const { data, error } = await supabaseAdmin
+      .from("registrations")
+      .select("competition_slug")
+      .in("competition_slug", uniqueSlugs)
+      .in("payment_status", ["captured", "paid"]);
+
+    if (error) {
+      console.warn(`[LockInTalks competitions] Prize pool count failed: ${error.message}`);
+      return counts;
+    }
+
+    for (const row of data || []) {
+      const slug = String(row.competition_slug || "");
+      counts.set(slug, (counts.get(slug) || 0) + 1);
+    }
+  } catch (error) {
+    console.warn("[LockInTalks competitions] Prize pool count skipped:", error);
+  }
+
+  return counts;
 }
 
 function getDateIso(eventDate: string, eventTime: string) {
