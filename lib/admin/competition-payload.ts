@@ -13,10 +13,6 @@ export function normalizeCompetitionPayload(body: Record<string, unknown>) {
     max_participants: Math.max(1, Number(body.max_participants || 50)),
     fee_label: String(body.fee_label || "").trim(),
     fee_amount: Number(body.fee_amount || 0),
-    prize_pool_enabled: toBoolean(body.prize_pool_enabled, true),
-    prize_pool_per_paid_participant: Math.max(0, Number(body.prize_pool_per_paid_participant || 100)),
-    prize_pool_display_threshold: Math.max(0, Number(body.prize_pool_display_threshold || 1000)),
-    points_enabled: toBoolean(body.points_enabled, true),
     summary: String(body.summary || "").trim(),
     description: String(body.description || "").trim(),
     image_url: body.image_url ? String(body.image_url) : null,
@@ -27,15 +23,6 @@ export function normalizeCompetitionPayload(body: Record<string, unknown>) {
     criteria: toTextArray(body.criteria),
     judges: toTextArray(body.judges)
   };
-}
-
-function toBoolean(value: unknown, fallback: boolean) {
-  if (typeof value === "boolean") return value;
-  if (typeof value === "string") {
-    if (value === "true") return true;
-    if (value === "false") return false;
-  }
-  return fallback;
 }
 
 function toTextArray(value: unknown) {

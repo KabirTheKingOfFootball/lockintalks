@@ -22,10 +22,6 @@ const emptyForm = {
   max_participants: 50,
   fee_label: "",
   fee_amount: 0,
-  prize_pool_enabled: true,
-  prize_pool_per_paid_participant: 100,
-  prize_pool_display_threshold: 1000,
-  points_enabled: true,
   summary: "",
   description: "",
   image_url: "",
@@ -67,10 +63,6 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
       max_participants: competition.max_participants || 50,
       fee_label: competition.fee_label,
       fee_amount: competition.fee_amount,
-      prize_pool_enabled: competition.prize_pool_enabled !== false,
-      prize_pool_per_paid_participant: competition.prize_pool_per_paid_participant || 100,
-      prize_pool_display_threshold: competition.prize_pool_display_threshold || 1000,
-      points_enabled: competition.points_enabled !== false,
       summary: competition.summary,
       description: competition.description,
       image_url: competition.image_url || "",
@@ -219,8 +211,6 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
             <Input placeholder="Maximum Participants" type="number" value={form.max_participants} onChange={(event) => setForm({ ...form, max_participants: Number(event.target.value) })} />
             <Input placeholder="Entry Fee Label, e.g. INR 499" value={form.fee_label} onChange={(event) => setForm({ ...form, fee_label: event.target.value })} />
             <Input placeholder="Fee Amount in Paise" type="number" value={form.fee_amount} onChange={(event) => setForm({ ...form, fee_amount: Number(event.target.value) })} />
-            <Input placeholder="Prize Pool Per Paid Participant, e.g. 100" type="number" value={form.prize_pool_per_paid_participant} onChange={(event) => setForm({ ...form, prize_pool_per_paid_participant: Number(event.target.value) })} />
-            <Input placeholder="Prize Pool Display Threshold, e.g. 1000" type="number" value={form.prize_pool_display_threshold} onChange={(event) => setForm({ ...form, prize_pool_display_threshold: Number(event.target.value) })} />
             <label className="grid gap-2 text-sm font-bold text-white/70">
               Visibility
             <select className="focus-ring min-h-12 rounded-[8px] border border-white/15 bg-[#071b3b] px-4 text-sm text-white" value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
@@ -228,14 +218,6 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
               <option value="live">Live</option>
               <option value="closed">Closed</option>
             </select>
-            </label>
-            <label className="flex min-h-12 items-center gap-3 rounded-[8px] border border-white/15 bg-white/[0.035] px-4 text-sm font-bold text-white/70">
-              <input type="checkbox" checked={form.prize_pool_enabled} onChange={(event) => setForm({ ...form, prize_pool_enabled: event.target.checked })} />
-              Live Prize Pool Enabled
-            </label>
-            <label className="flex min-h-12 items-center gap-3 rounded-[8px] border border-white/15 bg-white/[0.035] px-4 text-sm font-bold text-white/70">
-              <input type="checkbox" checked={form.points_enabled} onChange={(event) => setForm({ ...form, points_enabled: event.target.checked })} />
-              Lock-in Points Enabled
             </label>
           </div>
           <Input placeholder="Image URL" value={form.image_url} onChange={(event) => setForm({ ...form, image_url: event.target.value })} />
@@ -274,7 +256,7 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
                 <p className="mt-2 text-sm text-white/58">{competition.category} | {competition.age_group} | {competition.event_date} {competition.event_time || ""} {competition.timezone || "IST"} | Maximum Participants: {competition.max_participants || 50}</p>
                 <p className="mt-1 text-sm font-bold text-[#d4af37]">{competition.fee_label} | Cash Prize Details Included</p>
                 <p className="mt-1 text-sm text-white/58">
-                  Verified Paid Participants: {competition.verified_paid_participants || 0} | Calculated Prize Pool: {formatInr(competition.calculated_prize_pool?.amount || 0)} | Lock-in Points: {competition.points_enabled === false ? "Off" : "On"}
+                  Verified Paid Participants: {competition.verified_paid_participants || 0} | Calculated Prize Pool: {formatInr(competition.calculated_prize_pool?.amount || 0)}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-white/65">{competition.summary}</p>
                 <div className="mt-4 flex flex-wrap gap-2">

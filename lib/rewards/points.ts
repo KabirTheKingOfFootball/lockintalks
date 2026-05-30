@@ -120,15 +120,6 @@ export async function awardWinnerPointsForRegistration({
 }
 
 async function awardParticipationPoints(registration: RegistrationForRewards, source: string) {
-  const supabaseAdmin = createAdminClient();
-  const { data: competition } = await supabaseAdmin
-    .from("competitions")
-    .select("points_enabled")
-    .eq("slug", registration.competition_slug)
-    .maybeSingle();
-
-  if (competition?.points_enabled === false) return;
-
   const alreadyAwarded = await getLedgerTotal({
     userId: registration.user_id,
     registrationId: registration.id,

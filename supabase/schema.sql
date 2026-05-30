@@ -31,10 +31,6 @@ create table if not exists public.competitions (
   max_participants integer not null default 50 check (max_participants > 0),
   fee_label text not null,
   fee_amount integer not null default 0,
-  prize_pool_enabled boolean not null default true,
-  prize_pool_per_paid_participant integer not null default 100 check (prize_pool_per_paid_participant >= 0),
-  prize_pool_display_threshold integer not null default 1000 check (prize_pool_display_threshold >= 0),
-  points_enabled boolean not null default true,
   summary text not null,
   description text not null,
   image_url text,
@@ -55,11 +51,7 @@ add column if not exists event_time text not null default 'TBA',
 add column if not exists timezone text not null default 'IST',
 add column if not exists registration_deadline text,
 add column if not exists max_participants integer not null default 50,
-add column if not exists criteria text[] not null default '{}',
-add column if not exists prize_pool_enabled boolean not null default true,
-add column if not exists prize_pool_per_paid_participant integer not null default 100,
-add column if not exists prize_pool_display_threshold integer not null default 1000,
-add column if not exists points_enabled boolean not null default true;
+add column if not exists criteria text[] not null default '{}';
 
 alter table public.competitions
 drop constraint if exists competitions_max_participants_check;
@@ -77,20 +69,6 @@ update public.competitions set status = 'closed' where status = 'archived';
 alter table public.competitions
 add constraint competitions_status_check
 check (status in ('draft', 'live', 'closed'));
-
-alter table public.competitions
-drop constraint if exists competitions_prize_pool_per_paid_participant_check;
-
-alter table public.competitions
-add constraint competitions_prize_pool_per_paid_participant_check
-check (prize_pool_per_paid_participant >= 0);
-
-alter table public.competitions
-drop constraint if exists competitions_prize_pool_display_threshold_check;
-
-alter table public.competitions
-add constraint competitions_prize_pool_display_threshold_check
-check (prize_pool_display_threshold >= 0);
 
 drop policy if exists "Anyone can read published competitions" on public.competitions;
 drop policy if exists "Anyone can read live competitions" on public.competitions;

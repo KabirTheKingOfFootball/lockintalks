@@ -18,10 +18,6 @@ export type CompetitionRecord = {
   max_participants: number | null;
   fee_label: string;
   fee_amount: number;
-  prize_pool_enabled?: boolean | null;
-  prize_pool_per_paid_participant?: number | null;
-  prize_pool_display_threshold?: number | null;
-  points_enabled?: boolean | null;
   summary: string;
   description: string;
   image_url: string | null;
@@ -136,10 +132,7 @@ export function mapCompetitionRecord(record: CompetitionRecord, paidParticipants
   const accent = accents[Math.abs(hashString(record.slug)) % accents.length];
   const maxParticipants = Number(record.max_participants || 50);
   const prizePool = calculatePrizePool({
-    enabled: record.prize_pool_enabled,
-    paidParticipants,
-    perPaidParticipant: record.prize_pool_per_paid_participant,
-    displayThreshold: record.prize_pool_display_threshold
+    paidParticipants
   });
 
   return {

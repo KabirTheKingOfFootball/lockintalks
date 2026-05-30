@@ -14,10 +14,6 @@ export type AdminCompetition = {
   max_participants: number | null;
   fee_label: string;
   fee_amount: number;
-  prize_pool_enabled: boolean | null;
-  prize_pool_per_paid_participant: number | null;
-  prize_pool_display_threshold: number | null;
-  points_enabled: boolean | null;
   summary: string;
   description: string;
   image_url: string | null;
@@ -52,10 +48,7 @@ export async function getAdminCompetitions() {
           ...competition,
           verified_paid_participants: verifiedPaidParticipants,
           calculated_prize_pool: calculatePrizePool({
-            enabled: competition.prize_pool_enabled,
-            paidParticipants: verifiedPaidParticipants,
-            perPaidParticipant: competition.prize_pool_per_paid_participant,
-            displayThreshold: competition.prize_pool_display_threshold
+            paidParticipants: verifiedPaidParticipants
           })
         };
       }),
