@@ -169,9 +169,17 @@ export default async function HomePage() {
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
             {competitions.map((competition) => (
               <Card key={competition.slug}>
-                <div className={`mb-5 h-28 rounded-[8px] bg-gradient-to-br ${competition.accent} p-4 text-[#071b3b]`}>
+                <div className={`relative mb-5 h-28 overflow-hidden rounded-[8px] bg-gradient-to-br ${competition.accent} p-4 text-[#071b3b]`}>
+                  {competition.imageUrl && (
+                    <>
+                      <Image src={competition.imageUrl} alt={`${competition.name} competition banner`} fill sizes="(min-width: 1024px) 25vw, (min-width: 768px) 50vw, 100vw" className="object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#071b3b]/85 via-[#071b3b]/35 to-black/10" aria-hidden="true" />
+                    </>
+                  )}
+                  <div className={competition.imageUrl ? "relative z-10 text-white" : "relative z-10"}>
                   <Mic2 size={28} />
                   <p className="mt-5 text-lg font-black">{competition.category}</p>
+                  </div>
                 </div>
                 <h3 className="text-lg font-black">{competition.name}</h3>
                 <p className="mt-2 text-sm text-white/58">{competition.ageGroup} | {competition.fee} | Cash Prizes</p>

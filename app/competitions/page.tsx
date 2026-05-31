@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { Mic2, CalendarDays, Users, Wallet, Clock3, Trophy } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -41,12 +42,20 @@ export default async function CompetitionsPage() {
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {competitions.map((competition) => (
           <Card key={competition.slug} className="overflow-hidden p-0">
-            <div className={`relative h-44 bg-gradient-to-br ${competition.accent} p-6 text-[#071b3b]`}>
+            <div className={`relative h-44 overflow-hidden bg-gradient-to-br ${competition.accent} p-6 text-[#071b3b]`}>
+              {competition.imageUrl && (
+                <>
+                  <Image src={competition.imageUrl} alt={`${competition.name} competition banner`} fill sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw" className="object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#071b3b]/85 via-[#071b3b]/35 to-black/10" aria-hidden="true" />
+                </>
+              )}
+              <div className={competition.imageUrl ? "relative z-10 text-white" : "relative z-10"}>
               <div className="flex items-center justify-between">
                 <Mic2 size={34} />
-                <span className="rounded-full border border-[#071b3b]/20 bg-[#071b3b]/10 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-[#071b3b]">{competition.displayStatus}</span>
+                <span className={`rounded-full border px-3 py-1 text-xs font-black uppercase tracking-[0.16em] ${competition.imageUrl ? "border-white/25 bg-black/30 text-white" : "border-[#071b3b]/20 bg-[#071b3b]/10 text-[#071b3b]"}`}>{competition.displayStatus}</span>
               </div>
               <p className="mt-7 text-2xl font-black">{competition.category}</p>
+              </div>
             </div>
             <div className="p-6">
               <h2 className="text-2xl font-black">{competition.name}</h2>

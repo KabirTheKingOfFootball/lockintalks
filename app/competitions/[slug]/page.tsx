@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Award, CalendarDays, Gavel, Mic2, Trophy, Users, ClipboardCheck, Clock3, ShieldCheck } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
@@ -39,13 +40,21 @@ export default async function CompetitionDetailsPage({ params }: { params: Promi
     <MotionShell>
       <section className="mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[1fr_0.42fr] lg:px-8">
         <div>
-          <div className={`mb-8 rounded-[8px] bg-gradient-to-br ${competition.accent} p-8 text-[#071b3b]`}>
+          <div className={`relative mb-8 overflow-hidden rounded-[8px] bg-gradient-to-br ${competition.accent} p-8 text-[#071b3b]`}>
+            {competition.imageUrl && (
+              <>
+                <Image src={competition.imageUrl} alt={`${competition.name} competition banner`} fill priority sizes="(min-width: 1024px) 58vw, 100vw" className="object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#071b3b]/90 via-[#071b3b]/45 to-black/10" aria-hidden="true" />
+              </>
+            )}
+            <div className={competition.imageUrl ? "relative z-10 text-white" : "relative z-10"}>
             <div className="flex items-start justify-between gap-4">
               <Mic2 size={42} />
-              <span className="rounded-full border border-[#071b3b]/20 bg-[#071b3b]/10 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-[#071b3b]">{competition.displayStatus}</span>
+              <span className={`rounded-full border px-3 py-1 text-xs font-black uppercase tracking-[0.16em] ${competition.imageUrl ? "border-white/25 bg-black/30 text-white" : "border-[#071b3b]/20 bg-[#071b3b]/10 text-[#071b3b]"}`}>{competition.displayStatus}</span>
             </div>
             <p className="mt-10 text-sm font-black uppercase tracking-[0.3em]">{competition.category}</p>
             <h1 className="mt-2 text-4xl font-black sm:text-6xl">{competition.name}</h1>
+            </div>
           </div>
           <p className="text-xl leading-9 text-white/74">{competition.description}</p>
           <div className="mt-8 grid gap-5 md:grid-cols-2">
