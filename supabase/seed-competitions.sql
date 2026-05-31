@@ -43,7 +43,7 @@ values
   array['Orientation: June 20', 'Preliminary rounds: June 22', 'Semi-finals: June 24', 'Final showcase: June 26'],
   array['Cash awards for top performers', 'Champion certificate', 'Judge feedback report'],
   array['Confidence', 'Argument Clarity', 'Evidence Use', 'Speech Structure', 'Respectful Rebuttal', 'Time Management'],
-  array['Anika Rao', 'Marcus Bell', 'Leah Chen']
+  array['To Be Announced']
 ),
 (
   'storytelling-showcase',
@@ -64,7 +64,7 @@ values
   array['Submission check: July 2', 'Live rounds: July 5', 'Awards stream: July 6'],
   array['Cash awards for top performers', 'Creativity certificate', 'Audience favorite mention'],
   array['Confidence', 'Clarity', 'Creativity', 'Story Structure', 'Expression', 'Time Management'],
-  array['Priya Sethi', 'Owen Brooks', 'Maya Torres']
+  array['To Be Announced']
 ),
 (
   'story-talks',
@@ -106,7 +106,7 @@ values
   array['Speaker briefing: July 16', 'Qualifiers: July 19', 'Grand stage: July 21'],
   array['Cash awards for top performers', 'Leadership spotlight', 'Mentor feedback session'],
   array['Confidence', 'Clarity', 'Message Strength', 'Speech Structure', 'Stage Presence', 'Time Management'],
-  array['LockInTalks Review Panel', 'Guest Speaking Coach']
+  array['To Be Announced']
 ),
 (
   'extempore-arena',
@@ -127,7 +127,7 @@ values
   array['Tech check: August 2', 'Live competition: August 3', 'Results: August 4'],
   array['Cash awards for top performers', 'Finalist certificate', 'Performance scorecard'],
   array['Confidence', 'Clarity', 'Quick Thinking', 'Speech Structure', 'Stage Presence', 'Time Management'],
-  array['Nina Patel', 'James Carter', 'Fatima Noor']
+  array['To Be Announced']
 )
 on conflict (slug) do update set
   name = excluded.name,

@@ -61,7 +61,7 @@ export default async function CompetitionDetailsPage({ params }: { params: Promi
             <Info title="Rules" icon={<Gavel />} items={competition.rules} />
             <Info title="How Participants Will Be Judged" icon={<ClipboardCheck />} items={competition.criteria} />
             <Info title="Schedule" icon={<CalendarDays />} items={competition.schedule} />
-            <Info title="Cash Prize Details" icon={<Trophy />} items={competition.prizes.length ? competition.prizes : ["Every competition includes cash prizes. Exact award details will be shared by LockInTalks before the event."]} />
+            <Info title="Cash Prize Details" icon={<Trophy />} items={competition.prizes} />
             <Info title="Judges" icon={<Users />} items={competition.judges} />
           </div>
         </div>
@@ -75,7 +75,7 @@ export default async function CompetitionDetailsPage({ params }: { params: Promi
               <p><span className="font-bold text-white">Time:</span> {competition.time} {competition.timezone}</p>
               {competition.registrationDeadline && <p><span className="font-bold text-white">Registration Deadline:</span> {competition.registrationDeadline}</p>}
               <p><span className="font-bold text-white">Entry Fee:</span> {competition.fee}</p>
-              <p className="flex items-center gap-2"><Clock3 size={16} className="text-[#d4af37]" /> Maximum Participants: {competition.maxParticipants}</p>
+              <p className="flex items-center gap-2"><Clock3 size={16} className="text-[#d4af37]" /> Slots Remaining: {competition.slotsRemaining} / {competition.maxParticipants}</p>
               <p className="flex items-center gap-2"><Trophy size={16} className="text-[#d4af37]" /> Top Performers Win Cash Awards</p>
             </div>
             {competition.prizePool.showBadge && (

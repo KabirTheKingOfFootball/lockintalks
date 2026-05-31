@@ -64,7 +64,7 @@ export default async function CompetitionsPage() {
                 <span className="flex items-center gap-2"><Users size={16} className="text-[#d4af37]" /> {competition.ageGroup}</span>
                 <span className="flex items-center gap-2"><CalendarDays size={16} className="text-[#d4af37]" /> {competition.date} | {competition.time} {competition.timezone}</span>
                 <span className="flex items-center gap-2"><Wallet size={16} className="text-[#d4af37]" /> Entry Fee {competition.fee}</span>
-                <span className="flex items-center gap-2"><Clock3 size={16} className="text-[#d4af37]" /> Maximum Participants: {competition.maxParticipants}</span>
+                <span className="flex items-center gap-2"><Clock3 size={16} className="text-[#d4af37]" /> Slots Remaining: {competition.slotsRemaining} / {competition.maxParticipants}</span>
                 <span className="flex items-center gap-2"><Trophy size={16} className="text-[#d4af37]" /> Every Competition Includes Cash Prizes</span>
               </div>
               {competition.prizePool.showBadge && (

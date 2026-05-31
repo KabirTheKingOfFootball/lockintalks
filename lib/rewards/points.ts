@@ -3,12 +3,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export { calculateLockInPointCheckout, getMaxUsableLockInPoints, pointValueInr } from "@/lib/rewards/checkout";
 
-export const participationPoints = 17;
+export const participationPoints = 7;
 export const fivePaidCompetitionMilestonePoints = 47;
 export const tenPaidCompetitionMilestonePoints = 107;
 export const winnerPoints = {
-  first: 67,
-  second: 37,
+  first: 77,
+  second: 47,
   third: 27
 } as const;
 

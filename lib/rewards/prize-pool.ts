@@ -26,7 +26,8 @@ export function calculatePrizePool({
   const safePaidParticipants = Math.max(0, Math.floor(Number(paidParticipants) || 0));
   const safePerParticipant = Math.max(0, Math.floor(Number(perPaidParticipant) || 100));
   const safeThreshold = Math.max(0, Math.floor(Number(displayThreshold) || 1000));
-  const amount = enabled === false ? 0 : safePaidParticipants * safePerParticipant;
+  const paidParticipantBlocks = Math.floor(safePaidParticipants / 5);
+  const amount = enabled === false ? 0 : paidParticipantBlocks * safePerParticipant * 5;
 
   return {
     enabled: enabled !== false,
@@ -53,5 +54,5 @@ export function formatInr(amount: number) {
 }
 
 export function formatPrizePoolBadge(amount: number) {
-  return `LIVE PRIZE POOL: Rs. ${Math.max(0, Math.floor(Number(amount) || 0)).toLocaleString("en-IN")}+`;
+  return `LIVE PRIZE POOL: INR ${Math.max(0, Math.floor(Number(amount) || 0)).toLocaleString("en-IN")}`;
 }

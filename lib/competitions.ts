@@ -69,6 +69,10 @@ const accents = [
 ];
 
 const defaultCriteria = ["Confidence", "Clarity", "Creativity", "Speech Structure", "Stage Presence", "Time Management"];
+const defaultRules = ["Full rules will be shared by LockInTalks before the event."];
+const defaultSchedule = ["Schedule details will be shared before the competition begins."];
+const defaultPrizes = ["Every competition includes cash prizes. Exact award details will be shared by LockInTalks before the event."];
+const defaultJudges = ["To Be Announced"];
 
 export async function getLiveCompetitions(limit?: number) {
   try {
@@ -131,6 +135,7 @@ export function mapCompetitionRecord(record: CompetitionRecord, paidParticipants
   const dateIso = getDateIso(record.event_date, record.event_time || "");
   const accent = accents[Math.abs(hashString(record.slug)) % accents.length];
   const maxParticipants = Number(record.max_participants || 50);
+  const slotsRemaining = Math.max(0, maxParticipants - paidParticipants);
   const prizePool = calculatePrizePool({
     paidParticipants
   });
@@ -150,7 +155,7 @@ export function mapCompetitionRecord(record: CompetitionRecord, paidParticipants
     feeAmount: record.fee_amount,
     prizePool,
     status: record.status,
-    slotsRemaining: maxParticipants,
+    slotsRemaining,
     maxParticipants,
     displayStatus: getDisplayStatus(record.status, dateIso),
     featured: record.status === "live",
@@ -158,10 +163,10 @@ export function mapCompetitionRecord(record: CompetitionRecord, paidParticipants
     description: record.description,
     accent,
     imageUrl: record.image_url,
-    rules: record.rules || [],
-    schedule: record.schedule || [],
-    prizes: record.prizes || [],
-    judges: record.judges || [],
+    rules: record.rules?.length ? record.rules : defaultRules,
+    schedule: record.schedule?.length ? record.schedule : defaultSchedule,
+    prizes: record.prizes?.length ? record.prizes : defaultPrizes,
+    judges: record.judges?.length ? record.judges : defaultJudges,
     criteria: record.criteria?.length ? record.criteria : defaultCriteria
   };
 }
