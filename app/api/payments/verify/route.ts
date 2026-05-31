@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof SupabaseConfigError || error instanceof RazorpayConfigError) {
       console.error(`[LockInTalks payment verify] ${error.message}`);
-      return NextResponse.json({ error: error.message }, { status: 503 });
+      return NextResponse.json({ error: "Payment verification is not fully configured yet. Please contact support before trying again." }, { status: 503 });
     }
 
     console.error("[LockInTalks payment verify] Unexpected verification error:", error);

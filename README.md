@@ -30,6 +30,8 @@ Copy `.env.example` to `.env.local` and replace secrets before deploying.
 
 ## Supabase + Razorpay Setup
 
+For the beginner-friendly payment setup walkthrough, use `RAZORPAY_SETUP.md`. For the final pre-launch checklist, use `LAUNCH_CHECKLIST.md`.
+
 1. Run `supabase/schema.sql` in Supabase SQL Editor.
 2. Add Supabase environment variables in Vercel:
    - `NEXT_PUBLIC_SUPABASE_URL`
@@ -49,6 +51,12 @@ Copy `.env.example` to `.env.local` and replace secrets before deploying.
 `APP_SESSION_SECRET` should be a random server-only string with at least 32 characters. It signs the temporary LockInTalks app session cookie used as the server-side auth source of truth when Supabase browser cookies are unreliable in production.
 
 Razorpay payments use a secure order and verification flow. The browser opens Checkout, but registrations are only treated as seat-confirmed after server-side verification and captured payment confirmation. Webhooks are recorded in `payment_events` and deduplicated using Razorpay's event id.
+
+Safe Razorpay setup check:
+
+- `/api/health/razorpay`
+
+This route only returns setup booleans and key mode (`test`, `live`, `unknown`, or `missing`). It never returns key values or secrets.
 
 Razorpay review/support pages:
 

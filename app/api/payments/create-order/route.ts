@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof SupabaseConfigError || error instanceof RazorpayConfigError) {
       console.error(`[LockInTalks payment order] ${error.message}`);
-      return NextResponse.json({ error: error.message }, { status: 503 });
+      return NextResponse.json({ error: "Payments are not fully configured yet. Please contact support or try again later." }, { status: 503 });
     }
 
     console.error("[LockInTalks payment order] Unexpected order creation error:", error);

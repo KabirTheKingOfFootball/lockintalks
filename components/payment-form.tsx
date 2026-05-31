@@ -20,6 +20,12 @@ type PaymentSummary = {
   previouslyAppliedPoints: number;
 };
 
+type PaymentConfig = {
+  checkoutReady: boolean;
+  webhookReady: boolean;
+  keyMode: string;
+};
+
 type CreateOrderResponse = {
   error?: string;
   keyId: string;
@@ -94,7 +100,7 @@ const paymentMethods: Array<{ icon: LucideIcon; label: string }> = [
   { icon: WalletCards, label: "Wallets" }
 ];
 
-export function PaymentForm({ registrationId, summary }: { registrationId: string | null; summary: PaymentSummary | null }) {
+export function PaymentForm({ registrationId, summary, paymentConfig }: { registrationId: string | null; summary: PaymentSummary | null; paymentConfig: PaymentConfig }) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -105,10 +111,16 @@ export function PaymentForm({ registrationId, summary }: { registrationId: strin
   const appliedPointsPreview = Math.min(Math.max(0, Math.floor(Number(pointsToApply) || 0)), maxUsablePoints);
   const discountPreview = appliedPointsPreview * 100;
   const finalAmountPreview = Math.max(0, Number(summary?.feeAmount || 0) - discountPreview);
+  const paymentUnavailable = !paymentConfig.checkoutReady;
 
   async function startPayment() {
     setError("");
     setMessage("");
+
+    if (paymentUnavailable) {
+      setError("Payments are not fully configured yet. Please contact lockintalks@gmail.com or try again later.");
+      return;
+    }
 
     if (!registrationId) {
       setError("Missing registration id. Please register for a competition before paying.");
@@ -231,6 +243,16 @@ export function PaymentForm({ registrationId, summary }: { registrationId: strin
         <p className="mt-3 text-sm leading-6 text-white/62">
           Razorpay Checkout supports UPI, cards, netbanking, and wallets. Your registration seat is reserved temporarily while payment is completed securely.
         </p>
+        {paymentUnavailable && (
+          <p className="mt-5 rounded-[8px] border border-red-400/30 bg-red-500/10 p-3 text-sm leading-6 text-red-100">
+            Payments are not fully configured yet. Please contact <a className="font-bold text-white" href="mailto:lockintalks@gmail.com">lockintalks@gmail.com</a> or try again later.
+          </p>
+        )}
+        {paymentConfig.checkoutReady && !paymentConfig.webhookReady && (
+          <p className="mt-5 rounded-[8px] border border-[#d4af37]/30 bg-[#d4af37]/10 p-3 text-sm leading-6 text-[#f7dc83]">
+            Payments can open, but final confirmation may take longer while webhook setup is being completed.
+          </p>
+        )}
         <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {paymentMethods.map(({ icon: Icon, label }) => (
             <div key={label} className="rounded-[8px] border border-white/12 bg-white/[0.05] p-4 text-center">
@@ -279,7 +301,7 @@ export function PaymentForm({ registrationId, summary }: { registrationId: strin
         )}
         {message && <p className="mt-4 rounded-[8px] border border-[#d4af37]/30 bg-[#d4af37]/10 p-3 text-sm text-[#f7dc83]">{message}</p>}
         {error && <p className="mt-4 rounded-[8px] border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
-        <Button type="button" onClick={startPayment} className="mt-6 w-full" disabled={isBusy}>
+        <Button type="button" onClick={startPayment} className="mt-6 w-full" disabled={isBusy || paymentUnavailable}>
           {isBusy ? "Processing..." : `Pay ${summary ? formatPaise(finalAmountPreview) : "now"}`}
         </Button>
       </div>

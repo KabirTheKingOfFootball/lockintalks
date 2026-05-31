@@ -5,6 +5,7 @@ import { getServerAuthSession } from "@/lib/auth/server-session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { getMaxUsableLockInPoints, getUserLockInPointsBalance } from "@/lib/rewards/points";
+import { getRazorpayEnvStatus } from "@/lib/razorpay/env";
 
 export const metadata: Metadata = {
   title: "Payment",
@@ -16,10 +17,19 @@ export const dynamic = "force-dynamic";
 export default async function PaymentPage({ searchParams }: { searchParams: Promise<{ registration?: string }> }) {
   const { registration: registrationId = null } = await searchParams;
   const summary = await getPaymentSummary(registrationId);
+  const razorpayStatus = getRazorpayEnvStatus();
 
   return (
     <MotionShell className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
-      <PaymentForm registrationId={registrationId} summary={summary} />
+      <PaymentForm
+        registrationId={registrationId}
+        summary={summary}
+        paymentConfig={{
+          checkoutReady: razorpayStatus.checkoutReady,
+          webhookReady: razorpayStatus.webhookReady,
+          keyMode: razorpayStatus.keyMode
+        }}
+      />
     </MotionShell>
   );
 }

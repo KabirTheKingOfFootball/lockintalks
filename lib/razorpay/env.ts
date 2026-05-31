@@ -38,6 +38,21 @@ export function getRazorpayEnv(): RazorpayEnv {
   return { ok: true, keyId: keyId as string, keySecret: keySecret as string, webhookSecret };
 }
 
+export function getRazorpayEnvStatus() {
+  const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID || "";
+  const keySecret = process.env.RAZORPAY_KEY_SECRET || "";
+  const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || "";
+
+  return {
+    checkoutReady: Boolean(keyId && keySecret),
+    webhookReady: Boolean(webhookSecret),
+    keyIdConfigured: Boolean(keyId),
+    keySecretConfigured: Boolean(keySecret),
+    webhookSecretConfigured: Boolean(webhookSecret),
+    keyMode: keyId.startsWith("rzp_test_") ? "test" : keyId.startsWith("rzp_live_") ? "live" : keyId ? "unknown" : "missing"
+  };
+}
+
 export function requireRazorpayEnv() {
   const env = getRazorpayEnv();
 

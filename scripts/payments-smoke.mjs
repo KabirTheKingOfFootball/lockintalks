@@ -15,6 +15,7 @@ const require = createRequire(import.meta.url);
 installTsLoader();
 
 const payments = require(path.resolve("lib/razorpay/payments.ts"));
+const razorpayEnv = require(path.resolve("lib/razorpay/env.ts"));
 const failures = [];
 
 const orderId = "order_lockintalks_smoke";
@@ -41,6 +42,11 @@ const webhookSignature = sign(process.env.RAZORPAY_WEBHOOK_SECRET, rawWebhookBod
 expectEqual(payments.verifyRazorpayWebhookSignature(rawWebhookBody, webhookSignature), true, "Valid webhook signature verifies.");
 expectEqual(payments.verifyRazorpayWebhookSignature(rawWebhookBody, webhookSignature.replace(/.$/, "0")), false, "Tampered webhook signature is rejected.");
 expectEqual(payments.formatAmount(19900), "INR 199", "Payment amounts display as INR.");
+
+const envStatus = razorpayEnv.getRazorpayEnvStatus();
+expectEqual(envStatus.checkoutReady, true, "Razorpay checkout env status detects configured test keys.");
+expectEqual(envStatus.webhookReady, true, "Razorpay webhook env status detects configured webhook secret.");
+expectEqual(envStatus.keyMode, "test", "Razorpay smoke key mode is test.");
 
 if (failures.length > 0) {
   console.error("\n[payments-smoke] Failed checks:");
