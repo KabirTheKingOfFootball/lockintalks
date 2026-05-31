@@ -63,7 +63,7 @@ export function DashboardClient({
         <Card><Award className="mb-4 text-[#d4af37]" /><h2 className="font-black">Registered Competitions</h2><p className="mt-3 text-sm text-white/62">{latestRegistration?.competition_name || "No Registrations Yet"}</p></Card>
         <Card><CalendarClock className="mb-4 text-[#d4af37]" /><h2 className="font-black">Upcoming Events</h2><p className="mt-3 text-sm text-white/62">{latestRegistration ? "Check your email for live room details." : "Choose a competition to start."}</p></Card>
         <Card><CreditCard className="mb-4 text-[#d4af37]" /><h2 className="font-black">Payment History</h2><p className="mt-3 text-sm text-white/62">{paidRegistrations.length ? `${paidRegistrations.length} paid registration${paidRegistrations.length === 1 ? "" : "s"}` : "No paid registrations yet."}</p></Card>
-        <Card><Sparkles className="mb-4 text-[#d4af37]" /><h2 className="font-black">Lock-in Points</h2><p className="mt-3 text-sm text-white/62">{Math.max(0, lockInPointsBalance)} point{lockInPointsBalance === 1 ? "" : "s"} available for future checkout discounts.</p></Card>
+        <Card><Sparkles className="mb-4 text-[#d4af37]" /><h2 className="font-black">LockIn Points</h2><p className="mt-3 text-sm text-white/62">{Math.max(0, lockInPointsBalance)} point{lockInPointsBalance === 1 ? "" : "s"} available for future checkout discounts.</p></Card>
         <Card><FileBadge className="mb-4 text-[#d4af37]" /><h2 className="font-black">Certificates</h2><p className="mt-3 text-sm text-white/62">Certificates will appear after results are published.</p></Card>
       </div>
       {registrations.length > 0 && (
@@ -76,7 +76,7 @@ export function DashboardClient({
                   <p className="font-bold">{registration.competition_name}</p>
                   <p className="text-sm text-white/58">{registration.student_name} | Age {registration.student_age} | {registration.city || registration.city_country}{registration.country ? `, ${registration.country}` : ""} | {registration.entry_fee}</p>
                   {Number(registration.points_redeemed || 0) > 0 && (
-                    <p className="mt-1 text-xs text-white/50">Lock-in Points Used: {registration.points_redeemed}</p>
+                    <p className="mt-1 text-xs text-white/50">LockIn Points Used: {registration.points_redeemed}</p>
                   )}
                   <p className="mt-1 text-xs font-bold uppercase tracking-[0.16em] text-[#d4af37]">Competing for cash prizes and recognition</p>
                 </div>

@@ -19,7 +19,7 @@ export default async function PricingPage() {
       <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-[#d4af37]">Pricing</p>
       <h1 className="text-4xl font-black sm:text-6xl">Pricing and Competition Fees</h1>
       <p className="mt-5 text-sm leading-7 text-white/68">
-        LockInTalks entry fees are shown on each live competition page before checkout. Payments are processed through Razorpay Checkout and registrations are confirmed only after server-side verification.
+        LockInTalks entry fees are shown on each live competition page before checkout. Payments are processed through Razorpay Checkout when enabled, and registrations are confirmed only after server-side verification.
       </p>
       <p className="mt-4 text-xs leading-6 text-white/45">
         Last Updated: May 31, 2026. Pricing should be reviewed before public launch and may change for future events.
@@ -30,9 +30,32 @@ export default async function PricingPage() {
           <h2 className="text-2xl font-black">How Fees Work</h2>
           <ul className="mt-4 grid gap-3 text-sm leading-7 text-white/65">
             <li>Each competition has its own entry fee shown on the competition card and details page.</li>
-            <li>Any Lock-in Points discount is shown before payment. 1 Lock-in Point = INR 1 discount.</li>
-            <li>Razorpay may show the final payable amount during Checkout before payment is completed.</li>
+            <li>A common beta entry fee example is INR 199 where applicable, but the actual fee may vary by competition.</li>
+            <li>Taxes, gateway charges, or other applicable charges should be shown before payment if they apply.</li>
+            <li>Any LockIn Points discount is shown before payment. 1 LockIn Point = INR 1 discount where enabled.</li>
+            <li>Razorpay may show the final payable INR amount during Checkout before payment is completed.</li>
             <li>No physical shipping fee is charged for standard online competition registrations.</li>
+          </ul>
+        </Card>
+
+        <Card>
+          <h2 className="text-2xl font-black">Prize Pool and Rewards</h2>
+          <ul className="mt-4 grid gap-3 text-sm leading-7 text-white/65">
+            <li>The prize pool may increase by INR 500 for every 5 verified paid participants where prize pool logic is enabled.</li>
+            <li>Prize pool calculations count only verified successful paid registrations.</li>
+            <li>Failed, cancelled, pending, refunded, or unverified payments do not count toward prize pool calculations.</li>
+            <li>Where enabled, prize distribution is 1st Place: 45%, 2nd Place: 30%, and 3rd Place: 25%.</li>
+            <li>Cash rewards, Amazon gift cards, certificates, feedback, and LockIn Points apply only when shown for a specific competition.</li>
+          </ul>
+        </Card>
+
+        <Card>
+          <h2 className="text-2xl font-black">LockIn Points</h2>
+          <ul className="mt-4 grid gap-3 text-sm leading-7 text-white/65">
+            <li>1 LockIn Point = INR 1 discount on LockInTalks where points are enabled.</li>
+            <li>LockIn Points are not cash, not withdrawable, and not transferable.</li>
+            <li>Checkout limits may apply, so users may not always be able to use all available points at once.</li>
+            <li>Points connected to refunded, cancelled, failed, duplicate, or invalid registrations may be reversed.</li>
           </ul>
         </Card>
 

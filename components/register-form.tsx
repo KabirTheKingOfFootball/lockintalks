@@ -89,6 +89,10 @@ export function RegisterForm({ competition }: { competition: PublicCompetition }
     <form onSubmit={submit} className="glass rounded-[8px] p-6 sm:p-8">
       <h1 className="text-3xl font-black">Register for <span className="gold-text">{competition.name}</span></h1>
       <p className="mt-3 text-sm leading-6 text-white/62">Fill in the speaker details, then continue to the secure payment step. Top performers compete for cash awards, recognition, and confidence-building stage experience.</p>
+      <div className="mt-5 rounded-[8px] border border-[#d4af37]/25 bg-[#d4af37]/10 p-4 text-sm leading-6 text-[#f7dc83]">
+        Participants below 18 should register with parent or guardian awareness or consent. Please enter accurate age and guardian details. Age proof may be requested before participation to keep categories fair. For help, contact{" "}
+        <a className="font-bold text-white" href="mailto:lockintalks@gmail.com">lockintalks@gmail.com</a>.
+      </div>
       <div className="mt-7 grid gap-4 sm:grid-cols-2">
         <label className="grid gap-2 text-sm font-bold text-white/80">Student Name<Input value={form.student} onChange={(e) => setForm({ ...form, student: e.target.value })} /></label>
         <label className="grid gap-2 text-sm font-bold text-white/80">Age<Input inputMode="numeric" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} /></label>

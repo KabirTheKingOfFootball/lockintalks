@@ -30,7 +30,7 @@ Copy `.env.example` to `.env.local` and replace secrets before deploying.
 
 ## Supabase + Razorpay Setup
 
-For the beginner-friendly payment setup walkthrough, use `RAZORPAY_SETUP.md`. For the final pre-launch checklist, use `LAUNCH_CHECKLIST.md`.
+For the beginner-friendly payment setup walkthrough, use `RAZORPAY_SETUP.md`. For the final pre-launch checklist, use `LAUNCH_CHECKLIST.md`. For parent/adult review, use `PARENT_LEGAL_REVIEW_CHECKLIST.md`.
 
 1. Run `supabase/schema.sql` in Supabase SQL Editor.
 2. Add Supabase environment variables in Vercel:
@@ -65,9 +65,10 @@ Razorpay review/support pages:
 - `/refund-policy`
 - `/pricing`
 - `/shipping-policy`
+- `/parent-consent`
 - `/contact`
 
-Payment safety rule: do not mark registrations as paid from the browser callback alone. Successful payments must pass server-side Razorpay signature verification and captured payment confirmation. Failed, cancelled, refunded, or unverified payments must not count toward prize pools or automatic Lock-in Points.
+Payment safety rule: do not mark registrations as paid from the browser callback alone. Successful payments must pass server-side Razorpay signature verification and captured payment confirmation. Failed, cancelled, refunded, or unverified payments must not count toward prize pools or automatic LockIn Points.
 
 ## Monitoring
 

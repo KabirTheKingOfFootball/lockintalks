@@ -72,7 +72,7 @@ const defaultCriteria = ["Confidence", "Clarity", "Creativity", "Speech Structur
 const defaultRules = ["Full rules will be shared by LockInTalks before the event."];
 const defaultSchedule = ["Schedule details will be shared before the competition begins."];
 const defaultPrizes = ["Every competition includes cash prizes. Exact award details will be shared by LockInTalks before the event."];
-const defaultJudges = ["To Be Announced"];
+const defaultJudges = ["Judges will be announced by LockInTalks before the event."];
 
 export async function getLiveCompetitions(limit?: number) {
   try {

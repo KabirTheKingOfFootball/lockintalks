@@ -71,7 +71,7 @@ export function RegistrationManager({ registrations }: { registrations: Registra
 
       if (!response.ok) throw new Error(result.error || "Could not award winner points.");
 
-      setMessage(result.alreadyAwarded ? "Winner points were already awarded for this registration." : `Awarded ${result.pointsAwarded || 0} Lock-in Points.`);
+      setMessage(result.alreadyAwarded ? "Winner points were already awarded for this registration." : `Awarded ${result.pointsAwarded || 0} LockIn Points.`);
     } catch (awardError) {
       console.error("[LockInTalks admin UI] Winner points award failed:", awardError);
       setError(getReadableError(awardError, "Could not award winner points."));

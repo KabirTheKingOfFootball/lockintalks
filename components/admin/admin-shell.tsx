@@ -3,7 +3,8 @@ import { ShieldCheck } from "lucide-react";
 const adminLinks = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/competitions", label: "Competitions" },
-  { href: "/admin/registrations", label: "Registrations" }
+  { href: "/admin/registrations", label: "Registrations" },
+  { href: "/admin/launch-readiness", label: "Launch Readiness" }
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {

@@ -162,7 +162,7 @@ export const faqCorpus: FAQAnswer[] = [
     aliases: ["dashboard", "where is my registration", "payment history", "certificates section", "where can i see my competition"],
     keywords: ["dashboard", "account", "registration", "payment", "history", "certificate", "certificates", "event", "profile", "upcoming"],
     answer:
-      "The dashboard shows your registered competitions, payment history, upcoming-event guidance, and certificate placeholders. After login, normal users are sent to the dashboard automatically.\n\nIf something looks missing after payment or registration, refresh once and contact lockintalks@gmail.com with your account email if it still does not appear.",
+      "The dashboard shows your registered competitions, payment history, upcoming-event guidance, and certificate status. After login, normal users are sent to the dashboard automatically.\n\nIf something looks missing after payment or registration, refresh once and contact lockintalks@gmail.com with your account email if it still does not appear.",
     followUps: ["How do I register?", "Do students get certificates?", "Who should I contact for help?"]
   },
   {

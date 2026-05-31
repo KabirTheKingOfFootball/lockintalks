@@ -243,6 +243,10 @@ export function PaymentForm({ registrationId, summary, paymentConfig }: { regist
         <p className="mt-3 text-sm leading-6 text-white/62">
           Razorpay Checkout supports UPI, cards, netbanking, and wallets. Your registration seat is reserved temporarily while payment is completed securely.
         </p>
+        <p className="mt-4 rounded-[8px] border border-white/10 bg-white/[0.045] p-3 text-sm leading-6 text-white/62">
+          Payments are verified securely before a registration is marked as paid. For payment help, contact{" "}
+          <a className="font-bold text-[#d4af37]" href="mailto:lockintalks@gmail.com">lockintalks@gmail.com</a>.
+        </p>
         {paymentUnavailable && (
           <p className="mt-5 rounded-[8px] border border-red-400/30 bg-red-500/10 p-3 text-sm leading-6 text-red-100">
             Payments are not fully configured yet. Please contact <a className="font-bold text-white" href="mailto:lockintalks@gmail.com">lockintalks@gmail.com</a> or try again later.
@@ -265,7 +269,7 @@ export function PaymentForm({ registrationId, summary, paymentConfig }: { regist
           <div className="mt-6 rounded-[8px] border border-[#d4af37]/25 bg-[#d4af37]/10 p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <p className="text-sm font-black text-[#f7dc83]">Lock-in Points</p>
+                <p className="text-sm font-black text-[#f7dc83]">LockIn Points</p>
                 <p className="mt-1 text-xs leading-5 text-white/58">
                   Available: {availablePoints} points. You can use up to {maxUsablePoints} points on this checkout. 1 point = INR 1 discount.
                 </p>
@@ -312,7 +316,7 @@ export function PaymentForm({ registrationId, summary, paymentConfig }: { regist
           <p><span className="font-bold text-white">Competition:</span> {summary?.competitionName || "Registration selected"}</p>
           <p><span className="font-bold text-white">Date:</span> {summary?.competitionDate || "See competition details"}</p>
           <p><span className="font-bold text-white">Entry Fee:</span> {summary?.entryFee || "Calculated at Checkout"}</p>
-          {summary && <p><span className="font-bold text-white">Lock-in Points Discount:</span> {formatPaise(discountPreview)}</p>}
+          {summary && <p><span className="font-bold text-white">LockIn Points Discount:</span> {formatPaise(discountPreview)}</p>}
           {summary && <p><span className="font-bold text-white">Final Payable:</span> {formatPaise(finalAmountPreview)}</p>}
           <p><span className="font-bold text-white">Gateway:</span> Razorpay Checkout</p>
         </div>

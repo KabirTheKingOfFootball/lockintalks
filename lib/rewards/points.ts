@@ -112,7 +112,7 @@ export async function awardWinnerPointsForRegistration({
     competitionSlug: registration.competition_slug,
     points,
     type: "winner",
-    description: `Earned ${points} Lock-in Points for ${formatWinnerPlace(place)} in ${registration.competition_name}. Source: ${source}.`,
+    description: `Earned ${points} LockIn Points for ${formatWinnerPlace(place)} in ${registration.competition_name}. Source: ${source}.`,
     createdBy
   });
 
@@ -134,7 +134,7 @@ async function awardParticipationPoints(registration: RegistrationForRewards, so
     competitionSlug: registration.competition_slug,
     points: participationPoints,
     type: "participation",
-    description: `Earned ${participationPoints} Lock-in Points for verified paid registration: ${registration.competition_name}. Source: ${source}.`
+    description: `Earned ${participationPoints} LockIn Points for verified paid registration: ${registration.competition_name}. Source: ${source}.`
   });
 }
 
@@ -145,7 +145,7 @@ async function awardMilestonePoints(userId: string, source: string) {
     await insertMilestoneIfMissing({
       userId,
       points: fivePaidCompetitionMilestonePoints,
-      description: `Earned ${fivePaidCompetitionMilestonePoints} Lock-in Points for completing 5 paid competitions. Source: ${source}.`
+      description: `Earned ${fivePaidCompetitionMilestonePoints} LockIn Points for completing 5 paid competitions. Source: ${source}.`
     });
   }
 
@@ -153,7 +153,7 @@ async function awardMilestonePoints(userId: string, source: string) {
     await insertMilestoneIfMissing({
       userId,
       points: tenPaidCompetitionMilestonePoints,
-      description: `Earned ${tenPaidCompetitionMilestonePoints} Lock-in Points for completing 10 paid competitions. Source: ${source}.`
+      description: `Earned ${tenPaidCompetitionMilestonePoints} LockIn Points for completing 10 paid competitions. Source: ${source}.`
     });
   }
 }
@@ -190,7 +190,7 @@ async function recordRedeemedPoints(registration: RegistrationForRewards, source
     competitionSlug: registration.competition_slug,
     points: delta,
     type: "redemption",
-    description: `Applied ${pointsToRedeem} Lock-in Points as a checkout discount for ${registration.competition_name}. Source: ${source}.`
+    description: `Applied ${pointsToRedeem} LockIn Points as a checkout discount for ${registration.competition_name}. Source: ${source}.`
   });
 }
 
@@ -217,7 +217,7 @@ async function reverseParticipationPoints(registration: RegistrationForRewards, 
     competitionSlug: registration.competition_slug,
     points: -netToReverse,
     type: "refund_reversal",
-    description: `Removed participation Lock-in Points because payment is ${registration.payment_status}. Source: ${source}.`
+    description: `Removed participation LockIn Points because payment is ${registration.payment_status}. Source: ${source}.`
   });
 }
 
@@ -244,7 +244,7 @@ async function reverseRedeemedPoints(registration: RegistrationForRewards, sourc
     competitionSlug: registration.competition_slug,
     points: Math.abs(netToRestore),
     type: "refund_reversal",
-    description: `Restored redeemed Lock-in Points because payment is ${registration.payment_status}. Source: ${source}.`
+      description: `Restored redeemed LockIn Points because payment is ${registration.payment_status}. Source: ${source}.`
   });
 }
 
@@ -255,7 +255,7 @@ async function reverseUnearnedMilestonePoints(userId: string, source: string) {
     await reverseMilestoneIfNeeded({
       userId,
       points: tenPaidCompetitionMilestonePoints,
-      description: `Removed 10 paid competition milestone Lock-in Points after payment reversal. Source: ${source}.`
+      description: `Removed 10 paid competition milestone LockIn Points after payment reversal. Source: ${source}.`
     });
   }
 
@@ -263,7 +263,7 @@ async function reverseUnearnedMilestonePoints(userId: string, source: string) {
     await reverseMilestoneIfNeeded({
       userId,
       points: fivePaidCompetitionMilestonePoints,
-      description: `Removed 5 paid competition milestone Lock-in Points after payment reversal. Source: ${source}.`
+      description: `Removed 5 paid competition milestone LockIn Points after payment reversal. Source: ${source}.`
     });
   }
 }

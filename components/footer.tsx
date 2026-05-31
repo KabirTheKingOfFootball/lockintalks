@@ -24,7 +24,7 @@ export function Footer() {
             <Link href="/competitions">Competitions</Link>
             <Link href="/signup">Sign Up</Link>
             <Link href="/dashboard">Dashboard</Link>
-            <Link href="mailto:lockintalks@gmail.com">Contact</Link>
+            <Link href="/contact">Contact</Link>
           </div>
         </div>
         <div>
@@ -48,6 +48,7 @@ export function Footer() {
             <Link href="/refund-policy">Refunds</Link>
             <Link href="/pricing">Pricing</Link>
             <Link href="/shipping-policy">No Shipping</Link>
+            <Link href="/parent-consent">Parent Consent</Link>
           </div>
         </div>
       </div>
