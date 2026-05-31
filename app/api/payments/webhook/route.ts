@@ -81,55 +81,11 @@ export async function POST(request: NextRequest) {
     const captured = eventType === "payment.captured" || payment.status === "captured" || payment.captured === true;
     const failed = eventType === "payment.failed" || payment.status === "failed";
     const refunded = eventType.includes("refund") || payment.status === "refunded";
-    const update =
-      captured
-        ? {
-            payment_status: "captured",
-            registration_status: "accepted",
-            payment_provider: "razorpay",
-            payment_order_id: payment.order_id,
-            payment_id: payment.id || null,
-            razorpay_payment_id: payment.id || null,
-            amount_paid: payment.amount || null,
-            payment_currency: payment.currency || "INR",
-            paid_at: now,
-            seat_confirmed_at: now,
-            updated_at: now
-          }
-        : failed
-          ? {
-              payment_status: "failed",
-              registration_status: "payment_pending",
-              payment_provider: "razorpay",
-              payment_order_id: payment.order_id,
-              payment_id: payment.id || null,
-              razorpay_payment_id: payment.id || null,
-              updated_at: now
-            }
-          : refunded
-            ? {
-                payment_status: "refunded",
-                registration_status: "payment_pending",
-                payment_provider: "razorpay",
-                payment_order_id: payment.order_id,
-                payment_id: payment.id || null,
-                razorpay_payment_id: payment.id || null,
-                updated_at: now
-              }
-            : {
-                payment_status: "signature_verified",
-                registration_status: "payment_pending",
-                payment_provider: "razorpay",
-                payment_order_id: payment.order_id,
-                payment_id: payment.id || null,
-                razorpay_payment_id: payment.id || null,
-                updated_at: now
-              };
 
     const orderFilter = `razorpay_order_id.eq.${payment.order_id},payment_order_id.eq.${payment.order_id}`;
     const { data: existingRegistration, error: lookupError } = await supabaseAdmin
       .from("registrations")
-      .select("id, user_id, payment_status")
+      .select("id, user_id, payment_status, amount_due, payment_amount")
       .or(orderFilter)
       .maybeSingle();
 
@@ -145,6 +101,59 @@ export async function POST(request: NextRequest) {
       await markEventProcessed(eventId, false, message);
       return NextResponse.json({ ok: true, unmatched: true });
     }
+
+    if (!captured && !failed && !refunded) {
+      await supabaseAdmin
+        .from("payment_events")
+        .update({ registration_id: existingRegistration.id, processed: true, processed_at: now, processing_error: `Ignored non-final event: ${eventType}` })
+        .eq("provider_event_id", eventId);
+      return NextResponse.json({ ok: true, ignored: true, eventType });
+    }
+
+    const expectedAmount = Number(existingRegistration.amount_due || existingRegistration.payment_amount || 0);
+    const paidAmount = Number(payment.amount || 0);
+
+    if (captured && expectedAmount > 0 && paidAmount > 0 && paidAmount !== expectedAmount) {
+      const message = `Payment amount mismatch for order ${payment.order_id}.`;
+      console.warn(`[LockInTalks Razorpay webhook] ${message}`);
+      await markEventProcessed(eventId, false, message);
+      return NextResponse.json({ ok: false, ignored: true });
+    }
+
+    const update =
+      captured
+        ? {
+            payment_status: "captured",
+            registration_status: "accepted",
+            payment_provider: "razorpay",
+            payment_order_id: payment.order_id,
+            payment_id: payment.id || null,
+            razorpay_payment_id: payment.id || null,
+            amount_paid: paidAmount || null,
+            payment_currency: payment.currency || "INR",
+            paid_at: now,
+            seat_confirmed_at: now,
+            updated_at: now
+          }
+        : failed
+          ? {
+              payment_status: "failed",
+              registration_status: "payment_pending",
+              payment_provider: "razorpay",
+              payment_order_id: payment.order_id,
+              payment_id: payment.id || null,
+              razorpay_payment_id: payment.id || null,
+              updated_at: now
+            }
+          : {
+              payment_status: "refunded",
+              registration_status: "payment_pending",
+              payment_provider: "razorpay",
+              payment_order_id: payment.order_id,
+              payment_id: payment.id || null,
+              razorpay_payment_id: payment.id || null,
+              updated_at: now
+            };
 
     if (isSeatConfirmed(existingRegistration.payment_status) && !captured && !refunded) {
       await supabaseAdmin
@@ -181,7 +190,7 @@ export async function POST(request: NextRequest) {
         provider: "razorpay",
         provider_order_id: payment.order_id,
         provider_payment_id: payment.id || null,
-        amount: payment.amount || 0,
+        amount: paidAmount || expectedAmount,
         currency: payment.currency || "INR",
         status: payment.status || eventType,
         signature_verified: true,

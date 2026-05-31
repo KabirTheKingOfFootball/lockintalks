@@ -16,7 +16,7 @@ export type RazorpayPayment = {
 };
 
 export function formatAmount(amountPaise: number) {
-  return `Rs. ${(amountPaise / 100).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+  return `INR ${(amountPaise / 100).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 }
 
 export function createRazorpayClient() {

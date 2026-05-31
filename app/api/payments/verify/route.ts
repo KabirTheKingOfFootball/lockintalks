@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     const supabaseAdmin = createAdminClient();
     const { data: registration, error: registrationError } = await supabaseAdmin
       .from("registrations")
-      .select("id, user_id, razorpay_order_id, payment_order_id, payment_status")
+      .select("id, user_id, razorpay_order_id, payment_order_id, payment_status, amount_due, payment_amount")
       .eq("id", registrationId)
       .eq("user_id", userId)
       .single();
@@ -79,6 +79,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Payment details do not match this registration." }, { status: 400 });
     }
 
+    const expectedAmount = Number(registration.amount_due || registration.payment_amount || 0);
+    const paidAmount = Number(payment.amount || 0);
+
+    if (expectedAmount > 0 && paidAmount > 0 && paidAmount !== expectedAmount) {
+      console.warn(`[LockInTalks payment verify] Amount mismatch for registration ${registration.id}.`);
+      return NextResponse.json({ error: "Payment amount does not match this registration." }, { status: 400 });
+    }
+
     const captured = isRazorpayPaymentCaptured(payment);
     const now = new Date().toISOString();
     const { error: updateError } = await supabaseAdmin
@@ -91,7 +99,7 @@ export async function POST(request: NextRequest) {
         payment_id: paymentId,
         razorpay_payment_id: paymentId,
         razorpay_signature: signature,
-        amount_paid: captured ? payment.amount ?? null : null,
+        amount_paid: captured ? paidAmount || null : null,
         payment_currency: payment.currency || "INR",
         paid_at: captured ? now : null,
         seat_confirmed_at: captured ? now : null,
@@ -112,7 +120,7 @@ export async function POST(request: NextRequest) {
         provider: "razorpay",
         provider_order_id: storedOrderId,
         provider_payment_id: paymentId,
-        amount: payment.amount || 0,
+        amount: paidAmount || expectedAmount,
         currency: payment.currency || "INR",
         status: payment.status || (captured ? "captured" : "signature_verified"),
         signature_verified: true,

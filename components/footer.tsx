@@ -5,7 +5,7 @@ import { Mail, PlayCircle } from "lucide-react";
 export function Footer() {
   return (
     <footer className="border-t border-white/10 bg-black/30">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[1.3fr_1fr_1fr] lg:px-8">
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[1.3fr_1fr_1fr_1fr] lg:px-8">
         <div>
           <div className="mb-4 flex items-center gap-3">
             <Image src="/lockintalks-logo.png" alt="LockInTalks logo" width={58} height={58} className="rounded-full" />
@@ -39,6 +39,16 @@ export function Footer() {
           </div>
           <p className="mt-5 text-sm text-white/55">lockintalks@gmail.com</p>
           <p className="mt-2 text-sm text-white/55">YouTube: LockInTalks</p>
+        </div>
+        <div>
+          <p className="mb-4 text-sm font-bold uppercase tracking-[0.24em] text-[#d4af37]">Policies</p>
+          <div className="grid gap-3 text-sm text-white/65">
+            <Link href="/terms">Terms</Link>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/refund-policy">Refunds</Link>
+            <Link href="/pricing">Pricing</Link>
+            <Link href="/shipping-policy">No Shipping</Link>
+          </div>
         </div>
       </div>
       <div className="border-t border-white/10 px-4 py-5 text-center text-xs text-white/45">Copyright 2026 LockInTalks. All Rights Reserved.</div>

@@ -126,7 +126,7 @@ export const faqCorpus: FAQAnswer[] = [
     aliases: ["refund policy", "refund", "cancel payment", "money back", "can i cancel", "payment refund"],
     keywords: ["refund", "cancel", "cancellation", "money", "back", "return", "policy"],
     answer:
-      "A public refund policy is not listed yet. For refund or cancellation questions, contact lockintalks@gmail.com with the participant name, account email, and competition details.",
+      "LockInTalks has a Cancellation and Refund Policy page for beta payment review. Refund requests should be sent to lockintalks@gmail.com with the participant name, account email, competition name, and payment details.\n\nRefund eligibility can depend on event timing, payment status, and whether the competition service has already begun.",
     followUps: ["Who should I contact for help?", "How do payments work?"]
   },
   {
@@ -144,7 +144,7 @@ export const faqCorpus: FAQAnswer[] = [
     aliases: ["cash prizes", "do competitions have prizes", "winner prize", "cash awards", "prize money", "cash reward"],
     keywords: ["cash", "prize", "prizes", "award", "awards", "reward", "money", "winner", "top", "performer", "performers"],
     answer:
-      "Every LockInTalks competition includes cash prize opportunities. Exact prize details are shown on the competition page when published by the admin team, so families can review reward information before registering.\n\nLockInTalks should never ask you to trust fake prize numbers. Check the live competition page for the official prize details.",
+      "Every LockInTalks competition includes cash prize opportunities. Exact prize details are shown on the competition page when published by the admin team, so families can review reward information before registering.\n\nFamilies should rely on the live competition page for official prize details, not unverified numbers shared elsewhere.",
     followUps: ["How are winners chosen?", "How do payments work?", "Which competitions are live?"]
   },
   {

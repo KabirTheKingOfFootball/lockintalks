@@ -42,13 +42,24 @@ Copy `.env.example` to `.env.local` and replace secrets before deploying.
    - `RAZORPAY_WEBHOOK_SECRET`
 4. In Razorpay Dashboard, create a payment webhook that points to:
    - `https://YOUR-VERCEL-DOMAIN/api/payments/webhook`
-   - Enable payment events such as `payment.captured` and `payment.failed`.
+   - Enable payment events such as `payment.captured`, `payment.failed`, and refund-related events.
 5. Add the deployed site URL and `/auth/callback` in Supabase Auth URL settings.
 6. Redeploy on Vercel.
 
 `APP_SESSION_SECRET` should be a random server-only string with at least 32 characters. It signs the temporary LockInTalks app session cookie used as the server-side auth source of truth when Supabase browser cookies are unreliable in production.
 
 Razorpay payments use a secure order and verification flow. The browser opens Checkout, but registrations are only treated as seat-confirmed after server-side verification and captured payment confirmation. Webhooks are recorded in `payment_events` and deduplicated using Razorpay's event id.
+
+Razorpay review/support pages:
+
+- `/terms`
+- `/privacy`
+- `/refund-policy`
+- `/pricing`
+- `/shipping-policy`
+- `/contact`
+
+Payment safety rule: do not mark registrations as paid from the browser callback alone. Successful payments must pass server-side Razorpay signature verification and captured payment confirmation. Failed, cancelled, refunded, or unverified payments must not count toward prize pools or automatic Lock-in Points.
 
 ## Monitoring
 
@@ -81,6 +92,8 @@ Before every production deploy, run the safe auth checks:
 
 ```bash
 npm run test:auth
+npm run test:payments
+npm run test:rewards
 ```
 
 For a deployed site:

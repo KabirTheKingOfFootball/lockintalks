@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { isPaymentStatus, paymentStatusLabel } from "@/lib/payment/status";
 
 const styles = {
   draft: "border-white/20 text-white/65 bg-white/10",
@@ -16,6 +17,8 @@ const styles = {
 };
 
 function formatStatus(status: string) {
+  if (isPaymentStatus(status)) return paymentStatusLabel(status);
+
   return status
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
