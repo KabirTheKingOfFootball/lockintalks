@@ -4,6 +4,7 @@ import { createRazorpayClient, getPublicRazorpayKey, paymentCurrency } from "@/l
 import { getServerAuthSession } from "@/lib/auth/server-session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SupabaseConfigError } from "@/lib/supabase/env";
+import { getLaunchCompetitionDefault } from "@/lib/competition-defaults";
 import { isPaymentInProgress, isSeatConfirmed } from "@/lib/payment/status";
 import { calculateLockInPointCheckout, getUserLockInPointsBalance } from "@/lib/rewards/points";
 
@@ -70,7 +71,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "This competition is not currently accepting payments." }, { status: 409 });
     }
 
-    const feeAmount = Number(competition.fee_amount);
+    const launchDefault = getLaunchCompetitionDefault(registration.competition_slug);
+    const parsedFeeAmount = Number(competition.fee_amount);
+    const feeAmount = Number.isFinite(parsedFeeAmount) && parsedFeeAmount > 0 ? parsedFeeAmount : launchDefault?.feeAmount || 0;
     if (!Number.isFinite(feeAmount) || feeAmount <= 0) {
       return NextResponse.json({ error: "This competition does not have a valid payment amount configured." }, { status: 400 });
     }

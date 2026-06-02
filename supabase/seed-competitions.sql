@@ -1,6 +1,6 @@
--- Optional LockInTalks competition seed data
+-- Optional LockInTalks launch competition seed data.
 -- Run this only if you want starter competitions to exist in Supabase.
--- Public pages now read from public.competitions where status = 'live'.
+-- Public pages read from public.competitions where status = 'live'.
 
 insert into public.competitions (
   slug,
@@ -25,109 +25,127 @@ insert into public.competitions (
 )
 values
 (
-  'debate-battles-global',
-  'Debate Battles Global',
-  'Debate Battles',
-  '10-16 years',
-  '2026-06-22',
-  '2:00 PM',
-  'IST',
-  '2026-06-20',
-  60,
-  'INR 499',
-  49900,
-  'Fast-paced argument rounds for sharp thinkers who love strategy, evidence, and stage presence.',
-  'A bracket-style debate tournament designed for young speakers who can think clearly, listen carefully, and respond with confidence under pressure.',
-  'live',
-  array['Two speakers per match', 'Opening statement, rebuttal, and closing round', 'Citations must be age-appropriate', 'Respectful language is required'],
-  array['Orientation: June 20', 'Preliminary rounds: June 22', 'Semi-finals: June 24', 'Final showcase: June 26'],
-  array['Cash awards for top performers', 'Champion certificate', 'Judge feedback report'],
-  array['Confidence', 'Argument Clarity', 'Evidence Use', 'Speech Structure', 'Respectful Rebuttal', 'Time Management'],
-  array['To Be Announced']
-),
-(
-  'storytelling-showcase',
-  'Storytelling Showcase',
-  'Storytelling',
-  '7-13 years',
-  '2026-07-05',
-  '11:00 AM',
-  'IST',
-  '2026-07-02',
-  50,
-  'INR 399',
-  39900,
-  'A creative stage for original stories, expressive delivery, and memorable characters.',
-  'Students perform a polished story with emotion, structure, and voice control while learning how to keep an audience hooked online.',
-  'live',
-  array['Original or adapted stories allowed', '3 to 5 minute performance', 'Props are optional', 'No offensive or unsafe content'],
-  array['Submission check: July 2', 'Live rounds: July 5', 'Awards stream: July 6'],
-  array['Cash awards for top performers', 'Creativity certificate', 'Audience favorite mention'],
-  array['Confidence', 'Clarity', 'Creativity', 'Story Structure', 'Expression', 'Time Management'],
-  array['To Be Announced']
-),
-(
   'story-talks',
   'Story Talks',
   'Storytelling',
-  '7-13 years',
-  '2026-07-12',
-  '5:30 PM',
+  'Ages 5-12',
+  '14 June 2026',
+  '11:00 AM',
   'IST',
-  '2026-07-10',
-  50,
+  '6 June 2026, 10:00 AM IST',
+  777,
   'INR 199',
   19900,
-  'A story-first online speaking event where young students build expression, structure, and confidence.',
-  'Story Talks is a beginner-friendly online storytelling competition for young speakers. The prize pool increases by INR 500 for every 5 successfully paid participants and becomes visible once it reaches INR 1,000 or more.',
-  'draft',
-  array['Participants must use respectful language', 'Stories must stay within the time limit', 'Use a valid guardian email for event updates', 'Judge decisions are final'],
-  array['Registration deadline: July 10', 'Live online round: July 12', 'Results shared after judging is complete'],
-  array['The prize pool increases by INR 500 for every 5 successfully paid participants', 'The live prize pool will be shown once it reaches INR 1,000 or more', 'Prizes may be given as cash or Amazon gift cards', '1st Place: 45% of the total prize pool', '2nd Place: 30% of the total prize pool', '3rd Place: 25% of the total prize pool', 'Only successfully verified payments will be counted toward the prize pool'],
+  'A beginner-friendly storytelling competition where young speakers build expression, structure, and confidence.',
+  'Story Talks is an online storytelling competition where kids bring stories to life with imagination, expression, voice, and confidence. Participants may tell an original story or perform an existing story with proper credit.',
+  'live',
+  array[
+    'Camera must stay on throughout the performance.',
+    'The story must be live and cannot be pre-recorded.',
+    'Each participant must speak for 3 to 5 minutes.',
+    'Stories must be age-appropriate and respectful.',
+    'Participants may use simple props or visuals.',
+    'The judges'' decision will be final.'
+  ],
+  array[
+    'Registration closes on 6 June 2026 at 10:00 AM IST.',
+    'The competition begins on 14 June 2026 at 11:00 AM IST.',
+    'Each participant will speak for 3 to 5 minutes.',
+    'Results will be announced after judging is complete.'
+  ],
+  array[
+    'The prize pool increases by INR 500 for every 5 verified paid participants.',
+    'Prizes may be given as cash or Amazon gift cards.',
+    '1st Place: 45% of the total prize pool + 77 LockIn Points.',
+    '2nd Place: 30% of the total prize pool + 47 LockIn Points.',
+    '3rd Place: 25% of the total prize pool + 27 LockIn Points.',
+    'Participants may receive digital certificates and helpful feedback after the event.',
+    '1 LockIn Point = INR 1 discount on LockInTalks where enabled.'
+  ],
   array['Confidence', 'Clarity', 'Creativity', 'Story Structure', 'Expression', 'Time Management'],
-  array['To Be Announced']
+  array['Arti Sharma']
 ),
 (
-  'motivational-speaking-cup',
-  'Motivational Speaking Cup',
+  'idol-talk',
+  'Idol Talk',
+  'Inspirational Speaking',
+  'Ages 9-16',
+  '14 June 2026',
+  '1:00 PM',
+  'IST',
+  '6 June 2026, 12:00 PM IST',
+  777,
+  'INR 199',
+  19900,
+  'An inspirational speaking event where participants talk about someone who motivates their mindset and growth.',
+  'Idol Talk is an online speaking competition where participants explain how a sportsperson, creator, fictional character, public figure, or real-life role model inspires their discipline, confidence, and goals.',
+  'live',
+  array[
+    'Camera must stay on throughout the performance.',
+    'The speech must be live and cannot be pre-recorded.',
+    'Each participant must speak for 3 to 5 minutes.',
+    'The speech must be respectful and age-appropriate.',
+    'Participants may use simple props or visuals.',
+    'The judges'' decision will be final.'
+  ],
+  array[
+    'Registration closes on 6 June 2026 at 12:00 PM IST.',
+    'The competition begins on 14 June 2026 at 1:00 PM IST.',
+    'Each participant will speak for 3 to 5 minutes.',
+    'Results will be announced after judging is complete.'
+  ],
+  array[
+    'The prize pool increases by INR 500 for every 5 verified paid participants.',
+    'Prizes may be given as cash or Amazon gift cards.',
+    '1st Place: 45% of the total prize pool + 77 LockIn Points.',
+    '2nd Place: 30% of the total prize pool + 47 LockIn Points.',
+    '3rd Place: 25% of the total prize pool + 27 LockIn Points.',
+    'Participants may receive digital certificates and helpful feedback after the event.',
+    '1 LockIn Point = INR 1 discount on LockInTalks where enabled.'
+  ],
+  array['Confidence', 'Clarity', 'Personal Connection', 'Speech Structure', 'Voice Modulation', 'Time Management'],
+  array['Arti Sharma']
+),
+(
+  'power-talk',
+  'Power Talk',
   'Motivational Speaking',
-  '12-18 years',
-  '2026-07-19',
+  'Ages 10-16',
+  '14 June 2026',
   '4:00 PM',
   'IST',
-  '2026-07-16',
-  60,
-  'INR 599',
-  59900,
-  'TED-style short talks for teens ready to inspire action and lead with presence.',
-  'A premium speech challenge focused on purpose, clarity, stage confidence, and a message that can move a global youth audience.',
+  '6 June 2026, 3:00 PM IST',
+  777,
+  'INR 199',
+  19900,
+  'A motivational speaking competition for students who want to share strong ideas with confidence and purpose.',
+  'Power Talk is an online motivational speaking competition where participants speak about dreams, discipline, confidence, pressure, leadership, student life, sports mindset, or never giving up.',
   'live',
-  array['4 to 6 minute speech', 'Original speech required', 'Slides are optional', 'One speaker per entry'],
-  array['Speaker briefing: July 16', 'Qualifiers: July 19', 'Grand stage: July 21'],
-  array['Cash awards for top performers', 'Leadership spotlight', 'Mentor feedback session'],
-  array['Confidence', 'Clarity', 'Message Strength', 'Speech Structure', 'Stage Presence', 'Time Management'],
-  array['To Be Announced']
-),
-(
-  'extempore-arena',
-  'Extempore Arena',
-  'Extempore',
-  '9-17 years',
-  '2026-08-03',
-  '3:00 PM',
-  'IST',
-  '2026-08-01',
-  45,
-  'INR 349',
-  34900,
-  'Think fast, speak clear, and turn surprise topics into winning moments.',
-  'A high-energy online format where students receive surprise prompts and deliver concise, structured speeches after a short preparation window.',
-  'live',
-  array['Topic assigned live', '90 seconds preparation', '2 minute speech', 'No external help during prep'],
-  array['Tech check: August 2', 'Live competition: August 3', 'Results: August 4'],
-  array['Cash awards for top performers', 'Finalist certificate', 'Performance scorecard'],
-  array['Confidence', 'Clarity', 'Quick Thinking', 'Speech Structure', 'Stage Presence', 'Time Management'],
-  array['To Be Announced']
+  array[
+    'Camera must stay on throughout the performance.',
+    'The speech must be live and cannot be pre-recorded.',
+    'Each participant must speak for 3 to 5 minutes.',
+    'The speech must be motivational and age-appropriate.',
+    'Reading fully from a script is discouraged.',
+    'The judges'' decision will be final.'
+  ],
+  array[
+    'Registration closes on 6 June 2026 at 3:00 PM IST.',
+    'The competition begins on 14 June 2026 at 4:00 PM IST.',
+    'Each participant will speak for 3 to 5 minutes.',
+    'Results will be announced after judging is complete.'
+  ],
+  array[
+    'The prize pool increases by INR 500 for every 5 verified paid participants.',
+    'Prizes may be given as cash or Amazon gift cards.',
+    '1st Place: 45% of the total prize pool + 77 LockIn Points.',
+    '2nd Place: 30% of the total prize pool + 47 LockIn Points.',
+    '3rd Place: 25% of the total prize pool + 27 LockIn Points.',
+    'Participants may receive digital certificates and helpful feedback after the event.',
+    '1 LockIn Point = INR 1 discount on LockInTalks where enabled.'
+  ],
+  array['Confidence', 'Motivational Impact', 'Clarity', 'Speech Structure', 'Audience Connection', 'Time Management'],
+  array['Arti Sharma']
 )
 on conflict (slug) do update set
   name = excluded.name,

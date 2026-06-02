@@ -7,14 +7,9 @@ import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AppSessionConfigError } from "@/lib/auth/app-session";
 import { getServerAuthSession } from "@/lib/auth/server-session";
-import { getLiveCompetitionBySlug, getLiveCompetitions } from "@/lib/competitions";
+import { getLiveCompetitionBySlug } from "@/lib/competitions";
 
 export const dynamic = "force-dynamic";
-
-export async function generateStaticParams() {
-  const { competitions } = await getLiveCompetitions();
-  return competitions.map((competition) => ({ slug: competition.slug }));
-}
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;

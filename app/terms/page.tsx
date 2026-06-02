@@ -73,13 +73,8 @@ export default function TermsPage() {
           body: "LockInTalks will try to run events fairly and professionally, but online services can be affected by internet issues, device problems, third-party service outages, payment gateway delays, or other events outside direct control. LockInTalks is not responsible for losses beyond the amount paid for the affected registration, unless required differently by applicable law."
         },
         {
-          title: "Business Details To Be Confirmed",
-          body: [
-            "Legal Entity: [Legal Entity Name To Be Added]",
-            "Registered Address: [Registered Business Address To Be Added]",
-            "Phone: [Phone Number To Be Added If Needed]",
-            "GST: [GST Details To Be Added If Applicable]"
-          ]
+          title: "Business Details and Final Review",
+          body: "Real business, tax, address, and phone details should be added only if required and only after parent/adult confirmation. These terms are a launch-ready draft and should be reviewed by an adult/legal advisor before live payments or wider public launch."
         }
       ]}
     />

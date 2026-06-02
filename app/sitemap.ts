@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
+import { launchSiteUrl } from "@/lib/competition-defaults";
 import { getLiveCompetitions } from "@/lib/competitions";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://lockintalks.com";
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || launchSiteUrl;
   const routes = ["", "/about", "/faq", "/competitions", "/login", "/signup", "/contact", "/dashboard", "/terms", "/privacy", "/refund-policy", "/pricing", "/shipping-policy", "/parent-consent"].map((route) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date()

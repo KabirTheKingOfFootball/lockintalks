@@ -4,6 +4,7 @@ import { MotionShell } from "@/components/motion-shell";
 import { getServerAuthSession } from "@/lib/auth/server-session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SupabaseConfigError } from "@/lib/supabase/env";
+import { getLaunchCompetitionDefault } from "@/lib/competition-defaults";
 import { getMaxUsableLockInPoints, getUserLockInPointsBalance } from "@/lib/rewards/points";
 import { getRazorpayEnvStatus } from "@/lib/razorpay/env";
 
@@ -61,13 +62,15 @@ async function getPaymentSummary(registrationId: string | null) {
       .eq("slug", data.competition_slug)
       .maybeSingle();
 
-    const feeAmount = Number(competition?.fee_amount || 0);
+    const launchDefault = getLaunchCompetitionDefault(data.competition_slug);
+    const parsedFeeAmount = Number(competition?.fee_amount);
+    const feeAmount = Number.isFinite(parsedFeeAmount) && parsedFeeAmount > 0 ? parsedFeeAmount : launchDefault?.feeAmount || 0;
     const availablePoints = await getUserLockInPointsBalance(session.user.id);
 
     return {
       competitionName: data.competition_name,
       competitionDate: competition ? `${competition.event_date} | ${competition.event_time || "TBA"} ${competition.timezone || "IST"}` : "See competition details",
-      entryFee: data.entry_fee,
+      entryFee: data.entry_fee || launchDefault?.feeLabel || formatFeeLabel(feeAmount),
       feeAmount,
       availablePoints,
       maxUsablePoints: getMaxUsableLockInPoints(feeAmount),
@@ -82,4 +85,10 @@ async function getPaymentSummary(registrationId: string | null) {
 
     return null;
   }
+}
+
+function formatFeeLabel(feeAmountPaise: number) {
+  const amount = Math.max(0, Math.floor(Number(feeAmountPaise) || 0));
+  if (!amount) return "Calculated at Checkout";
+  return `INR ${(amount / 100).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 }

@@ -1,6 +1,7 @@
 import { createPublicClient } from "@/lib/supabase/public";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getLaunchCompetitionDefault } from "@/lib/competition-defaults";
 import { calculatePrizePool, type PrizePoolSummary } from "@/lib/rewards/prize-pool";
 
 export type CompetitionStatus = "draft" | "live" | "closed";
@@ -73,6 +74,7 @@ const defaultRules = ["Full rules will be shared by LockInTalks before the event
 const defaultSchedule = ["Schedule details will be shared before the competition begins."];
 const defaultPrizes = ["Every competition includes cash prizes. Exact award details will be shared by LockInTalks before the event."];
 const defaultJudges = ["Judges will be announced by LockInTalks before the event."];
+const badPrizeCopyPattern = /!PEOPLE!|!FUN!|!PRIZES!|!STAKES!|₍|ₑₓ|examples are/i;
 
 export async function getLiveCompetitions(limit?: number) {
   try {
@@ -134,7 +136,16 @@ export async function getLiveCompetitionBySlug(slug: string) {
 export function mapCompetitionRecord(record: CompetitionRecord, paidParticipants = 0): PublicCompetition {
   const dateIso = getDateIso(record.event_date, record.event_time || "");
   const accent = accents[Math.abs(hashString(record.slug)) % accents.length];
-  const maxParticipants = Number(record.max_participants || 50);
+  const launchDefault = getLaunchCompetitionDefault(record.slug);
+  const rawFeeLabel = String(record.fee_label || "").trim();
+  const parsedFeeAmount = Number(record.fee_amount);
+  const rawFeeAmount = Number.isFinite(parsedFeeAmount) ? parsedFeeAmount : 0;
+  const needsLaunchFeeDefault = Boolean(launchDefault && (!rawFeeLabel || rawFeeAmount <= 0));
+  const feeAmount = needsLaunchFeeDefault ? launchDefault?.feeAmount || 0 : rawFeeAmount;
+  const feeLabel = rawFeeLabel || launchDefault?.feeLabel || formatFeeLabel(feeAmount);
+  const parsedMaxParticipants = Number(record.max_participants);
+  const rawMaxParticipants = Number.isFinite(parsedMaxParticipants) ? parsedMaxParticipants : 0;
+  const maxParticipants = needsLaunchFeeDefault && rawMaxParticipants <= 50 ? launchDefault?.maxParticipants || 50 : Number(record.max_participants || launchDefault?.maxParticipants || 50);
   const slotsRemaining = Math.max(0, maxParticipants - paidParticipants);
   const prizePool = calculatePrizePool({
     paidParticipants
@@ -151,8 +162,8 @@ export function mapCompetitionRecord(record: CompetitionRecord, paidParticipants
     time: record.event_time || "TBA",
     timezone: record.timezone || "IST",
     registrationDeadline: record.registration_deadline || null,
-    fee: record.fee_label,
-    feeAmount: record.fee_amount,
+    fee: feeLabel,
+    feeAmount,
     prizePool,
     status: record.status,
     slotsRemaining,
@@ -163,12 +174,59 @@ export function mapCompetitionRecord(record: CompetitionRecord, paidParticipants
     description: record.description,
     accent,
     imageUrl: record.image_url,
-    rules: record.rules?.length ? record.rules : defaultRules,
-    schedule: record.schedule?.length ? record.schedule : defaultSchedule,
-    prizes: record.prizes?.length ? record.prizes : defaultPrizes,
-    judges: record.judges?.length ? record.judges : defaultJudges,
-    criteria: record.criteria?.length ? record.criteria : defaultCriteria
+    rules: cleanTextItems(record.rules?.length ? record.rules : defaultRules),
+    schedule: cleanTextItems(record.schedule?.length ? record.schedule : defaultSchedule),
+    prizes: cleanPrizeItems(record.prizes?.length ? record.prizes : defaultPrizes),
+    judges: cleanJudges(record.judges, launchDefault?.judges),
+    criteria: cleanTextItems(record.criteria?.length ? record.criteria : defaultCriteria)
   };
+}
+
+function formatFeeLabel(feeAmountPaise: number) {
+  const amount = Math.max(0, Math.floor(Number(feeAmountPaise) || 0));
+  if (!amount) return "Fee To Be Announced";
+  return `INR ${(amount / 100).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+}
+
+function cleanTextItems(items: string[]) {
+  return dedupe(items.map((item) => String(item || "").replace(/\s+/g, " ").trim()).filter(Boolean));
+}
+
+function cleanJudges(items: string[] | null | undefined, fallback?: string[]) {
+  const judges = cleanTextItems(items || []).filter((item) => !/^to be announced$/i.test(item));
+  return judges.length ? judges : fallback?.length ? fallback : defaultJudges;
+}
+
+function cleanPrizeItems(items: string[]) {
+  const cleaned = cleanTextItems(items)
+    .filter((item) => !badPrizeCopyPattern.test(item))
+    .map((item) => {
+      if (/prize pool.*INR\s*500.*5.*participants/i.test(item)) {
+        return "The prize pool increases by INR 500 for every 5 verified paid participants.";
+      }
+
+      if (/all participants.*feedback|participation certificate|everyone get/i.test(item)) {
+        return "Participants may receive digital certificates and helpful feedback after the event. Verified paid participation can earn 7 LockIn Points where enabled.";
+      }
+
+      if (/1\s*LockIn\s*Point\s*=\s*1\s*rupee/i.test(item)) {
+        return "1 LockIn Point = INR 1 discount on LockInTalks where enabled.";
+      }
+
+      return item.replace(/\s*\(Eg\.[^)]+\)/gi, "").trim();
+    });
+
+  return cleaned.length ? dedupe(cleaned) : defaultPrizes;
+}
+
+function dedupe(items: string[]) {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = item.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 async function getVerifiedPaidParticipantCounts(slugs: string[]) {

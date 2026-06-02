@@ -7,6 +7,7 @@ Use this before opening payments to real users.
 - Run `npm run test:payments`.
 - Run `npm run test:rewards`.
 - Run `npm run test:auth`.
+- Run `npm run test:launch`.
 - Run `npm run lint`.
 - Run `npm run build`.
 

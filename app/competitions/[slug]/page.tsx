@@ -6,15 +6,10 @@ import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MotionShell } from "@/components/motion-shell";
 import { Countdown } from "@/components/countdown";
-import { getLiveCompetitionBySlug, getLiveCompetitions } from "@/lib/competitions";
+import { getLiveCompetitionBySlug } from "@/lib/competitions";
 import { formatInr, formatPrizePoolBadge } from "@/lib/rewards/prize-pool";
 
 export const dynamic = "force-dynamic";
-
-export async function generateStaticParams() {
-  const { competitions } = await getLiveCompetitions();
-  return competitions.map((competition) => ({ slug: competition.slug }));
-}
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;

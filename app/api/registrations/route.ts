@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { AppSessionConfigError } from "@/lib/auth/app-session";
 import { getServerAuthSession } from "@/lib/auth/server-session";
+import { getLaunchCompetitionDefault } from "@/lib/competition-defaults";
 import { getReadableSupabaseError } from "@/lib/readable-error";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
     const supabaseAdmin = createAdminClient();
     const { data: competition, error: competitionError } = await supabaseAdmin
       .from("competitions")
-      .select("slug,name,fee_label,status")
+      .select("slug,name,fee_label,fee_amount,status")
       .eq("slug", competitionSlug)
       .eq("status", "live")
       .maybeSingle();
@@ -73,6 +74,37 @@ export async function POST(request: NextRequest) {
     if (!competition) {
       return jsonError("This competition is not available for registration right now.", 404);
     }
+
+    const { data: existingRegistration, error: existingError } = await supabaseAdmin
+      .from("registrations")
+      .select("id,payment_status")
+      .eq("user_id", session.user.id)
+      .eq("competition_slug", competition.slug)
+      .not("payment_status", "in", "(failed,cancelled,refunded)")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existingError) {
+      console.warn(`[LockInTalks registration] Duplicate registration check skipped: ${existingError.message}`);
+    }
+
+    if (existingRegistration) {
+      return NextResponse.json(
+        {
+          ok: true,
+          registrationId: existingRegistration.id,
+          alreadyRegistered: true,
+          paymentStatus: existingRegistration.payment_status,
+          redirectTo: existingRegistration.payment_status === "captured" || existingRegistration.payment_status === "paid" ? "/dashboard" : undefined
+        },
+        { status: 200, headers: noStoreHeaders }
+      );
+    }
+
+    const launchDefault = getLaunchCompetitionDefault(competition.slug);
+    const parsedFeeAmount = Number(competition.fee_amount);
+    const feeLabel = String(competition.fee_label || "").trim() || launchDefault?.feeLabel || formatFeeLabel(parsedFeeAmount);
 
     const { data, error: insertError } = await supabaseAdmin
       .from("registrations")
@@ -87,7 +119,7 @@ export async function POST(request: NextRequest) {
         city,
         country,
         city_country: `${city}, ${country}`,
-        entry_fee: competition.fee_label,
+        entry_fee: feeLabel,
         registration_status: "submitted",
         age_proof_status: "not_required_yet",
         payment_required: true,
@@ -116,4 +148,10 @@ export async function POST(request: NextRequest) {
 
 function jsonError(error: string, status: number) {
   return NextResponse.json({ error }, { status, headers: noStoreHeaders });
+}
+
+function formatFeeLabel(feeAmountPaise: number) {
+  const amount = Math.max(0, Math.floor(Number(feeAmountPaise) || 0));
+  if (!amount) return "Calculated at Checkout";
+  return `INR ${(amount / 100).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 }

@@ -10,10 +10,10 @@ const prizePool = loadTsModule("lib/rewards/prize-pool.ts");
 const paymentStatus = loadTsModule("lib/payment/status.ts");
 const pointsSource = readFileSync("lib/rewards/points.ts", "utf8");
 
-expectMatch(pointsSource, /export const participationPoints = 7;/, "Participation earns 7 Lock-in Points.");
-expectMatch(pointsSource, /first:\s*77/, "1st place winner earns 77 Lock-in Points.");
-expectMatch(pointsSource, /second:\s*47/, "2nd place winner earns 47 Lock-in Points.");
-expectMatch(pointsSource, /third:\s*27/, "3rd place winner earns 27 Lock-in Points.");
+expectMatch(pointsSource, /export const participationPoints = 7;/, "Participation earns 7 LockIn Points.");
+expectMatch(pointsSource, /first:\s*77/, "1st place winner earns 77 LockIn Points.");
+expectMatch(pointsSource, /second:\s*47/, "2nd place winner earns 47 LockIn Points.");
+expectMatch(pointsSource, /third:\s*27/, "3rd place winner earns 27 LockIn Points.");
 
 const storyTalksCheckout = checkout.calculateLockInPointCheckout({
   feeAmountPaise: 19900,
@@ -21,7 +21,7 @@ const storyTalksCheckout = checkout.calculateLockInPointCheckout({
   availablePoints: 999
 });
 
-expectEqual(storyTalksCheckout.maxUsablePoints, 99, "INR 199 checkout caps Lock-in Points at 99.");
+expectEqual(storyTalksCheckout.maxUsablePoints, 99, "INR 199 checkout caps LockIn Points at 99.");
 expectEqual(storyTalksCheckout.appliedPoints, 99, "Checkout applies no more than 50% of entry fee.");
 expectEqual(storyTalksCheckout.discountAmountPaise, 9900, "99 points creates INR 99 discount.");
 expectEqual(storyTalksCheckout.payableAmountPaise, 10000, "Final payable amount never goes negative.");
@@ -33,6 +33,12 @@ const limitedBalanceCheckout = checkout.calculateLockInPointCheckout({
 });
 
 expectEqual(limitedBalanceCheckout.appliedPoints, 7, "Checkout cannot apply more points than the user owns.");
+
+expectEqual(prizePool.calculatePrizePool({ paidParticipants: 0 }).amount, 0, "Zero verified paid participants creates no prize pool.");
+expectEqual(prizePool.calculatePrizePool({ paidParticipants: 4 }).amount, 0, "Four verified paid participants creates no prize pool.");
+expectEqual(prizePool.calculatePrizePool({ paidParticipants: 5 }).amount, 500, "Five verified paid participants creates INR 500 prize pool.");
+expectEqual(prizePool.calculatePrizePool({ paidParticipants: 9 }).amount, 500, "Nine verified paid participants still creates INR 500 prize pool.");
+expectEqual(prizePool.calculatePrizePool({ paidParticipants: 10 }).amount, 1000, "Ten verified paid participants creates INR 1,000 prize pool.");
 
 const belowThreshold = prizePool.calculatePrizePool({ paidParticipants: 9, perPaidParticipant: 100, displayThreshold: 1000 });
 expectEqual(belowThreshold.amount, 500, "Prize pool increases by INR 500 for each full block of 5 verified paid participants.");

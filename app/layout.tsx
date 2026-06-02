@@ -4,6 +4,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Inter, Playfair_Display } from "next/font/google";
 import { Footer } from "@/components/footer";
 import { Navbar } from "@/components/navbar";
+import { launchSiteUrl } from "@/lib/competition-defaults";
 import "./globals.css";
 
 const inter = Inter({
@@ -21,7 +22,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://lockintalks.com"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || launchSiteUrl),
   title: {
     default: "LockInTalks | Online Public Speaking Competitions",
     template: "%s | LockInTalks"

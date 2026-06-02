@@ -103,6 +103,7 @@ Before every production deploy, run the safe auth checks:
 npm run test:auth
 npm run test:payments
 npm run test:rewards
+npm run test:launch
 ```
 
 For a deployed site:
@@ -110,6 +111,7 @@ For a deployed site:
 ```bash
 $env:LOCKINTALKS_TEST_BASE_URL="https://lockintalks.vercel.app"
 npm run test:auth
+npm run test:launch
 ```
 
 For a real login smoke test, create a temporary Supabase test user and set these only in your terminal. Do not commit them:

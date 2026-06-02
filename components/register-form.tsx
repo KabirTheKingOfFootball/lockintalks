@@ -11,6 +11,9 @@ import { getReadableError, readJsonResponse } from "@/lib/readable-error";
 type RegistrationResponse = {
   ok?: boolean;
   registrationId?: string;
+  alreadyRegistered?: boolean;
+  paymentStatus?: string;
+  redirectTo?: string;
   error?: string;
   loginTo?: string;
 };
@@ -68,6 +71,12 @@ export function RegisterForm({ competition }: { competition: PublicCompetition }
       if (!response.ok || result.error || !result.registrationId) {
         console.error(`[LockInTalks registration] Save failed: ${result.error || response.statusText}`);
         setError(result.error || "Registration could not be saved. Please try again.");
+        return;
+      }
+
+      if (result.redirectTo) {
+        router.push(result.redirectTo);
+        router.refresh();
         return;
       }
 
