@@ -3,6 +3,7 @@ import { HelpCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { MotionShell } from "@/components/motion-shell";
 import { FAQAssistant } from "@/components/faq-assistant";
+import { getFAQEssayKnowledge } from "@/lib/faq/essay-loader";
 
 export const metadata: Metadata = {
   title: "FAQ",
@@ -20,12 +21,14 @@ const faqs = [
 ];
 
 export default function FAQPage() {
+  const { chunks, wordCount } = getFAQEssayKnowledge();
+
   return (
     <MotionShell className="mx-auto max-w-5xl px-4 py-14 sm:px-6 lg:px-8">
       <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-[#d4af37]">FAQ</p>
       <h1 className="text-4xl font-black sm:text-6xl">Questions Before the Spotlight</h1>
       <div className="mt-10">
-        <FAQAssistant />
+        <FAQAssistant knowledgeChunks={chunks} essayWordCount={wordCount} />
       </div>
       <div className="mt-10 grid gap-4">
         {faqs.map(([question, answer]) => (

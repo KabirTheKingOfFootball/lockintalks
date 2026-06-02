@@ -13,6 +13,12 @@ export type FAQIntent =
   | "dashboard_help"
   | "competition_schedule"
   | "online_format"
+  | "competition_types"
+  | "speech_topics"
+  | "parent_consent"
+  | "lockin_points"
+  | "prize_pool"
+  | "account_login_help"
   | "contact_support"
   | "certificates"
   | "results"
@@ -34,6 +40,13 @@ export type FAQResult = {
   isFallback: boolean;
   confidence: number;
   matchedIntent?: FAQIntent;
+};
+
+export type FAQKnowledgeChunk = {
+  title: string;
+  text: string;
+  keywords: string[];
+  wordCount: number;
 };
 
 export const faqFallback = "I Can't Help With That Yet. Please Contact LockInTalks For More Assistance.";
@@ -184,6 +197,60 @@ export const faqCorpus: FAQAnswer[] = [
     followUps: ["Where is the schedule?", "Can shy students join?", "What details are required?"]
   },
   {
+    intent: "competition_types",
+    title: "Competition Types",
+    aliases: ["competition types", "types of competitions", "what competitions are there", "story talks", "idol talk", "power talk", "debate", "storytelling"],
+    keywords: ["type", "types", "story", "storytelling", "idol", "role", "model", "motivational", "power", "debate", "extempore", "speech", "challenge"],
+    answer:
+      "LockInTalks can host different public speaking formats, including storytelling, motivational speaking, role-model speeches, extempore speaking, debate-style events, and speech challenges.\n\nAlways check the live competition page because each event has its own age group, topic style, rules, time limit, judging criteria, date, and prize details.",
+    followUps: ["Can I speak about a role model?", "How are winners chosen?", "Which competitions are live?"]
+  },
+  {
+    intent: "speech_topics",
+    title: "Speech Topics And Preparation",
+    aliases: ["what can i speak about", "speech topic", "topic ideas", "can i speak about football", "can i talk about my idol", "role model speech", "how should i prepare"],
+    keywords: ["topic", "topics", "speech", "prepare", "preparation", "football", "sports", "idol", "role", "model", "dream", "discipline", "confidence", "story", "motivation"],
+    answer:
+      "Your topic depends on the competition. Some events may allow stories, role models, sports mindset, dreams, discipline, confidence, student life, leadership, or motivational ideas.\n\nA strong speech usually has a clear opening, one main message, simple examples, confident delivery, and a short ending that feels complete. Read the competition detail page before preparing so your topic matches the event rules.",
+    followUps: ["Can beginners join?", "How will I be judged?", "How do online competitions work?"]
+  },
+  {
+    intent: "parent_consent",
+    title: "Parent Or Guardian Support",
+    aliases: ["parent consent", "guardian consent", "do parents need to know", "under 18", "minor participant", "parent permission"],
+    keywords: ["parent", "guardian", "consent", "permission", "minor", "under", "18", "family", "email", "support"],
+    answer:
+      "Participants below 18 should register with parent or guardian awareness and guidance. LockInTalks asks for guardian details so important event, age verification, payment, or support communication can reach the right adult.\n\nParents can contact lockintalks@gmail.com before registration if they want help understanding an event.",
+    followUps: ["Is age proof required?", "What details are required?", "Is LockInTalks safe?"]
+  },
+  {
+    intent: "lockin_points",
+    title: "LockIn Points",
+    aliases: ["lockin points", "points", "how points work", "use points", "points discount", "rewards points"],
+    keywords: ["lockin", "points", "point", "reward", "discount", "redeem", "balance", "dashboard", "winner", "participation"],
+    answer:
+      "LockIn Points are a LockInTalks reward and discount system where enabled. They are not cash, not withdrawable, and not transferable.\n\nPoints may be earned through verified paid participation or admin-confirmed results. Failed, cancelled, refunded, or unverified payments should not create points. When points are usable, they can reduce eligible LockInTalks checkout amounts according to the platform rules.",
+    followUps: ["Do competitions have cash prizes?", "What appears in the dashboard?", "How do payments work?"]
+  },
+  {
+    intent: "prize_pool",
+    title: "Prize Pool",
+    aliases: ["prize pool", "live prize pool", "how prize pool works", "500 every 5", "verified paid participants"],
+    keywords: ["prize", "pool", "live", "500", "5", "participants", "verified", "paid", "cash", "amazon", "gift", "cards"],
+    answer:
+      "Where prize pool logic is enabled, the prize pool should count only verified successful paid registrations. Failed, cancelled, refunded, pending, or unverified payments should not increase the prize pool.\n\nFor the current launch format, public copy may explain that the prize pool increases by INR 500 for every 5 verified paid participants. Final prize details should always be checked on the live competition page.",
+    followUps: ["Do competitions have cash prizes?", "How are winners chosen?", "How do payments work?"]
+  },
+  {
+    intent: "account_login_help",
+    title: "Login, Signup, And Account Help",
+    aliases: ["login help", "signup help", "cannot login", "cannot sign up", "account problem", "forgot password", "email confirmation"],
+    keywords: ["login", "signup", "sign", "account", "email", "confirmation", "dashboard", "password", "stuck", "register", "session"],
+    answer:
+      "If you cannot log in or sign up, first make sure you are using the correct email and a stable internet connection. If email confirmation is enabled, check your inbox and spam folder for the confirmation email.\n\nIf the issue continues, contact lockintalks@gmail.com with your account email and a short explanation. Do not send passwords or private payment details in normal chat messages.",
+    followUps: ["How do I register?", "What appears in the dashboard?", "Who should I contact for help?"]
+  },
+  {
     intent: "contact_support",
     title: "Contact Support",
     aliases: ["contact", "support", "help", "email lockintalks", "who do i contact", "contact us", "customer care"],
@@ -264,7 +331,10 @@ const synonymGroups = [
   ["time", "date", "schedule", "deadline", "timezone", "ist", "countdown"],
   ["shy", "nervous", "beginner", "beginners", "scared", "practice", "confidence"],
   ["certificate", "certificates", "recognition", "participation"],
-  ["support", "contact", "help", "email", "mail", "issue", "problem"]
+  ["support", "contact", "help", "email", "mail", "issue", "problem"],
+  ["topic", "topics", "speech", "idea", "ideas", "prepare", "preparation"],
+  ["lockin", "points", "reward", "rewards", "discount", "redeem"],
+  ["pool", "prizepool", "participants", "verified", "paid"]
 ];
 
 const unrelatedTerms = [
@@ -273,7 +343,6 @@ const unrelatedTerms = [
   "song lyrics",
   "game cheat",
   "hack",
-  "password",
   "crypto",
   "stock",
   "fortnite skin",
@@ -281,7 +350,9 @@ const unrelatedTerms = [
   "homework answer"
 ];
 
-export function findFAQAnswer(question: string): FAQResult {
+const internalSafetyTerms = ["api key", "service role", "cookie value", "token", "secret key", "real password", "database password", "debug endpoint"];
+
+export function findFAQAnswer(question: string, knowledgeChunks: FAQKnowledgeChunk[] = []): FAQResult {
   const normalized = normalizeFAQText(question);
   if (!normalized) {
     return {
@@ -294,7 +365,7 @@ export function findFAQAnswer(question: string): FAQResult {
     };
   }
 
-  if (unrelatedTerms.some((term) => normalized.includes(term))) {
+  if (unrelatedTerms.some((term) => normalized.includes(term)) || internalSafetyTerms.some((term) => normalized.includes(term))) {
     return fallbackResult();
   }
 
@@ -303,6 +374,7 @@ export function findFAQAnswer(question: string): FAQResult {
 
   const questionTokens = expandTokens(tokenize(normalized));
   let best = { score: 0, item: faqCorpus[0] };
+  const essayMatch = findEssayMatch(questionTokens, normalized, knowledgeChunks);
 
   for (const item of faqCorpus) {
     const normalizedTitle = normalizeFAQText(item.title);
@@ -331,14 +403,57 @@ export function findFAQAnswer(question: string): FAQResult {
   }
 
   if (best.score < 4) {
+    if (essayMatch && essayMatch.score >= 5) return essayToResult(essayMatch.chunk, essayMatch.score);
     return fallbackResult();
   }
 
-  return answerToResult(best.item, best.score);
+  const structuredResult = answerToResult(best.item, best.score);
+  if (essayMatch && essayMatch.score >= 7 && best.score < 18) {
+    return {
+      ...structuredResult,
+      answer: `${structuredResult.answer}\n\nExtra context from the LockInTalks knowledge essay: ${trimEssayText(essayMatch.chunk.text)}`,
+      confidence: structuredResult.confidence + Math.min(essayMatch.score, 12)
+    };
+  }
+
+  return structuredResult;
 }
 
 export function normalizeFAQText(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+export function buildFAQKnowledgeChunks(essay: string): FAQKnowledgeChunk[] {
+  const sections = essay
+    .split(/\n(?=##\s+)/)
+    .map((section) => section.trim())
+    .filter(Boolean);
+
+  const chunks: FAQKnowledgeChunk[] = [];
+
+  for (const section of sections) {
+    const lines = section.split("\n").map((line) => line.trim()).filter(Boolean);
+    const title = lines[0]?.replace(/^#+\s*/, "").trim() || "LockInTalks Knowledge";
+    const body = lines
+      .slice(1)
+      .filter((line) => !line.startsWith("|"))
+      .filter((line) => !line.startsWith("```"))
+      .join("\n\n");
+    const paragraphs = body.split(/\n{2,}/).map((paragraph) => paragraph.trim()).filter(Boolean);
+
+    for (let index = 0; index < paragraphs.length; index += 2) {
+      const text = [paragraphs[index], paragraphs[index + 1]].filter(Boolean).join("\n\n");
+      if (!isPublicFAQChunk(text)) continue;
+      chunks.push({
+        title,
+        text,
+        keywords: extractChunkKeywords(`${title} ${text}`),
+        wordCount: countWords(text)
+      });
+    }
+  }
+
+  return chunks.filter((chunk) => chunk.wordCount >= 35).slice(0, 90);
 }
 
 function tokenize(value: string) {
@@ -395,12 +510,59 @@ function findShortcutAnswer(normalized: string) {
   if (hasAny(["refund", "cancel", "money back"])) return faqCorpus.find((item) => item.intent === "refunds");
   if (hasAny(["age proof", "proof of age", "birth certificate", "age verification"])) return faqCorpus.find((item) => item.intent === "age_rules");
   if (hasAny(["payment pending", "payment failed", "upi", "razorpay", "transaction"])) return faqCorpus.find((item) => item.intent === "payment_help");
+  if (hasAny(["prize pool", "live prize pool", "500 every 5", "verified paid participants"])) return faqCorpus.find((item) => item.intent === "prize_pool");
   if (hasAny(["cash prize", "cash prizes", "prize money", "cash award"])) return faqCorpus.find((item) => item.intent === "cash_prizes");
+  if (hasAny(["lockin points", "points discount", "reward points"])) return faqCorpus.find((item) => item.intent === "lockin_points");
+  if (hasAny(["speech topic", "topic ideas", "football speech", "role model", "my idol"])) return faqCorpus.find((item) => item.intent === "speech_topics");
+  if (hasAny(["parent consent", "guardian consent", "under 18", "parent permission"])) return faqCorpus.find((item) => item.intent === "parent_consent");
+  if (hasAny(["login help", "signup help", "cannot login", "forgot password", "email confirmation"])) return faqCorpus.find((item) => item.intent === "account_login_help");
+  if (hasAny(["story talks", "idol talk", "power talk", "competition types", "types of competitions"])) return faqCorpus.find((item) => item.intent === "competition_types");
   if (hasAny(["contact", "support", "help email", "email lockintalks"])) return faqCorpus.find((item) => item.intent === "contact_support");
   if (hasAny(["is it safe", "is this safe", "is this legit", "parent trust", "scam"])) return faqCorpus.find((item) => item.intent === "safety_and_trust");
   if (hasAny(["online competition", "how online", "do i travel", "from home"])) return faqCorpus.find((item) => item.intent === "online_format");
 
   return undefined;
+}
+
+function findEssayMatch(questionTokens: Set<string>, normalizedQuestion: string, knowledgeChunks: FAQKnowledgeChunk[]) {
+  let best: { score: number; chunk: FAQKnowledgeChunk } | null = null;
+
+  for (const chunk of knowledgeChunks) {
+    const title = normalizeFAQText(chunk.title);
+    const text = normalizeFAQText(chunk.text);
+    let score = 0;
+
+    questionTokens.forEach((token) => {
+      if (chunk.keywords.includes(token)) score += 3;
+      if (title.includes(token)) score += 2;
+      if (text.includes(token)) score += 1;
+    });
+
+    if (normalizedQuestion.length > 12 && text.includes(normalizedQuestion)) score += 12;
+    if (sharesAnyEssayPhrase(normalizedQuestion, text)) score += 4;
+
+    if (!best || score > best.score) best = { score, chunk };
+  }
+
+  return best;
+}
+
+function sharesAnyEssayPhrase(question: string, text: string) {
+  const tokens = tokenize(question);
+  for (let index = 0; index < tokens.length - 1; index += 1) {
+    if (text.includes(`${tokens[index]} ${tokens[index + 1]}`)) return true;
+  }
+  return false;
+}
+
+function essayToResult(chunk: FAQKnowledgeChunk, confidence: number): FAQResult {
+  return {
+    answer: trimEssayText(chunk.text),
+    title: `From The LockInTalks Knowledge Essay: ${chunk.title}`,
+    followUps: ["How do I register?", "Is LockInTalks safe?", "Who should I contact for help?"],
+    isFallback: false,
+    confidence
+  };
 }
 
 function answerToResult(item: FAQAnswer, confidence: number): FAQResult {
@@ -412,6 +574,54 @@ function answerToResult(item: FAQAnswer, confidence: number): FAQResult {
     confidence,
     matchedIntent: item.intent
   };
+}
+
+function isPublicFAQChunk(text: string) {
+  const normalized = normalizeFAQText(text);
+  const blocked = [
+    "api auth",
+    "api debug",
+    "app session",
+    "cookie",
+    "commit",
+    "debug endpoint",
+    "environment variable",
+    "git ",
+    "middleware",
+    "password",
+    "service role",
+    "sql",
+    "supabase schema",
+    "token",
+    "vercel deployment",
+    "what not to touch"
+  ];
+
+  if (blocked.some((term) => normalized.includes(term.trim()))) return false;
+  return /lockintalks|competition|student|parent|guardian|speaking|registration|dashboard|payment|prize|certificate|confidence|judge|online|age/.test(normalized);
+}
+
+function extractChunkKeywords(text: string) {
+  const counts = new Map<string, number>();
+  for (const token of tokenize(text)) {
+    if (token.length < 3) continue;
+    counts.set(token, (counts.get(token) || 0) + 1);
+  }
+
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 28)
+    .map(([token]) => token);
+}
+
+function trimEssayText(text: string) {
+  const cleaned = text.replace(/\s+/g, " ").trim();
+  if (cleaned.length <= 720) return cleaned;
+  return `${cleaned.slice(0, 700).trim()}...`;
+}
+
+function countWords(text: string) {
+  return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
 function fallbackResult(): FAQResult {

@@ -15,6 +15,8 @@ const baseUrl = process.env.LOCKINTALKS_TEST_BASE_URL?.replace(/\/$/, "");
 
 const prizePool = require(path.resolve("lib/rewards/prize-pool.ts"));
 const paymentStatus = require(path.resolve("lib/payment/status.ts"));
+const faqKnowledge = require(path.resolve("lib/faq/knowledge.ts"));
+const faqEssay = require(path.resolve("lib/faq/essay-loader.ts"));
 const pointsSource = readFileSync("lib/rewards/points.ts", "utf8");
 
 expectMatch(pointsSource, /export const participationPoints = 7;/, "Participation reward is 7 LockIn Points.");
@@ -41,6 +43,25 @@ expectEqual(paymentStatus.isSeatConfirmed("paid"), true, "Paid payments confirm 
 expectEqual(paymentStatus.isSeatConfirmed("failed"), false, "Failed payments do not confirm seats.");
 expectEqual(paymentStatus.isSeatConfirmed("cancelled"), false, "Cancelled payments do not confirm seats.");
 expectEqual(paymentStatus.isSeatConfirmed("refunded"), false, "Refunded payments do not confirm seats.");
+
+const essayKnowledge = faqEssay.getFAQEssayKnowledge();
+expectAtLeast(essayKnowledge.wordCount, 7000, "FAQ essay knowledge base is at least 7,000 words.");
+expectAtLeast(essayKnowledge.chunks.length, 20, "FAQ essay produces enough safe searchable context sections.");
+
+for (const question of [
+  "My child is 7. Can they join?",
+  "Can I speak about football or my role model?",
+  "How does the prize pool increase every five paid participants?",
+  "What are LockIn Points?",
+  "What details do I need for registration?",
+  "What happens if payment is pending?",
+  "Is LockInTalks safe for parents?"
+]) {
+  const result = faqKnowledge.findFAQAnswer(question, essayKnowledge.chunks);
+  if (result.isFallback) {
+    failures.push(`FAQ assistant fell back for useful question: ${question}`);
+  }
+}
 
 scanSourceForBadLaunchCopy();
 
@@ -168,6 +189,12 @@ function expectMatch(source, pattern, label) {
 function expectType(actual, expectedType, label) {
   if (typeof actual !== expectedType) {
     failures.push(`${label} Expected ${expectedType}, received ${typeof actual}.`);
+  }
+}
+
+function expectAtLeast(actual, expectedMinimum, label) {
+  if (actual < expectedMinimum) {
+    failures.push(`${label} Expected at least ${expectedMinimum}, received ${actual}.`);
   }
 }
 

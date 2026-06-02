@@ -6,7 +6,7 @@ import { Bot, Send, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { faqCorpus, findFAQAnswer, normalizeFAQText } from "@/lib/faq/knowledge";
+import { faqCorpus, findFAQAnswer, normalizeFAQText, type FAQKnowledgeChunk } from "@/lib/faq/knowledge";
 
 const suggestions = [
   "My child is 7. Can they join?",
@@ -14,6 +14,9 @@ const suggestions = [
   "How do online competitions work?",
   "How are winners chosen?",
   "Do competitions have cash prizes?",
+  "How does the prize pool work?",
+  "What are LockIn Points?",
+  "Can I speak about football?",
   "Is age proof required?",
   "What if payment is pending?",
   "What details are required?",
@@ -21,7 +24,7 @@ const suggestions = [
   "Who should I contact for help?"
 ];
 
-export function FAQAssistant() {
+export function FAQAssistant({ knowledgeChunks = [], essayWordCount = 0 }: { knowledgeChunks?: FAQKnowledgeChunk[]; essayWordCount?: number }) {
   const [question, setQuestion] = useState("");
   const [reply, setReply] = useState(() => ({
     title: "Ask Before You Register",
@@ -32,7 +35,7 @@ export function FAQAssistant() {
   const normalizedQuestion = useMemo(() => normalizeFAQText(question), [question]);
 
   function answerQuestion(value: string) {
-    const result = findFAQAnswer(value);
+    const result = findFAQAnswer(value, knowledgeChunks);
     setReply(result);
     safeTrack("faq_question_submitted", { fallback: result.isFallback, title: result.title });
     safeTrack(result.isFallback ? "faq_fallback_served" : "faq_answer_served", { title: result.title });
@@ -101,7 +104,7 @@ export function FAQAssistant() {
             ))}
           </div>
           <p className="mt-4 text-xs leading-5 text-white/45">
-            Knowledge base: {faqCorpus.length} reviewed LockInTalks topics. No paid AI API is used for this assistant.
+            Knowledge base: {faqCorpus.length} reviewed topics plus {essayWordCount.toLocaleString("en-IN")}-word essay context across {knowledgeChunks.length} safe sections. No paid AI API is used for this assistant.
           </p>
         </div>
       </div>
