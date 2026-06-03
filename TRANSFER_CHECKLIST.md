@@ -8,8 +8,8 @@ This checklist is for moving the LockInTalks project from the old laptop to a ne
 
 - Main project: `LockInTalks`
 - Current folder on old laptop: `C:\Users\shara\Documents\Codex\2026-05-12\files-mentioned-by-the-user-chatgpt`
-- Recommended folder on USB: `F:\LockInTalks-Transfer\lockintalks`
-- Recommended folder on new laptop: `C:\Users\YOUR_NEW_USER\Documents\Projects\lockintalks`
+- Recommended folder on USB: `F:\LockInTalks-Transfer\LockInTalks`
+- Recommended folder on new laptop: `C:\Users\YOUR_NEW_USER\Documents\Projects\LockInTalks`
 - GitHub remote: `https://github.com/KabirTheKingOfFootball/lockintalks`
 - Current branch: `main`
 - Commit at scan time before this checklist was created: `b6aca0a813eb8b942106f24b210154473a3a81dc`
@@ -34,19 +34,19 @@ C:\Users\shara\Documents\Codex\2026-05-12\files-mentioned-by-the-user-chatgpt
 USB transfer folder:
 
 ```text
-F:\LockInTalks-Transfer\lockintalks
+F:\LockInTalks-Transfer\LockInTalks
 ```
 
 Recommended new laptop folder:
 
 ```text
-C:\Users\YOUR_NEW_USER\Documents\Projects\lockintalks
+C:\Users\YOUR_NEW_USER\Documents\Projects\LockInTalks
 ```
 
 You can also put it anywhere simple, such as:
 
 ```text
-C:\Users\YOUR_NEW_USER\Desktop\Projects\lockintalks
+C:\Users\YOUR_NEW_USER\Desktop\Projects\LockInTalks
 ```
 
 ### 3. Important Files And Folders To Copy
@@ -295,7 +295,7 @@ Then copy any local-only files if needed. At scan time, there were no local-only
 Open PowerShell on the new laptop:
 
 ```powershell
-cd "C:\Users\YOUR_NEW_USER\Documents\Projects\lockintalks"
+cd "C:\Users\YOUR_NEW_USER\Documents\Projects\LockInTalks"
 npm install
 npm run dev
 ```
@@ -408,7 +408,7 @@ The USB should look like this:
 F:\
   LockInTalks-Transfer\
     TRANSFER_CHECKLIST.md
-    lockintalks\
+    LockInTalks\
       .git\
       app\
       components\
@@ -438,19 +438,19 @@ Do not worry if `node_modules\` and `.next\` are missing from the USB. That is c
 4. Copy this folder from USB:
 
 ```text
-F:\LockInTalks-Transfer\lockintalks
+F:\LockInTalks-Transfer\LockInTalks
 ```
 
 to:
 
 ```text
-C:\Users\YOUR_NEW_USER\Documents\Projects\lockintalks
+C:\Users\YOUR_NEW_USER\Documents\Projects\LockInTalks
 ```
 
 5. Open PowerShell:
 
 ```powershell
-cd "C:\Users\YOUR_NEW_USER\Documents\Projects\lockintalks"
+cd "C:\Users\YOUR_NEW_USER\Documents\Projects\LockInTalks"
 npm install
 ```
 
