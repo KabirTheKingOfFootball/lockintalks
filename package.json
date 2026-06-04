@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "test": "npm run test:payments && npm run test:rewards && npm run test:launch",
     "test:auth": "node scripts/auth-smoke.mjs",
     "test:rewards": "node scripts/rewards-smoke.mjs",
     "test:payments": "node scripts/payments-smoke.mjs",

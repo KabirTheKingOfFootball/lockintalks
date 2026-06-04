@@ -48,6 +48,22 @@ expectEqual(envStatus.checkoutReady, true, "Razorpay checkout env status detects
 expectEqual(envStatus.webhookReady, true, "Razorpay webhook env status detects configured webhook secret.");
 expectEqual(envStatus.keyMode, "test", "Razorpay smoke key mode is test.");
 
+const registrationRouteSource = readFileSync("app/api/registrations/route.ts", "utf8");
+const paymentPageSource = readFileSync("app/payment/page.tsx", "utf8");
+const createOrderSource = readFileSync("app/api/payments/create-order/route.ts", "utf8");
+const paymentFormSource = readFileSync("components/payment-form.tsx", "utf8");
+const dashboardSource = readFileSync("components/dashboard-client.tsx", "utf8");
+
+expectMatch(registrationRouteSource, /payment_amount:\s*feeAmount/, "Registration creation stores the server-side fee amount.");
+expectMatch(registrationRouteSource, /amount_due:\s*feeAmount/, "Registration creation stores amount_due before payment.");
+expectMatch(paymentPageSource, /competition\?:\s*string/, "Payment page accepts competition slug query params.");
+expectMatch(paymentPageSource, /findPaymentRegistration/, "Payment page reuses pending registrations by id or competition slug.");
+expectMatch(createOrderSource, /competitionSlug\?:\s*string/, "Create-order accepts a competition slug fallback.");
+expectMatch(createOrderSource, /findPaymentRegistration/, "Create-order resolves registration server-side before Razorpay order creation.");
+expectMatch(paymentFormSource, /competitionSlug:\s*summary\.competitionSlug/, "Checkout sends the competition slug alongside the registration id.");
+expectMatch(paymentFormSource, /We could not find your registration for this account/, "Missing registration UI is friendly.");
+expectMatch(dashboardSource, /Continue Payment/, "Dashboard exposes a continue-payment path for unpaid registrations.");
+
 if (failures.length > 0) {
   console.error("\n[payments-smoke] Failed checks:");
   failures.forEach((failure) => console.error(`- ${failure}`));
@@ -63,6 +79,12 @@ function sign(secret, value) {
 function expectEqual(actual, expected, label) {
   if (actual !== expected) {
     failures.push(`${label} Expected ${expected}, received ${actual}.`);
+  }
+}
+
+function expectMatch(source, pattern, label) {
+  if (!pattern.test(source)) {
+    failures.push(label);
   }
 }
 

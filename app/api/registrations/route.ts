@@ -104,7 +104,8 @@ export async function POST(request: NextRequest) {
 
     const launchDefault = getLaunchCompetitionDefault(competition.slug);
     const parsedFeeAmount = Number(competition.fee_amount);
-    const feeLabel = String(competition.fee_label || "").trim() || launchDefault?.feeLabel || formatFeeLabel(parsedFeeAmount);
+    const feeAmount = Number.isFinite(parsedFeeAmount) && parsedFeeAmount > 0 ? parsedFeeAmount : launchDefault?.feeAmount || 0;
+    const feeLabel = String(competition.fee_label || "").trim() || launchDefault?.feeLabel || formatFeeLabel(feeAmount);
 
     const { data, error: insertError } = await supabaseAdmin
       .from("registrations")
@@ -124,7 +125,10 @@ export async function POST(request: NextRequest) {
         age_proof_status: "not_required_yet",
         payment_required: true,
         payment_provider: "razorpay",
-        payment_status: "pending"
+        payment_status: "pending",
+        payment_amount: feeAmount,
+        amount_due: feeAmount,
+        payment_currency: "INR"
       })
       .select("id")
       .single();

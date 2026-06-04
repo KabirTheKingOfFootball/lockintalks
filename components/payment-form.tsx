@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { track } from "@vercel/analytics";
 import { CheckCircle2, CreditCard, Landmark, Smartphone, WalletCards, type LucideIcon } from "lucide-react";
@@ -11,6 +12,10 @@ import { getReadableError, readJsonResponse } from "@/lib/readable-error";
 type PaymentStep = "idle" | "creating" | "checkout" | "verifying" | "pending" | "success" | "failed";
 
 type PaymentSummary = {
+  registrationId: string;
+  competitionSlug: string;
+  paymentStatus: string;
+  alreadyPaid: boolean;
   competitionName: string;
   competitionDate: string;
   entryFee: string;
@@ -100,7 +105,17 @@ const paymentMethods: Array<{ icon: LucideIcon; label: string }> = [
   { icon: WalletCards, label: "Wallets" }
 ];
 
-export function PaymentForm({ registrationId, summary, paymentConfig }: { registrationId: string | null; summary: PaymentSummary | null; paymentConfig: PaymentConfig }) {
+export function PaymentForm({
+  competitionSlug,
+  registrationId,
+  summary,
+  paymentConfig
+}: {
+  competitionSlug: string | null;
+  registrationId: string | null;
+  summary: PaymentSummary | null;
+  paymentConfig: PaymentConfig;
+}) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -112,6 +127,9 @@ export function PaymentForm({ registrationId, summary, paymentConfig }: { regist
   const discountPreview = appliedPointsPreview * 100;
   const finalAmountPreview = Math.max(0, Number(summary?.feeAmount || 0) - discountPreview);
   const paymentUnavailable = !paymentConfig.checkoutReady;
+  const activeRegistrationId = summary?.registrationId || registrationId;
+  const alreadyPaid = Boolean(summary?.alreadyPaid);
+  const registerAgainHref = competitionSlug ? `/register/${encodeURIComponent(competitionSlug)}` : "/competitions";
 
   async function startPayment() {
     setError("");
@@ -122,8 +140,13 @@ export function PaymentForm({ registrationId, summary, paymentConfig }: { regist
       return;
     }
 
-    if (!registrationId) {
-      setError("Missing registration id. Please register for a competition before paying.");
+    if (!summary || !activeRegistrationId) {
+      setError("We could not find your registration for this account. Please register again for this competition.");
+      return;
+    }
+
+    if (alreadyPaid) {
+      setMessage("This registration is already paid and confirmed. You do not need to pay again.");
       return;
     }
 
@@ -141,7 +164,7 @@ export function PaymentForm({ registrationId, summary, paymentConfig }: { regist
         cache: "no-store",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ registrationId, lockInPointsToApply: appliedPointsPreview })
+        body: JSON.stringify({ competitionSlug: summary.competitionSlug, registrationId: activeRegistrationId, lockInPointsToApply: appliedPointsPreview })
       });
       const order = await readJsonResponse<CreateOrderResponse>(orderResponse);
 
@@ -167,7 +190,7 @@ export function PaymentForm({ registrationId, summary, paymentConfig }: { regist
             setStep("failed");
             setError("Payment was not completed. No registration seat has been confirmed yet. You can try again safely.");
             track("payment_failed", { provider: "razorpay", reason: "cancelled" });
-            await markPaymentFailed(registrationId, "cancelled");
+            await markPaymentFailed(activeRegistrationId, "cancelled");
           }
         },
         handler: async (response) => {
@@ -180,7 +203,7 @@ export function PaymentForm({ registrationId, summary, paymentConfig }: { regist
         setStep("failed");
         setError(response.error?.description || "Payment was not completed. No registration seat has been confirmed yet. You can try again safely.");
         track("payment_failed", { provider: "razorpay", reason: response.error?.reason || "checkout_failed" });
-        await markPaymentFailed(registrationId, "failed");
+        await markPaymentFailed(activeRegistrationId, "failed");
       });
 
       track("payment_checkout_opened", { provider: "razorpay" });
@@ -235,6 +258,7 @@ export function PaymentForm({ registrationId, summary, paymentConfig }: { regist
   }
 
   const isBusy = step === "creating" || step === "checkout" || step === "verifying";
+  const cannotStartPayment = isBusy || paymentUnavailable || !summary || alreadyPaid;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_0.55fr]">
@@ -255,6 +279,20 @@ export function PaymentForm({ registrationId, summary, paymentConfig }: { regist
         {paymentConfig.checkoutReady && !paymentConfig.webhookReady && (
           <p className="mt-5 rounded-[8px] border border-[#d4af37]/30 bg-[#d4af37]/10 p-3 text-sm leading-6 text-[#f7dc83]">
             Payments can open, but final confirmation may take longer while webhook setup is being completed.
+          </p>
+        )}
+        {!summary && (
+          <div className="mt-5 rounded-[8px] border border-red-400/30 bg-red-500/10 p-4 text-sm leading-6 text-red-100">
+            <p className="font-bold">We could not find your registration for this account.</p>
+            <p className="mt-1">Please register again for this competition. If you already registered using another account, log in with that account or contact lockintalks@gmail.com.</p>
+            <Link href={registerAgainHref} className="mt-3 inline-flex font-black text-white underline underline-offset-4">
+              Back to registration
+            </Link>
+          </div>
+        )}
+        {alreadyPaid && (
+          <p className="mt-5 rounded-[8px] border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm leading-6 text-emerald-100">
+            This registration is already paid and confirmed. You do not need to start another payment.
           </p>
         )}
         <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -305,7 +343,7 @@ export function PaymentForm({ registrationId, summary, paymentConfig }: { regist
         )}
         {message && <p className="mt-4 rounded-[8px] border border-[#d4af37]/30 bg-[#d4af37]/10 p-3 text-sm text-[#f7dc83]">{message}</p>}
         {error && <p className="mt-4 rounded-[8px] border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
-        <Button type="button" onClick={startPayment} className="mt-6 w-full" disabled={isBusy || paymentUnavailable}>
+        <Button type="button" onClick={startPayment} className="mt-6 w-full" disabled={cannotStartPayment}>
           {isBusy ? "Processing..." : `Pay ${summary ? formatPaise(finalAmountPreview) : "now"}`}
         </Button>
       </div>

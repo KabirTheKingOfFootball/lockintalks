@@ -80,7 +80,18 @@ export function DashboardClient({
                   )}
                   <p className="mt-1 text-xs font-bold uppercase tracking-[0.16em] text-[#d4af37]">Competing for cash prizes and recognition</p>
                 </div>
-                <StatusBadge status={registration.payment_status} />
+                <div className="flex flex-col gap-2 sm:items-end">
+                  <StatusBadge status={registration.payment_status} />
+                  {!isSeatConfirmed(registration.payment_status) && (
+                    <ButtonLink
+                      href={`/payment?competition=${encodeURIComponent(registration.competition_slug)}&registration=${encodeURIComponent(registration.id)}`}
+                      variant="glass"
+                      className="text-xs"
+                    >
+                      Continue Payment
+                    </ButtonLink>
+                  )}
+                </div>
               </div>
             ))}
           </div>

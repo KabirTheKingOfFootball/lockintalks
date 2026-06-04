@@ -7,6 +7,7 @@ import { SupabaseConfigError } from "@/lib/supabase/env";
 import { getLaunchCompetitionDefault } from "@/lib/competition-defaults";
 import { getMaxUsableLockInPoints, getUserLockInPointsBalance } from "@/lib/rewards/points";
 import { getRazorpayEnvStatus } from "@/lib/razorpay/env";
+import { isSeatConfirmed } from "@/lib/payment/status";
 
 export const metadata: Metadata = {
   title: "Payment",
@@ -15,15 +16,16 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function PaymentPage({ searchParams }: { searchParams: Promise<{ registration?: string }> }) {
-  const { registration: registrationId = null } = await searchParams;
-  const summary = await getPaymentSummary(registrationId);
+export default async function PaymentPage({ searchParams }: { searchParams: Promise<{ competition?: string; registration?: string }> }) {
+  const { competition: competitionSlug = null, registration: registrationId = null } = await searchParams;
+  const summary = await getPaymentSummary({ competitionSlug, registrationId });
   const razorpayStatus = getRazorpayEnvStatus();
 
   return (
     <MotionShell className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
       <PaymentForm
-        registrationId={registrationId}
+        competitionSlug={summary?.competitionSlug || competitionSlug}
+        registrationId={summary?.registrationId || registrationId}
         summary={summary}
         paymentConfig={{
           checkoutReady: razorpayStatus.checkoutReady,
@@ -35,46 +37,63 @@ export default async function PaymentPage({ searchParams }: { searchParams: Prom
   );
 }
 
-async function getPaymentSummary(registrationId: string | null) {
-  if (!registrationId) return null;
+type PaymentRegistration = {
+  id: string;
+  competition_slug: string;
+  competition_name: string;
+  entry_fee: string | null;
+  payment_status: string | null;
+  points_redeemed: number | null;
+};
 
+async function getPaymentSummary({
+  competitionSlug,
+  registrationId
+}: {
+  competitionSlug: string | null;
+  registrationId: string | null;
+}) {
   try {
     const session = await getServerAuthSession();
 
     if (!session.authenticated) return null;
 
     const supabaseAdmin = createAdminClient();
-    const { data, error } = await supabaseAdmin
-      .from("registrations")
-      .select("competition_slug, competition_name, entry_fee, points_redeemed")
-      .eq("id", registrationId)
-      .eq("user_id", session.user.id)
-      .maybeSingle();
+    const registration = await findPaymentRegistration({
+      competitionSlug,
+      registrationId,
+      supabaseAdmin,
+      userId: session.user.id
+    });
 
-    if (error || !data) {
-      if (error) console.error(`[LockInTalks payment] Could not load payment summary: ${error.message}`);
+    if (!registration) {
+      console.warn(`[LockInTalks payment] No registration found for payment lookup. registration=${registrationId || "none"} competition=${competitionSlug || "none"}`);
       return null;
     }
 
     const { data: competition } = await supabaseAdmin
       .from("competitions")
       .select("event_date, event_time, timezone, fee_amount")
-      .eq("slug", data.competition_slug)
+      .eq("slug", registration.competition_slug)
       .maybeSingle();
 
-    const launchDefault = getLaunchCompetitionDefault(data.competition_slug);
+    const launchDefault = getLaunchCompetitionDefault(registration.competition_slug);
     const parsedFeeAmount = Number(competition?.fee_amount);
     const feeAmount = Number.isFinite(parsedFeeAmount) && parsedFeeAmount > 0 ? parsedFeeAmount : launchDefault?.feeAmount || 0;
     const availablePoints = await getUserLockInPointsBalance(session.user.id);
 
     return {
-      competitionName: data.competition_name,
+      registrationId: registration.id,
+      competitionSlug: registration.competition_slug,
+      paymentStatus: registration.payment_status || "pending",
+      alreadyPaid: isSeatConfirmed(registration.payment_status),
+      competitionName: registration.competition_name,
       competitionDate: competition ? `${competition.event_date} | ${competition.event_time || "TBA"} ${competition.timezone || "IST"}` : "See competition details",
-      entryFee: data.entry_fee || launchDefault?.feeLabel || formatFeeLabel(feeAmount),
+      entryFee: registration.entry_fee || launchDefault?.feeLabel || formatFeeLabel(feeAmount),
       feeAmount,
       availablePoints,
       maxUsablePoints: getMaxUsableLockInPoints(feeAmount),
-      previouslyAppliedPoints: Number(data.points_redeemed || 0)
+      previouslyAppliedPoints: Number(registration.points_redeemed || 0)
     };
   } catch (error) {
     if (error instanceof SupabaseConfigError) {
@@ -85,6 +104,81 @@ async function getPaymentSummary(registrationId: string | null) {
 
     return null;
   }
+}
+
+async function findPaymentRegistration({
+  competitionSlug,
+  registrationId,
+  supabaseAdmin,
+  userId
+}: {
+  competitionSlug: string | null;
+  registrationId: string | null;
+  supabaseAdmin: ReturnType<typeof createAdminClient>;
+  userId: string;
+}): Promise<PaymentRegistration | null> {
+  const selectColumns = "id, competition_slug, competition_name, entry_fee, payment_status, points_redeemed";
+  const slugCandidates = new Set<string>();
+  const trimmedRegistrationId = String(registrationId || "").trim();
+  const trimmedCompetitionSlug = String(competitionSlug || "").trim();
+
+  if (trimmedCompetitionSlug) slugCandidates.add(trimmedCompetitionSlug);
+  if (trimmedRegistrationId && !isUuid(trimmedRegistrationId)) slugCandidates.add(trimmedRegistrationId);
+
+  if (trimmedRegistrationId && isUuid(trimmedRegistrationId)) {
+    const { data, error } = await supabaseAdmin
+      .from("registrations")
+      .select(selectColumns)
+      .eq("id", trimmedRegistrationId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (error) {
+      console.error(`[LockInTalks payment] Registration id lookup failed: ${error.message}`);
+    }
+
+    if (data) return data as PaymentRegistration;
+  }
+
+  for (const slug of slugCandidates) {
+    const { data: pendingRegistration, error: pendingError } = await supabaseAdmin
+      .from("registrations")
+      .select(selectColumns)
+      .eq("user_id", userId)
+      .eq("competition_slug", slug)
+      .in("payment_status", ["pending", "order_created", "payment_created", "signature_verified"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (pendingError) {
+      console.error(`[LockInTalks payment] Pending registration lookup failed for ${slug}: ${pendingError.message}`);
+    }
+
+    if (pendingRegistration) return pendingRegistration as PaymentRegistration;
+
+    const { data: paidRegistration, error: paidError } = await supabaseAdmin
+      .from("registrations")
+      .select(selectColumns)
+      .eq("user_id", userId)
+      .eq("competition_slug", slug)
+      .in("payment_status", ["captured", "paid"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (paidError) {
+      console.error(`[LockInTalks payment] Paid registration lookup failed for ${slug}: ${paidError.message}`);
+    }
+
+    if (paidRegistration) return paidRegistration as PaymentRegistration;
+  }
+
+  return null;
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
 
 function formatFeeLabel(feeAmountPaise: number) {

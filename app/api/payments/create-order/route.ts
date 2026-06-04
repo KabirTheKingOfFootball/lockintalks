@@ -12,6 +12,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type CreateOrderRequest = {
+  competitionSlug?: string;
   registrationId?: string;
   lockInPointsToApply?: number;
 };
@@ -23,12 +24,29 @@ type RazorpayOrder = {
   status?: string;
 };
 
+type PaymentRegistration = {
+  id: string;
+  user_id: string;
+  competition_slug: string;
+  competition_name: string;
+  student_name: string;
+  guardian_email: string;
+  entry_fee: string | null;
+  payment_status: string | null;
+  razorpay_order_id: string | null;
+  payment_order_id: string | null;
+  payment_amount: number | null;
+  amount_due: number | null;
+  payment_currency: string | null;
+  points_redeemed: number | null;
+};
+
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as CreateOrderRequest;
 
-    if (!body.registrationId) {
-      return NextResponse.json({ error: "Missing registration id." }, { status: 400 });
+    if (!body.registrationId && !body.competitionSlug) {
+      return NextResponse.json({ error: "Missing registration reference." }, { status: 400 });
     }
 
     const session = await getServerAuthSession();
@@ -40,16 +58,22 @@ export async function POST(request: NextRequest) {
 
     const userId = session.user.id;
     const supabaseAdmin = createAdminClient();
-    const { data: registration, error: registrationError } = await supabaseAdmin
-      .from("registrations")
-      .select("id, user_id, competition_slug, competition_name, student_name, guardian_email, entry_fee, payment_status, razorpay_order_id, payment_order_id, payment_amount, amount_due, payment_currency, points_redeemed")
-      .eq("id", body.registrationId)
-      .eq("user_id", userId)
-      .single();
+    const registration = await findPaymentRegistration({
+      competitionSlug: body.competitionSlug || null,
+      registrationId: body.registrationId || null,
+      supabaseAdmin,
+      userId
+    });
 
-    if (registrationError || !registration) {
-      console.error(`[LockInTalks payment order] Registration lookup failed: ${registrationError?.message || "Not found"}`);
-      return NextResponse.json({ error: "Registration not found for this account." }, { status: 404 });
+    if (!registration) {
+      console.warn(`[LockInTalks payment order] Registration not found for user. registration=${body.registrationId || "none"} competition=${body.competitionSlug || "none"}`);
+      return NextResponse.json(
+        {
+          error: "We could not find your registration for this account. Please register again for this competition.",
+          registerPath: body.competitionSlug ? `/register/${encodeURIComponent(body.competitionSlug)}` : "/competitions"
+        },
+        { status: 404 }
+      );
     }
 
     if (isSeatConfirmed(registration.payment_status)) {
@@ -226,4 +250,80 @@ async function savePaymentAttempt({
   } catch (error) {
     console.warn("[LockInTalks payment order] Payment attempt logging skipped:", error);
   }
+}
+
+async function findPaymentRegistration({
+  competitionSlug,
+  registrationId,
+  supabaseAdmin,
+  userId
+}: {
+  competitionSlug: string | null;
+  registrationId: string | null;
+  supabaseAdmin: ReturnType<typeof createAdminClient>;
+  userId: string;
+}): Promise<PaymentRegistration | null> {
+  const selectColumns =
+    "id, user_id, competition_slug, competition_name, student_name, guardian_email, entry_fee, payment_status, razorpay_order_id, payment_order_id, payment_amount, amount_due, payment_currency, points_redeemed";
+  const trimmedRegistrationId = String(registrationId || "").trim();
+  const trimmedCompetitionSlug = String(competitionSlug || "").trim();
+  const slugCandidates = new Set<string>();
+
+  if (trimmedCompetitionSlug) slugCandidates.add(trimmedCompetitionSlug);
+  if (trimmedRegistrationId && !isUuid(trimmedRegistrationId)) slugCandidates.add(trimmedRegistrationId);
+
+  if (trimmedRegistrationId && isUuid(trimmedRegistrationId)) {
+    const { data, error } = await supabaseAdmin
+      .from("registrations")
+      .select(selectColumns)
+      .eq("id", trimmedRegistrationId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (error) {
+      console.error(`[LockInTalks payment order] Registration id lookup failed: ${error.message}`);
+    }
+
+    if (data) return data as PaymentRegistration;
+  }
+
+  for (const slug of slugCandidates) {
+    const { data: pendingRegistration, error: pendingError } = await supabaseAdmin
+      .from("registrations")
+      .select(selectColumns)
+      .eq("user_id", userId)
+      .eq("competition_slug", slug)
+      .in("payment_status", ["pending", "order_created", "payment_created", "signature_verified"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (pendingError) {
+      console.error(`[LockInTalks payment order] Pending registration lookup failed for ${slug}: ${pendingError.message}`);
+    }
+
+    if (pendingRegistration) return pendingRegistration as PaymentRegistration;
+
+    const { data: paidRegistration, error: paidError } = await supabaseAdmin
+      .from("registrations")
+      .select(selectColumns)
+      .eq("user_id", userId)
+      .eq("competition_slug", slug)
+      .in("payment_status", ["captured", "paid"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (paidError) {
+      console.error(`[LockInTalks payment order] Paid registration lookup failed for ${slug}: ${paidError.message}`);
+    }
+
+    if (paidRegistration) return paidRegistration as PaymentRegistration;
+  }
+
+  return null;
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
