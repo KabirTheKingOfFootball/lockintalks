@@ -5,6 +5,7 @@ import { getLaunchCompetitionDefault } from "@/lib/competition-defaults";
 import { getReadableSupabaseError } from "@/lib/readable-error";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { buildPaymentUrl } from "@/lib/payment/registration-reference";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.info(`[LockInTalks registration] Registration auth check passed from ${session.source}.`);
+    console.info(`[LockInTalks registration] Registration auth check passed. user=${session.user.id} source=${session.source} competition=${competitionSlug}`);
     const supabaseAdmin = createAdminClient();
     const { data: competition, error: competitionError } = await supabaseAdmin
       .from("competitions")
@@ -90,13 +91,19 @@ export async function POST(request: NextRequest) {
     }
 
     if (existingRegistration) {
+      const alreadyPaid = existingRegistration.payment_status === "captured" || existingRegistration.payment_status === "paid";
+      const paymentUrl = buildPaymentUrl({ registrationId: existingRegistration.id, competitionSlug: competition.slug });
+      console.info(
+        `[LockInTalks registration] Existing registration returned. user=${session.user.id} registration=${existingRegistration.id} competition=${competition.slug} payment_status=${existingRegistration.payment_status} redirect=${alreadyPaid ? "/dashboard" : paymentUrl}`
+      );
       return NextResponse.json(
         {
           ok: true,
           registrationId: existingRegistration.id,
           alreadyRegistered: true,
           paymentStatus: existingRegistration.payment_status,
-          redirectTo: existingRegistration.payment_status === "captured" || existingRegistration.payment_status === "paid" ? "/dashboard" : undefined
+          paymentUrl: alreadyPaid ? undefined : paymentUrl,
+          redirectTo: alreadyPaid ? "/dashboard" : paymentUrl
         },
         { status: 200, headers: noStoreHeaders }
       );
@@ -138,7 +145,10 @@ export async function POST(request: NextRequest) {
       return jsonError(getReadableSupabaseError(insertError, "Registration could not be saved."), 400);
     }
 
-    return NextResponse.json({ ok: true, registrationId: data.id }, { status: 200, headers: noStoreHeaders });
+    const paymentUrl = buildPaymentUrl({ registrationId: data.id, competitionSlug: competition.slug });
+    console.info(`[LockInTalks registration] Registration created. user=${session.user.id} registration=${data.id} competition=${competition.slug} redirect=${paymentUrl}`);
+
+    return NextResponse.json({ ok: true, registrationId: data.id, paymentUrl, redirectTo: paymentUrl }, { status: 200, headers: noStoreHeaders });
   } catch (error) {
     if (error instanceof SupabaseConfigError || error instanceof AppSessionConfigError) {
       console.error(`[LockInTalks registration] ${error.message}`);

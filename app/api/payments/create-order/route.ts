@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { getLaunchCompetitionDefault } from "@/lib/competition-defaults";
 import { isPaymentInProgress, isSeatConfirmed } from "@/lib/payment/status";
+import { getCreateOrderRegistrationReference } from "@/lib/payment/registration-reference";
 import { calculateLockInPointCheckout, getUserLockInPointsBalance } from "@/lib/rewards/points";
 
 export const runtime = "nodejs";
@@ -13,7 +14,9 @@ export const dynamic = "force-dynamic";
 
 type CreateOrderRequest = {
   competitionSlug?: string;
+  registration?: string;
   registrationId?: string;
+  id?: string;
   lockInPointsToApply?: number;
 };
 
@@ -44,8 +47,9 @@ type PaymentRegistration = {
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as CreateOrderRequest;
+    const registrationReference = getCreateOrderRegistrationReference(body);
 
-    if (!body.registrationId && !body.competitionSlug) {
+    if (!registrationReference && !body.competitionSlug) {
       return NextResponse.json({ error: "Missing registration reference." }, { status: 400 });
     }
 
@@ -57,16 +61,19 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = session.user.id;
+    console.info(
+      `[LockInTalks payment order] Create-order request received. user=${userId} registration=${registrationReference || "none"} competition=${body.competitionSlug || "none"}`
+    );
     const supabaseAdmin = createAdminClient();
     const registration = await findPaymentRegistration({
       competitionSlug: body.competitionSlug || null,
-      registrationId: body.registrationId || null,
+      registrationId: registrationReference,
       supabaseAdmin,
       userId
     });
 
     if (!registration) {
-      console.warn(`[LockInTalks payment order] Registration not found for user. registration=${body.registrationId || "none"} competition=${body.competitionSlug || "none"}`);
+      console.warn(`[LockInTalks payment order] Registration not found for user. user=${userId} registration=${registrationReference || "none"} competition=${body.competitionSlug || "none"}`);
       return NextResponse.json(
         {
           error: "We could not find your registration for this account. Please register again for this competition.",
@@ -270,9 +277,9 @@ async function findPaymentRegistration({
   const slugCandidates = new Set<string>();
 
   if (trimmedCompetitionSlug) slugCandidates.add(trimmedCompetitionSlug);
-  if (trimmedRegistrationId && !isUuid(trimmedRegistrationId)) slugCandidates.add(trimmedRegistrationId);
 
-  if (trimmedRegistrationId && isUuid(trimmedRegistrationId)) {
+  if (trimmedRegistrationId) {
+    console.info(`[LockInTalks payment order] Exact registration lookup started. user=${userId} registration=${trimmedRegistrationId}`);
     const { data, error } = await supabaseAdmin
       .from("registrations")
       .select(selectColumns)
@@ -284,10 +291,16 @@ async function findPaymentRegistration({
       console.error(`[LockInTalks payment order] Registration id lookup failed: ${error.message}`);
     }
 
-    if (data) return data as PaymentRegistration;
+    if (data) {
+      console.info(`[LockInTalks payment order] Exact registration lookup found. user=${userId} registration=${trimmedRegistrationId} competition=${data.competition_slug}`);
+      return data as PaymentRegistration;
+    }
+
+    console.warn(`[LockInTalks payment order] Exact registration lookup not found. user=${userId} registration=${trimmedRegistrationId}`);
   }
 
   for (const slug of slugCandidates) {
+    console.info(`[LockInTalks payment order] Slug fallback lookup started. user=${userId} competition=${slug}`);
     const { data: pendingRegistration, error: pendingError } = await supabaseAdmin
       .from("registrations")
       .select(selectColumns)
@@ -302,7 +315,10 @@ async function findPaymentRegistration({
       console.error(`[LockInTalks payment order] Pending registration lookup failed for ${slug}: ${pendingError.message}`);
     }
 
-    if (pendingRegistration) return pendingRegistration as PaymentRegistration;
+    if (pendingRegistration) {
+      console.info(`[LockInTalks payment order] Pending slug fallback found. user=${userId} registration=${pendingRegistration.id} competition=${slug}`);
+      return pendingRegistration as PaymentRegistration;
+    }
 
     const { data: paidRegistration, error: paidError } = await supabaseAdmin
       .from("registrations")
@@ -318,12 +334,11 @@ async function findPaymentRegistration({
       console.error(`[LockInTalks payment order] Paid registration lookup failed for ${slug}: ${paidError.message}`);
     }
 
-    if (paidRegistration) return paidRegistration as PaymentRegistration;
+    if (paidRegistration) {
+      console.info(`[LockInTalks payment order] Paid slug fallback found. user=${userId} registration=${paidRegistration.id} competition=${slug}`);
+      return paidRegistration as PaymentRegistration;
+    }
   }
 
   return null;
-}
-
-function isUuid(value: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }

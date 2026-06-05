@@ -164,7 +164,7 @@ export function PaymentForm({
         cache: "no-store",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ competitionSlug: summary.competitionSlug, registrationId: activeRegistrationId, lockInPointsToApply: appliedPointsPreview })
+        body: JSON.stringify({ competitionSlug: summary.competitionSlug, registration: activeRegistrationId, registrationId: activeRegistrationId, lockInPointsToApply: appliedPointsPreview })
       });
       const order = await readJsonResponse<CreateOrderResponse>(orderResponse);
 

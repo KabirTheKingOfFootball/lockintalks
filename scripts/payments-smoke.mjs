@@ -16,6 +16,7 @@ installTsLoader();
 
 const payments = require(path.resolve("lib/razorpay/payments.ts"));
 const razorpayEnv = require(path.resolve("lib/razorpay/env.ts"));
+const registrationReference = require(path.resolve("lib/payment/registration-reference.ts"));
 const failures = [];
 
 const orderId = "order_lockintalks_smoke";
@@ -47,6 +48,31 @@ const envStatus = razorpayEnv.getRazorpayEnvStatus();
 expectEqual(envStatus.checkoutReady, true, "Razorpay checkout env status detects configured test keys.");
 expectEqual(envStatus.webhookReady, true, "Razorpay webhook env status detects configured webhook secret.");
 expectEqual(envStatus.keyMode, "test", "Razorpay smoke key mode is test.");
+expectEqual(
+  registrationReference.buildPaymentUrl({ registrationId: "reg_123", competitionSlug: "story-talks" }),
+  "/payment?registration=reg_123&competition=story-talks",
+  "Registration redirect uses exact registration id as the primary payment reference."
+);
+expectEqual(
+  registrationReference.getPaymentRegistrationReference({ registration: "reg_123", registrationId: "reg_456", id: "reg_789" }),
+  "reg_123",
+  "Payment page prefers registration query param before aliases."
+);
+expectEqual(
+  registrationReference.getPaymentRegistrationReference({ registrationId: "reg_456", id: "reg_789" }),
+  "reg_456",
+  "Payment page accepts registrationId alias."
+);
+expectEqual(
+  registrationReference.getPaymentRegistrationReference({ id: "reg_789" }),
+  "reg_789",
+  "Payment page accepts id alias."
+);
+expectEqual(
+  registrationReference.getCreateOrderRegistrationReference({ registration: "reg_123" }),
+  "reg_123",
+  "Create-order accepts registration id from registration field."
+);
 
 const registrationRouteSource = readFileSync("app/api/registrations/route.ts", "utf8");
 const paymentPageSource = readFileSync("app/payment/page.tsx", "utf8");
@@ -59,11 +85,25 @@ const liveModeChecklistSource = readFileSync("LIVE_MODE_SWITCH_CHECKLIST.md", "u
 
 expectMatch(registrationRouteSource, /payment_amount:\s*feeAmount/, "Registration creation stores the server-side fee amount.");
 expectMatch(registrationRouteSource, /amount_due:\s*feeAmount/, "Registration creation stores amount_due before payment.");
-expectMatch(paymentPageSource, /competition\?:\s*string/, "Payment page accepts competition slug query params.");
+expectMatch(registrationRouteSource, /buildPaymentUrl\(\{\s*registrationId:\s*data\.id,\s*competitionSlug:\s*competition\.slug\s*\}\)/, "New registrations return a payment URL containing the exact registration id.");
+expectMatch(registrationRouteSource, /buildPaymentUrl\(\{\s*registrationId:\s*existingRegistration\.id,\s*competitionSlug:\s*competition\.slug\s*\}\)/, "Pending duplicate registrations return their existing registration id.");
+expectMatch(registrationRouteSource, /redirectTo:\s*alreadyPaid\s*\?\s*"\/dashboard"\s*:\s*paymentUrl/, "Paid duplicate registrations redirect away from duplicate payment.");
+expectMatch(paymentPageSource, /PaymentSearchParams/, "Payment page accepts normalized payment search params.");
 expectMatch(paymentPageSource, /findPaymentRegistration/, "Payment page reuses pending registrations by id or competition slug.");
+expectMatch(paymentPageSource, /getPaymentRegistrationReference/, "Payment page reads registration, registrationId, and id aliases.");
+expectMatch(paymentPageSource, /if \(trimmedRegistrationId\)[\s\S]*\.eq\("id", trimmedRegistrationId\)/, "Payment page performs exact registration id lookup first.");
+expectNotMatch(paymentPageSource, /isUuid/, "Payment page does not reject non-UUID registration references before exact lookup.");
+expectNotMatch(paymentPageSource, /slugCandidates\.add\(trimmedRegistrationId\)/, "Payment page does not treat an exact registration id as a competition slug fallback.");
 expectMatch(createOrderSource, /competitionSlug\?:\s*string/, "Create-order accepts a competition slug fallback.");
 expectMatch(createOrderSource, /findPaymentRegistration/, "Create-order resolves registration server-side before Razorpay order creation.");
+expectMatch(createOrderSource, /getCreateOrderRegistrationReference/, "Create-order normalizes registration id aliases.");
+expectMatch(createOrderSource, /if \(trimmedRegistrationId\)[\s\S]*\.eq\("id", trimmedRegistrationId\)/, "Create-order performs exact registration id lookup first.");
+expectNotMatch(createOrderSource, /isUuid/, "Create-order does not reject non-UUID registration references before exact lookup.");
+expectNotMatch(createOrderSource, /slugCandidates\.add\(trimmedRegistrationId\)/, "Create-order does not treat an exact registration id as a competition slug fallback.");
+expectMatch(createOrderSource, /isSeatConfirmed\(registration\.payment_status\)/, "Create-order blocks duplicate orders for paid registrations.");
 expectMatch(paymentFormSource, /competitionSlug:\s*summary\.competitionSlug/, "Checkout sends the competition slug alongside the registration id.");
+expectMatch(paymentFormSource, /registration:\s*activeRegistrationId/, "Checkout sends the exact registration id using the registration field.");
+expectMatch(paymentFormSource, /registrationId:\s*activeRegistrationId/, "Checkout sends the exact registration id using the registrationId field.");
 expectMatch(paymentFormSource, /We could not find your registration for this account/, "Missing registration UI is friendly.");
 expectMatch(dashboardSource, /Continue Payment/, "Dashboard exposes a continue-payment path for unpaid registrations.");
 expectMatch(webhookSource, /refund\?:/, "Webhook parser understands Razorpay refund payloads.");

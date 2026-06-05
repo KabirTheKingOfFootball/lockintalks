@@ -6,6 +6,7 @@ import { track } from "@vercel/analytics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { PublicCompetition } from "@/lib/competitions";
+import { buildPaymentUrl } from "@/lib/payment/registration-reference";
 import { getReadableError, readJsonResponse } from "@/lib/readable-error";
 
 type RegistrationResponse = {
@@ -13,6 +14,7 @@ type RegistrationResponse = {
   registrationId?: string;
   alreadyRegistered?: boolean;
   paymentStatus?: string;
+  paymentUrl?: string;
   redirectTo?: string;
   error?: string;
   loginTo?: string;
@@ -74,18 +76,12 @@ export function RegisterForm({ competition }: { competition: PublicCompetition }
         return;
       }
 
-      if (result.redirectTo) {
-        router.push(result.redirectTo);
-        router.refresh();
-        return;
-      }
-
-      const paymentParams = new URLSearchParams({
-        competition: competition.slug,
-        registration: result.registrationId
-      });
+      const paymentUrl = result.paymentUrl || buildPaymentUrl({ registrationId: result.registrationId, competitionSlug: competition.slug });
+      const redirectTo = result.redirectTo || paymentUrl;
+      console.info(`[LockInTalks registration] Redirecting to payment. competition=${competition.slug} registration=${result.registrationId} redirect=${redirectTo}`);
       track("registration_submitted", { competition: competition.slug });
-      router.push(`/payment?${paymentParams.toString()}`);
+      router.push(redirectTo);
+      router.refresh();
     } catch (submitError) {
       console.error("[LockInTalks registration] Unexpected registration error:", submitError);
       setError(getReadableError(submitError, "Registration is temporarily unavailable. Please try again."));
