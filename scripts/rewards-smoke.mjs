@@ -6,6 +6,7 @@ import ts from "typescript";
 
 const failures = [];
 const checkout = loadTsModule("lib/rewards/checkout.ts");
+const levels = loadTsModule("lib/rewards/levels.ts");
 const prizePool = loadTsModule("lib/rewards/prize-pool.ts");
 const paymentStatus = loadTsModule("lib/payment/status.ts");
 const pointsSource = readFileSync("lib/rewards/points.ts", "utf8");
@@ -58,6 +59,27 @@ expectEqual(paymentStatus.isSeatConfirmed("pending"), false, "Pending payments d
 expectEqual(paymentStatus.isSeatConfirmed("failed"), false, "Failed payments do not count as verified.");
 expectEqual(paymentStatus.isSeatConfirmed("cancelled"), false, "Cancelled payments do not count as verified.");
 expectEqual(paymentStatus.isSeatConfirmed("refunded"), false, "Refunded payments do not count as verified.");
+
+expectEqual(levels.getNextLevelRequirement(1), 17, "Level 1 next requirement is 17 XP.");
+expectEqual(levels.getNextLevelRequirement(2), 27, "Level 2 next requirement is 27 XP.");
+expectEqual(levels.getNextLevelRequirement(20), 207, "Level 20 next requirement is 207 XP.");
+
+const levelOneProgress = levels.calculateLockInLevel(16);
+expectEqual(levelOneProgress.currentLevel, 1, "16 points keeps user at Level 1.");
+expectEqual(levelOneProgress.currentXP, 16, "16 points shows 16 XP progress.");
+expectEqual(levelOneProgress.nextRequirement, 17, "Level 1 progress targets 17 XP.");
+
+const levelTwoProgress = levels.calculateLockInLevel(17);
+expectEqual(levelTwoProgress.currentLevel, 2, "17 points reaches Level 2.");
+expectEqual(levelTwoProgress.currentXP, 0, "Fresh Level 2 starts at 0 XP progress.");
+expectEqual(levelTwoProgress.nextRequirement, 27, "Level 2 progress targets 27 XP.");
+expectEqual(levelTwoProgress.nextLevelBonus, 3, "Level 2 next level bonus target is +3 LockIn Points.");
+
+const levelSixProgress = levels.calculateLockInLevel(227);
+expectEqual(levelSixProgress.currentLevel, 6, "227 points reaches Level 6.");
+expectEqual(levelSixProgress.currentXP, 42, "227 points leaves 42 XP inside Level 6.");
+expectEqual(levelSixProgress.nextRequirement, 67, "Level 6 needs 67 XP to reach Level 7.");
+expectEqual(Math.round(levelSixProgress.progressPercent), 63, "42 of 67 XP is roughly 63 percent progress.");
 
 if (failures.length > 0) {
   console.error("\n[rewards-smoke] Failed checks:");

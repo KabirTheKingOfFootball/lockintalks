@@ -7,6 +7,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import type { RegistrationRow } from "@/lib/registrations";
 import { isSeatConfirmed } from "@/lib/payment/status";
+import { calculateLockInLevel } from "@/lib/rewards/levels";
 
 type DashboardUser = {
   name: string;
@@ -26,6 +27,8 @@ export function DashboardClient({
 }) {
   const latestRegistration = registrations[0];
   const paidRegistrations = registrations.filter((registration) => isSeatConfirmed(registration.payment_status));
+  const pointsBalance = Math.max(0, Math.floor(Number(lockInPointsBalance) || 0));
+  const lockInLevel = calculateLockInLevel(pointsBalance);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
@@ -63,7 +66,35 @@ export function DashboardClient({
         <Card><Award className="mb-4 text-[#d4af37]" /><h2 className="font-black">Registered Competitions</h2><p className="mt-3 text-sm text-white/62">{latestRegistration?.competition_name || "No Registrations Yet"}</p></Card>
         <Card><CalendarClock className="mb-4 text-[#d4af37]" /><h2 className="font-black">Upcoming Events</h2><p className="mt-3 text-sm text-white/62">{latestRegistration ? "Check your email for live room details." : "Choose a competition to start."}</p></Card>
         <Card><CreditCard className="mb-4 text-[#d4af37]" /><h2 className="font-black">Payment History</h2><p className="mt-3 text-sm text-white/62">{paidRegistrations.length ? `${paidRegistrations.length} paid registration${paidRegistrations.length === 1 ? "" : "s"}` : "No paid registrations yet."}</p></Card>
-        <Card><Sparkles className="mb-4 text-[#d4af37]" /><h2 className="font-black">LockIn Points</h2><p className="mt-3 text-sm text-white/62">{Math.max(0, lockInPointsBalance)} point{lockInPointsBalance === 1 ? "" : "s"} available for future checkout discounts.</p></Card>
+        <Card className="overflow-hidden">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <Sparkles className="mb-4 text-[#d4af37]" />
+              <h2 className="font-black">Level {lockInLevel.currentLevel} Speaker</h2>
+              <p className="mt-2 text-sm text-white/62">{pointsBalance} LockIn Point{pointsBalance === 1 ? "" : "s"} available.</p>
+            </div>
+            <div className="rounded-[8px] border border-[#d4af37]/25 bg-[#d4af37]/10 px-3 py-2 text-right">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#f7dc83]">Next Bonus</p>
+              <p className="text-lg font-black text-white">+{lockInLevel.nextLevelBonus}</p>
+            </div>
+          </div>
+          <div className="mt-5">
+            <div className="mb-2 flex items-center justify-between gap-3 text-xs font-bold text-white/62">
+              <span>{lockInLevel.currentXP} / {lockInLevel.nextRequirement} XP to Level {lockInLevel.nextLevel}</span>
+              <span>{Math.max(0, lockInLevel.nextRequirement - lockInLevel.currentXP)} needed</span>
+            </div>
+            <div className="h-3 overflow-hidden rounded-full border border-white/10 bg-white/[0.06] shadow-[0_0_24px_rgba(212,175,55,0.16)]">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[#d4af37] via-[#f7dc83] to-white shadow-[0_0_18px_rgba(247,220,131,0.65)] transition-[width] duration-700"
+                style={{ width: `${lockInLevel.progressPercent}%` }}
+                aria-label={`LockIn Level progress ${Math.round(lockInLevel.progressPercent)} percent`}
+              />
+            </div>
+            <p className="mt-3 text-xs leading-5 text-white/50">
+              1 LockIn Point = INR 1 discount where enabled. Points are not cash, withdrawable, or transferable.
+            </p>
+          </div>
+        </Card>
         <Card><FileBadge className="mb-4 text-[#d4af37]" /><h2 className="font-black">Certificates</h2><p className="mt-3 text-sm text-white/62">Certificates will appear after results are published.</p></Card>
       </div>
       {registrations.length > 0 && (

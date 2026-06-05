@@ -42,6 +42,7 @@ export default async function PaymentPage({ searchParams }: { searchParams: Prom
 
 type PaymentRegistration = {
   id: string;
+  user_id: string;
   competition_slug: string;
   competition_name: string;
   entry_fee: string | null;
@@ -124,7 +125,7 @@ async function findPaymentRegistration({
   supabaseAdmin: ReturnType<typeof createAdminClient>;
   userId: string;
 }): Promise<PaymentRegistration | null> {
-  const selectColumns = "id, competition_slug, competition_name, entry_fee, payment_status, points_redeemed";
+  const selectColumns = "id, user_id, competition_slug, competition_name, entry_fee, payment_status, points_redeemed";
   const slugCandidates = new Set<string>();
   const trimmedRegistrationId = String(registrationId || "").trim();
   const trimmedCompetitionSlug = String(competitionSlug || "").trim();
@@ -137,7 +138,6 @@ async function findPaymentRegistration({
       .from("registrations")
       .select(selectColumns)
       .eq("id", trimmedRegistrationId)
-      .eq("user_id", userId)
       .maybeSingle();
 
     if (error) {
@@ -145,8 +145,14 @@ async function findPaymentRegistration({
     }
 
     if (data) {
-      console.info(`[LockInTalks payment] Exact registration lookup found. user=${userId} registration=${trimmedRegistrationId} competition=${data.competition_slug}`);
-      return data as PaymentRegistration;
+      const ownerUserId = String(data.user_id || "");
+      const ownerMatches = ownerUserId === userId;
+      console.info(
+        `[LockInTalks payment] Exact registration lookup found. requested_user=${userId} registration=${trimmedRegistrationId} owner_user=${ownerUserId} owner_matches=${ownerMatches} competition=${data.competition_slug}`
+      );
+      if (ownerMatches) return data as PaymentRegistration;
+      console.warn(`[LockInTalks payment] Registration owner mismatch. requested_user=${userId} registration=${trimmedRegistrationId} owner_user=${ownerUserId}`);
+      return null;
     }
 
     console.warn(`[LockInTalks payment] Exact registration lookup not found. user=${userId} registration=${trimmedRegistrationId}`);

@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
 
     const { data: existingRegistration, error: existingError } = await supabaseAdmin
       .from("registrations")
-      .select("id,payment_status")
+      .select("id,user_id,competition_slug,payment_status")
       .eq("user_id", session.user.id)
       .eq("competition_slug", competition.slug)
       .not("payment_status", "in", "(failed,cancelled,refunded)")
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       const alreadyPaid = existingRegistration.payment_status === "captured" || existingRegistration.payment_status === "paid";
       const paymentUrl = buildPaymentUrl({ registrationId: existingRegistration.id, competitionSlug: competition.slug });
       console.info(
-        `[LockInTalks registration] Existing registration returned. user=${session.user.id} registration=${existingRegistration.id} competition=${competition.slug} payment_status=${existingRegistration.payment_status} redirect=${alreadyPaid ? "/dashboard" : paymentUrl}`
+        `[LockInTalks registration] Existing registration returned. current_user=${session.user.id} row_user=${existingRegistration.user_id} registration=${existingRegistration.id} competition=${existingRegistration.competition_slug} payment_status=${existingRegistration.payment_status} redirect=${alreadyPaid ? "/dashboard" : paymentUrl}`
       );
       return NextResponse.json(
         {
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
         amount_due: feeAmount,
         payment_currency: "INR"
       })
-      .select("id")
+      .select("id,user_id,competition_slug")
       .single();
 
     if (insertError) {
@@ -146,7 +146,9 @@ export async function POST(request: NextRequest) {
     }
 
     const paymentUrl = buildPaymentUrl({ registrationId: data.id, competitionSlug: competition.slug });
-    console.info(`[LockInTalks registration] Registration created. user=${session.user.id} registration=${data.id} competition=${competition.slug} redirect=${paymentUrl}`);
+    console.info(
+      `[LockInTalks registration] Registration created. current_user=${session.user.id} row_user=${data.user_id} registration=${data.id} competition=${data.competition_slug} redirect=${paymentUrl}`
+    );
 
     return NextResponse.json({ ok: true, registrationId: data.id, paymentUrl, redirectTo: paymentUrl }, { status: 200, headers: noStoreHeaders });
   } catch (error) {
