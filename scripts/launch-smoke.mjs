@@ -88,6 +88,7 @@ function scanSourceForBadLaunchCopy() {
     "supabase/seed-competitions.sql",
     "README.md",
     "LAUNCH_CHECKLIST.md",
+    "LIVE_MODE_SWITCH_CHECKLIST.md",
     "RAZORPAY_SETUP.md",
     "PARENT_LEGAL_REVIEW_CHECKLIST.md"
   ].filter((file) => existsSync(file));

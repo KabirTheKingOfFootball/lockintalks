@@ -15,6 +15,7 @@ try {
   await checkJson("/api/debug/auth-cookies");
   await checkNoStore("/api/auth/session");
   await checkNoStore("/api/debug/auth-cookies");
+  await checkResendConfirmationEndpoint();
   await checkFirstPartyCookie();
   await checkAuthStyleCookie();
   await checkHtmlAuthStyleCookie();
@@ -58,6 +59,22 @@ async function checkNoStore(path) {
   const cacheControl = response.headers.get("cache-control") || "";
   if (!cacheControl.toLowerCase().includes("no-store")) fail(`${path} is missing Cache-Control: no-store.`);
   else console.log(`[auth-smoke] ${path} has no-store cache headers.`);
+}
+
+async function checkResendConfirmationEndpoint() {
+  const { response, body } = await request("/api/auth/resend-confirmation", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({})
+  });
+  const cacheControl = response.headers.get("cache-control") || "";
+
+  if (response.status !== 400) fail(`/api/auth/resend-confirmation empty-email guard returned ${response.status}`);
+  if (!cacheControl.toLowerCase().includes("no-store")) fail("/api/auth/resend-confirmation is missing Cache-Control: no-store.");
+  if (!body?.error || !String(body.error).includes("email address")) fail("/api/auth/resend-confirmation did not return a friendly email error.");
+  if (response.status === 400 && cacheControl.toLowerCase().includes("no-store") && body?.error) {
+    console.log("[auth-smoke] Resend confirmation endpoint has safe validation and no-store headers.");
+  }
 }
 
 async function checkFirstPartyCookie() {

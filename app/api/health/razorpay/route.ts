@@ -22,7 +22,7 @@ export function GET(request: NextRequest) {
       },
       setup: {
         webhookUrl: `${request.nextUrl.origin}/api/payments/webhook`,
-        recommendedEvents: ["payment.captured", "payment.failed", "refund-related events if available"],
+        recommendedEvents: ["payment.captured", "payment.failed", "refund.created", "refund.processed", "refund.failed"],
         reminder: "Do not paste secret values into chats, screenshots, commits, or client-side code."
       }
     },

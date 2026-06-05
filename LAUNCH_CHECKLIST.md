@@ -34,7 +34,9 @@ https://lockintalks.vercel.app/api/payments/webhook
 
 - Enable `payment.captured`.
 - Enable `payment.failed`.
-- Enable refund-related events if available.
+- Enable `refund.created`.
+- Enable `refund.processed`.
+- Enable `refund.failed`.
 - Make sure the webhook secret in Razorpay exactly matches `RAZORPAY_WEBHOOK_SECRET` in Vercel.
 - Open `/api/health/razorpay` and confirm `checkoutReady` and `webhookReady` are true.
 - Keep the app in Test Mode until Razorpay review, adult approval, and test payments are complete.
@@ -92,11 +94,16 @@ https://lockintalks.vercel.app/api/payments/webhook
 ## Before Live Razorpay Payments
 
 - Complete Razorpay KYC and account approval.
+- Complete adult/legal approval for the public policy pages and parent consent wording.
 - Replace test keys with live keys only after approval.
 - Add the live webhook secret to Vercel if Razorpay gives a different live webhook secret.
+- Create a Live Mode webhook using `https://lockintalks.vercel.app/api/payments/webhook`.
+- Enable `payment.captured`, `payment.failed`, `refund.created`, `refund.processed`, and `refund.failed` in Live Mode.
 - Redeploy after switching any Razorpay environment variables.
+- Confirm `/api/health/razorpay` shows `keyMode: "live"` only after the live keys are intentionally added.
 - Run one low-risk live payment test with adult supervision after approval.
 - Confirm dashboard payment status updates correctly.
 - Confirm admin registration/payment status updates correctly.
 - Confirm prize pool updates only after verified paid registration.
 - Confirm LockIn Points are not awarded for failed, cancelled, refunded, or unverified payments.
+- Keep a rollback plan: switch Vercel Razorpay env vars back to Test Mode or remove payment keys, then redeploy.

@@ -53,6 +53,9 @@ const paymentPageSource = readFileSync("app/payment/page.tsx", "utf8");
 const createOrderSource = readFileSync("app/api/payments/create-order/route.ts", "utf8");
 const paymentFormSource = readFileSync("components/payment-form.tsx", "utf8");
 const dashboardSource = readFileSync("components/dashboard-client.tsx", "utf8");
+const webhookSource = readFileSync("app/api/payments/webhook/route.ts", "utf8");
+const razorpayHealthSource = readFileSync("app/api/health/razorpay/route.ts", "utf8");
+const liveModeChecklistSource = readFileSync("LIVE_MODE_SWITCH_CHECKLIST.md", "utf8");
 
 expectMatch(registrationRouteSource, /payment_amount:\s*feeAmount/, "Registration creation stores the server-side fee amount.");
 expectMatch(registrationRouteSource, /amount_due:\s*feeAmount/, "Registration creation stores amount_due before payment.");
@@ -63,6 +66,17 @@ expectMatch(createOrderSource, /findPaymentRegistration/, "Create-order resolves
 expectMatch(paymentFormSource, /competitionSlug:\s*summary\.competitionSlug/, "Checkout sends the competition slug alongside the registration id.");
 expectMatch(paymentFormSource, /We could not find your registration for this account/, "Missing registration UI is friendly.");
 expectMatch(dashboardSource, /Continue Payment/, "Dashboard exposes a continue-payment path for unpaid registrations.");
+expectMatch(webhookSource, /refund\?:/, "Webhook parser understands Razorpay refund payloads.");
+expectMatch(webhookSource, /refund\.processed/, "Webhook handles refund.processed as the refund-final event.");
+expectMatch(webhookSource, /refund\.created/, "Webhook records refund.created without marking paid/refunded incorrectly.");
+expectMatch(webhookSource, /refund\.failed/, "Webhook records refund.failed without marking paid/refunded incorrectly.");
+expectNotMatch(webhookSource, /payment_order_id:\s*payment\.order_id\s*\|\|\s*null/, "Refund-only webhook updates must not overwrite an existing order id with null.");
+expectMatch(webhookSource, /Duplicate event ignored/, "Webhook duplicate event id handling is preserved.");
+expectMatch(razorpayHealthSource, /refund\.created/, "Razorpay health endpoint recommends refund.created.");
+expectMatch(razorpayHealthSource, /refund\.processed/, "Razorpay health endpoint recommends refund.processed.");
+expectMatch(razorpayHealthSource, /refund\.failed/, "Razorpay health endpoint recommends refund.failed.");
+expectMatch(liveModeChecklistSource, /rzp_live_/, "Live Mode checklist documents live key switch.");
+expectMatch(liveModeChecklistSource, /Rollback Plan/, "Live Mode checklist includes rollback plan.");
 
 if (failures.length > 0) {
   console.error("\n[payments-smoke] Failed checks:");
@@ -84,6 +98,12 @@ function expectEqual(actual, expected, label) {
 
 function expectMatch(source, pattern, label) {
   if (!pattern.test(source)) {
+    failures.push(label);
+  }
+}
+
+function expectNotMatch(source, pattern, label) {
+  if (pattern.test(source)) {
     failures.push(label);
   }
 }

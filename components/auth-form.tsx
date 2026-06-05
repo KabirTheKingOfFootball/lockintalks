@@ -18,6 +18,8 @@ export function AuthForm({ mode, initialError = "", initialNotice = "", nextPath
   const [error, setError] = useState(initialError);
   const [notice, setNotice] = useState(initialNotice);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [confirmationEmail, setConfirmationEmail] = useState("");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const isSignup = mode === "signup";
   const title = useMemo(() => (isSignup ? "Create Your Speaker Account" : "Welcome Back"), [isSignup]);
@@ -64,7 +66,8 @@ export function AuthForm({ mode, initialError = "", initialNotice = "", nextPath
       }
 
       if (result.needsEmailConfirmation) {
-        setNotice(result.message || "Account Created. Please check your email to confirm your account, then log in.");
+        setConfirmationEmail(form.email.trim());
+        setNotice(result.message || "Please check your email to verify your account.");
         return;
       }
 
@@ -80,6 +83,43 @@ export function AuthForm({ mode, initialError = "", initialNotice = "", nextPath
       setError(getReadableError(submitError, "Authentication is temporarily unavailable. Please try again."));
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function resendConfirmationEmail() {
+    const email = confirmationEmail || form.email.trim();
+    setError("");
+
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      setError("Enter the email address you used to sign up.");
+      return;
+    }
+
+    try {
+      setIsResending(true);
+      const response = await fetch("/api/auth/resend-confirmation", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          next: nextPath
+        })
+      });
+      const result = await readJsonResponse<AuthResponse>(response);
+
+      if (!response.ok || result.error) {
+        setError(result.error || "Could not resend verification email.");
+        return;
+      }
+
+      setConfirmationEmail(email);
+      setNotice(result.message || "Verification email sent. Please check your inbox and spam folder.");
+    } catch (resendError) {
+      console.error("[LockInTalks auth form] Unexpected resend error:", resendError);
+      setError(getReadableError(resendError, "Could not resend verification email right now."));
+    } finally {
+      setIsResending(false);
     }
   }
 
@@ -113,7 +153,21 @@ export function AuthForm({ mode, initialError = "", initialNotice = "", nextPath
           </span>
         </label>
       </div>
-      {notice && <p className="mt-4 rounded-[8px] border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">{notice}</p>}
+      {notice && (
+        <div className="mt-4 rounded-[8px] border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">
+          <p>{notice}</p>
+          {isSignup && confirmationEmail && (
+            <button
+              type="button"
+              onClick={resendConfirmationEmail}
+              disabled={isResending}
+              className="mt-3 text-left text-sm font-black text-white underline underline-offset-4 disabled:text-white/50"
+            >
+              {isResending ? "Resending Verification Email..." : "Resend Verification Email"}
+            </button>
+          )}
+        </div>
+      )}
       {error && <p className="mt-4 rounded-[8px] border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
       <Button type="submit" className="mt-6 w-full" disabled={isSubmitting}>
         {isSubmitting ? "Please Wait..." : isSignup ? "Create Account" : "Login"}

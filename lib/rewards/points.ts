@@ -244,7 +244,7 @@ async function reverseRedeemedPoints(registration: RegistrationForRewards, sourc
     competitionSlug: registration.competition_slug,
     points: Math.abs(netToRestore),
     type: "refund_reversal",
-      description: `Restored redeemed LockIn Points because payment is ${registration.payment_status}. Source: ${source}.`
+    description: `Restored redeemed LockIn Points because payment is ${registration.payment_status}. Source: ${source}.`
   });
 }
 

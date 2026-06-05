@@ -47,7 +47,7 @@ export default function RefundPolicyPage() {
         },
         {
           title: "Processing Time",
-          body: "Approved refunds will be processed to the original payment method where possible. Processing time: [Refund timeline to be confirmed based on Razorpay/bank timelines]. Bank or gateway timelines may vary after LockInTalks initiates the refund."
+          body: "Approved refunds will be initiated to the original payment method where possible. Razorpay, bank, card, wallet, or UPI processing timelines may vary after LockInTalks initiates the refund, so users should contact support if a refund does not appear after the expected gateway or bank timeline."
         },
         {
           title: "Failed or Cancelled Payments",

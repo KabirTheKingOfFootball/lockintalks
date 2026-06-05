@@ -55,7 +55,9 @@ https://lockintalks.vercel.app/api/payments/webhook
 
 - `payment.captured`
 - `payment.failed`
-- refund-related events if Razorpay shows them
+- `refund.created`
+- `refund.processed`
+- `refund.failed`
 
 ## 4. Check App Health
 
@@ -108,7 +110,10 @@ Before switching to live Razorpay keys:
 - Confirm the refund policy is accurate.
 - Confirm support email is working: `lockintalks@gmail.com`.
 - Complete Razorpay account/business review requirements.
-- Replace test keys with live keys only when you are ready for real payments.
+- Replace test keys with live keys only after Razorpay KYC/account activation and adult/legal approval.
+- Create a separate Live Mode webhook using the same URL and a new live webhook secret.
+- Redeploy after changing any Razorpay env vars.
+- Run one small real payment test with adult supervision.
 
 ## 8. Razorpay Website Review Checklist
 

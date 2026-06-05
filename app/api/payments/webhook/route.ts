@@ -24,6 +24,15 @@ type RazorpayWebhookPayload = {
         error_description?: string;
       };
     };
+    refund?: {
+      entity?: {
+        id?: string;
+        payment_id?: string;
+        amount?: number;
+        currency?: string;
+        status?: string;
+      };
+    };
   };
 };
 
@@ -51,6 +60,8 @@ export async function POST(request: NextRequest) {
     const payload = JSON.parse(rawBody) as RazorpayWebhookPayload;
     const eventType = payload.event || "unknown";
     const payment = payload.payload?.payment?.entity || {};
+    const refund = payload.payload?.refund?.entity || {};
+    const providerPaymentId = payment.id || refund.payment_id || null;
     const supabaseAdmin = createAdminClient();
 
     const { error: insertEventError } = await supabaseAdmin.from("payment_events").insert({
@@ -58,7 +69,7 @@ export async function POST(request: NextRequest) {
       provider_event_id: eventId,
       event_type: eventType,
       provider_order_id: payment.order_id || null,
-      provider_payment_id: payment.id || null,
+      provider_payment_id: providerPaymentId,
       raw_payload: payload
     });
 
@@ -72,22 +83,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Could not record webhook event." }, { status: 500 });
     }
 
-    if (!payment.order_id) {
-      await markEventProcessed(eventId, false, "Webhook did not include a payment order id.");
-      return NextResponse.json({ ok: true, ignored: true });
-    }
-
     const now = new Date().toISOString();
     const captured = eventType === "payment.captured" || payment.status === "captured" || payment.captured === true;
     const failed = eventType === "payment.failed" || payment.status === "failed";
-    const refunded = eventType.includes("refund") || payment.status === "refunded";
+    const refundProcessed = eventType === "refund.processed" || refund.status === "processed";
+    const refundCreated = eventType === "refund.created";
+    const refundFailed = eventType === "refund.failed" || refund.status === "failed";
+    const refunded = refundProcessed || payment.status === "refunded";
 
-    const orderFilter = `razorpay_order_id.eq.${payment.order_id},payment_order_id.eq.${payment.order_id}`;
-    const { data: existingRegistration, error: lookupError } = await supabaseAdmin
+    if (!payment.order_id && !providerPaymentId) {
+      await markEventProcessed(eventId, false, "Webhook did not include a payment order id or payment id.");
+      return NextResponse.json({ ok: true, ignored: true });
+    }
+
+    const lookupQuery = supabaseAdmin
       .from("registrations")
-      .select("id, user_id, payment_status, amount_due, payment_amount")
-      .or(orderFilter)
-      .maybeSingle();
+      .select("id, user_id, payment_status, amount_due, payment_amount");
+    const lookup = payment.order_id
+      ? lookupQuery.or(`razorpay_order_id.eq.${payment.order_id},payment_order_id.eq.${payment.order_id}`)
+      : lookupQuery.or(`razorpay_payment_id.eq.${providerPaymentId},payment_id.eq.${providerPaymentId}`);
+    const { data: existingRegistration, error: lookupError } = await lookup.maybeSingle();
 
     if (lookupError) {
       console.error(`[LockInTalks Razorpay webhook] Registration lookup failed for event ${eventId}: ${lookupError.message}`);
@@ -96,10 +111,18 @@ export async function POST(request: NextRequest) {
     }
 
     if (!existingRegistration) {
-      const message = `No registration matched order ${payment.order_id}.`;
+      const message = payment.order_id ? `No registration matched order ${payment.order_id}.` : `No registration matched payment ${providerPaymentId}.`;
       console.warn(`[LockInTalks Razorpay webhook] ${message}`);
       await markEventProcessed(eventId, false, message);
       return NextResponse.json({ ok: true, unmatched: true });
+    }
+
+    if (refundCreated || refundFailed) {
+      await supabaseAdmin
+        .from("payment_events")
+        .update({ registration_id: existingRegistration.id, processed: true, processed_at: now, processing_error: `Recorded non-final refund event: ${eventType}` })
+        .eq("provider_event_id", eventId);
+      return NextResponse.json({ ok: true, ignored: true, eventType });
     }
 
     if (!captured && !failed && !refunded) {
@@ -111,7 +134,7 @@ export async function POST(request: NextRequest) {
     }
 
     const expectedAmount = Number(existingRegistration.amount_due || existingRegistration.payment_amount || 0);
-    const paidAmount = Number(payment.amount || 0);
+    const paidAmount = Number(payment.amount || refund.amount || 0);
 
     if (captured && expectedAmount > 0 && paidAmount > 0 && paidAmount !== expectedAmount) {
       const message = `Payment amount mismatch for order ${payment.order_id}.`;
@@ -140,18 +163,18 @@ export async function POST(request: NextRequest) {
               payment_status: "failed",
               registration_status: "payment_pending",
               payment_provider: "razorpay",
-              payment_order_id: payment.order_id,
-              payment_id: payment.id || null,
-              razorpay_payment_id: payment.id || null,
+              ...(payment.order_id ? { payment_order_id: payment.order_id } : {}),
+              payment_id: providerPaymentId,
+              razorpay_payment_id: providerPaymentId,
               updated_at: now
             }
           : {
               payment_status: "refunded",
               registration_status: "payment_pending",
               payment_provider: "razorpay",
-              payment_order_id: payment.order_id,
-              payment_id: payment.id || null,
-              razorpay_payment_id: payment.id || null,
+              ...(payment.order_id ? { payment_order_id: payment.order_id } : {}),
+              payment_id: providerPaymentId,
+              razorpay_payment_id: providerPaymentId,
               updated_at: now
             };
 
@@ -188,11 +211,11 @@ export async function POST(request: NextRequest) {
         registration_id: registration.id,
         user_id: registration.user_id,
         provider: "razorpay",
-        provider_order_id: payment.order_id,
-        provider_payment_id: payment.id || null,
+        provider_order_id: payment.order_id || `payment:${providerPaymentId}`,
+        provider_payment_id: providerPaymentId,
         amount: paidAmount || expectedAmount,
-        currency: payment.currency || "INR",
-        status: payment.status || eventType,
+        currency: payment.currency || refund.currency || "INR",
+        status: payment.status || refund.status || eventType,
         signature_verified: true,
         updated_at: now
       },
