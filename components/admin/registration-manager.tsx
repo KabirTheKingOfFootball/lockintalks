@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Award, Download, Search } from "lucide-react";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { Download, Search } from "lucide-react";
+import { ButtonLink } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getReadableError, readJsonResponse } from "@/lib/readable-error";
 import type { RegistrationRow } from "@/lib/registrations";
@@ -55,29 +55,6 @@ export function RegistrationManager({ registrations }: { registrations: Registra
     }
   }
 
-  async function awardWinnerPoints(id: string, place: "first" | "second" | "third") {
-    setError("");
-    setMessage("");
-
-    try {
-      const response = await fetch("/api/admin/points/award-winner", {
-        method: "POST",
-        cache: "no-store",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ registrationId: id, place })
-      });
-      const result = await readJsonResponse<{ error?: string; pointsAwarded?: number; alreadyAwarded?: boolean }>(response);
-
-      if (!response.ok) throw new Error(result.error || "Could not award winner points.");
-
-      setMessage(result.alreadyAwarded ? "Winner points were already awarded for this registration." : `Awarded ${result.pointsAwarded || 0} LockIn Points.`);
-    } catch (awardError) {
-      console.error("[LockInTalks admin UI] Winner points award failed:", awardError);
-      setError(getReadableError(awardError, "Could not award winner points."));
-    }
-  }
-
   return (
     <div className="glass rounded-[8px] p-5">
       <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -102,7 +79,7 @@ export function RegistrationManager({ registrations }: { registrations: Registra
         </select>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1420px] border-separate border-spacing-y-2 text-left text-sm">
+        <table className="w-full min-w-[1180px] border-separate border-spacing-y-2 text-left text-sm">
           <thead className="text-xs uppercase tracking-[0.18em] text-[#d4af37]">
             <tr>
               <th className="px-3 py-2">Student</th>
@@ -113,8 +90,6 @@ export function RegistrationManager({ registrations }: { registrations: Registra
               <th className="px-3 py-2">Entry Status</th>
               <th className="px-3 py-2">Age Proof</th>
               <th className="px-3 py-2">Payment</th>
-              <th className="px-3 py-2">Points Used</th>
-              <th className="px-3 py-2">Winner Points</th>
               <th className="px-3 py-2">Created</th>
             </tr>
           </thead>
@@ -167,23 +142,6 @@ export function RegistrationManager({ registrations }: { registrations: Registra
                       <option key={paymentStatus} value={paymentStatus}>{paymentStatusLabel(paymentStatus)}</option>
                     ))}
                   </select>
-                </td>
-                <td className="px-3 py-3 text-white/70">{registration.points_redeemed || 0}</td>
-                <td className="px-3 py-3">
-                  <div className="flex flex-wrap gap-1">
-                    {(["first", "second", "third"] as const).map((place) => (
-                      <Button
-                        key={place}
-                        type="button"
-                        variant="glass"
-                        className="min-h-8 px-2 py-1 text-xs"
-                        onClick={() => awardWinnerPoints(registration.id, place)}
-                        aria-label={`Award ${place} place points to ${registration.student_name}`}
-                      >
-                        <Award size={12} /> {place === "first" ? "1st" : place === "second" ? "2nd" : "3rd"}
-                      </Button>
-                    ))}
-                  </div>
                 </td>
                 <td className="rounded-r-[8px] px-3 py-3 text-white/55">{new Date(registration.created_at).toLocaleDateString()}</td>
               </tr>

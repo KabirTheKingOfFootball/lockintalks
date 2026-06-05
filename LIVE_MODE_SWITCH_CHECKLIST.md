@@ -7,7 +7,7 @@ Use this only after Razorpay Test Mode is working and an adult/legal reviewer ha
 - Razorpay KYC/account activation is complete.
 - Adult/legal review is complete for `/terms`, `/privacy`, `/refund-policy`, `/pricing`, `/shipping-policy`, `/parent-consent`, and `/contact`.
 - The support email `lockintalks@gmail.com` is working and monitored.
-- Test Mode registration, payment, dashboard, admin, prize pool, and LockIn Points checks have passed.
+- Test Mode registration, payment, dashboard, admin, and prize pool checks have passed.
 - A parent/adult is available to supervise the first real payment test.
 
 ## 1. Generate Live Razorpay Keys
@@ -86,8 +86,7 @@ With adult supervision:
 4. Confirm the dashboard shows paid/captured.
 5. Confirm `/admin/registrations` shows paid/captured.
 6. Confirm the prize pool counts the registration only after verified payment.
-7. Confirm LockIn Points are awarded once, not duplicated.
-8. Confirm Razorpay Dashboard shows the payment and webhook delivery.
+7. Confirm Razorpay Dashboard shows the payment and webhook delivery.
 
 ## 6. Failed/Cancelled Check
 
@@ -95,7 +94,6 @@ With adult supervision:
 2. Cancel checkout or use a failed payment path if available.
 3. Confirm the registration is not marked paid.
 4. Confirm prize pool does not increase.
-5. Confirm LockIn Points are not awarded.
 
 ## 7. Rollback Plan
 

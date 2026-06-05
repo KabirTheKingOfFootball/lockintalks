@@ -50,7 +50,6 @@ https://lockintalks.vercel.app/api/payments/webhook
 - Confirm `/dashboard` shows paid/captured.
 - Confirm `/admin/registrations` shows paid/captured.
 - Confirm prize pool updates only after verified payment.
-- Confirm LockIn Points are awarded once, not duplicated.
 
 ## Failed or Cancelled Payment Test
 
@@ -59,7 +58,6 @@ https://lockintalks.vercel.app/api/payments/webhook
 - Confirm dashboard does not show paid.
 - Confirm admin status is failed or cancelled.
 - Confirm prize pool does not increase.
-- Confirm LockIn Points are not awarded.
 
 ## Website Review Pages
 
@@ -105,5 +103,4 @@ https://lockintalks.vercel.app/api/payments/webhook
 - Confirm dashboard payment status updates correctly.
 - Confirm admin registration/payment status updates correctly.
 - Confirm prize pool updates only after verified paid registration.
-- Confirm LockIn Points are not awarded for failed, cancelled, refunded, or unverified payments.
 - Keep a rollback plan: switch Vercel Razorpay env vars back to Test Mode or remove payment keys, then redeploy.

@@ -1,4 +1,5 @@
 import { isSeatConfirmed } from "@/lib/payment/status";
+import { areLockInPointsEnabled } from "@/lib/rewards/feature";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export { calculateLockInPointCheckout, getMaxUsableLockInPoints, pointValueInr } from "@/lib/rewards/checkout";
@@ -29,6 +30,8 @@ type RegistrationForRewards = {
 type WinnerPlace = keyof typeof winnerPoints;
 
 export async function getUserLockInPointsBalance(userId: string) {
+  if (!areLockInPointsEnabled()) return 0;
+
   const supabaseAdmin = createAdminClient();
   const { data, error } = await supabaseAdmin.from("lockin_points_ledger").select("points").eq("user_id", userId);
 
@@ -41,6 +44,8 @@ export async function getUserLockInPointsBalance(userId: string) {
 }
 
 export async function syncLockInPointsForRegistration(registrationId: string, source: string) {
+  if (!areLockInPointsEnabled()) return;
+
   try {
     const supabaseAdmin = createAdminClient();
     const { data: registration, error } = await supabaseAdmin
@@ -84,6 +89,10 @@ export async function awardWinnerPointsForRegistration({
   createdBy: string;
   source: string;
 }) {
+  if (!areLockInPointsEnabled()) {
+    return { ok: false, error: "Rewards are disabled for this launch." };
+  }
+
   const points = winnerPoints[place];
   const supabaseAdmin = createAdminClient();
   const { data: registration, error } = await supabaseAdmin

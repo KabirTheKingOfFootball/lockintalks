@@ -5,7 +5,6 @@ import { getServerAuthSession } from "@/lib/auth/server-session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { getLaunchCompetitionDefault } from "@/lib/competition-defaults";
-import { getMaxUsableLockInPoints, getUserLockInPointsBalance } from "@/lib/rewards/points";
 import { getRazorpayEnvStatus } from "@/lib/razorpay/env";
 import { isSeatConfirmed } from "@/lib/payment/status";
 import { getPaymentCompetitionSlug, getPaymentRegistrationReference, type PaymentSearchParams } from "@/lib/payment/registration-reference";
@@ -47,7 +46,6 @@ type PaymentRegistration = {
   competition_name: string;
   entry_fee: string | null;
   payment_status: string | null;
-  points_redeemed: number | null;
 };
 
 async function getPaymentSummary({
@@ -88,7 +86,6 @@ async function getPaymentSummary({
     const launchDefault = getLaunchCompetitionDefault(registration.competition_slug);
     const parsedFeeAmount = Number(competition?.fee_amount);
     const feeAmount = Number.isFinite(parsedFeeAmount) && parsedFeeAmount > 0 ? parsedFeeAmount : launchDefault?.feeAmount || 0;
-    const availablePoints = await getUserLockInPointsBalance(session.user.id);
 
     return {
       registrationId: registration.id,
@@ -98,10 +95,7 @@ async function getPaymentSummary({
       competitionName: registration.competition_name,
       competitionDate: competition ? `${competition.event_date} | ${competition.event_time || "TBA"} ${competition.timezone || "IST"}` : "See competition details",
       entryFee: registration.entry_fee || launchDefault?.feeLabel || formatFeeLabel(feeAmount),
-      feeAmount,
-      availablePoints,
-      maxUsablePoints: getMaxUsableLockInPoints(feeAmount),
-      previouslyAppliedPoints: Number(registration.points_redeemed || 0)
+      feeAmount
     };
   } catch (error) {
     if (error instanceof SupabaseConfigError) {
@@ -125,7 +119,7 @@ async function findPaymentRegistration({
   supabaseAdmin: ReturnType<typeof createAdminClient>;
   userId: string;
 }): Promise<PaymentRegistration | null> {
-  const selectColumns = "id, user_id, competition_slug, competition_name, entry_fee, payment_status, points_redeemed";
+  const selectColumns = "id, user_id, competition_slug, competition_name, entry_fee, payment_status";
   const slugCandidates = new Set<string>();
   const trimmedRegistrationId = String(registrationId || "").trim();
   const trimmedCompetitionSlug = String(competitionSlug || "").trim();

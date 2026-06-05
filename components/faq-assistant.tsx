@@ -15,7 +15,6 @@ const suggestions = [
   "How are winners chosen?",
   "Do competitions have cash prizes?",
   "How does the prize pool work?",
-  "What are LockIn Points?",
   "Can I speak about football?",
   "Is age proof required?",
   "What if payment is pending?",

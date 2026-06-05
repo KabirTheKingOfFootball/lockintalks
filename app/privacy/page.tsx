@@ -18,7 +18,7 @@ export default function PrivacyPage() {
           body: [
             "Account information such as user name if provided, email address, login status, and session information.",
             "Registration details such as student name, student age, city, country or nation, selected competition, guardian name, and guardian email.",
-            "Competition information such as registration status, event selected, results, certificates, feedback, reward status, and LockIn Points where enabled.",
+            "Competition information such as registration status, event selected, results, certificates, feedback, and reward status where enabled.",
             "Payment reference information such as order id, payment id, amount, currency, payment status, verification status, and refund status if applicable.",
             "Support or communication information sent to LockInTalks by email, forms, or admin support workflows."
           ]
@@ -30,7 +30,7 @@ export default function PrivacyPage() {
             "To place participants in appropriate age categories and keep competitions fair.",
             "To contact parents or guardians about registration, age verification, event updates, results, support, or refund questions.",
             "To process payments, verify payment status, prevent duplicate confirmations, and help with refund or support requests.",
-            "To provide digital certificates, feedback, results, rewards, and LockIn Points where available.",
+            "To provide digital certificates, feedback, results, and rewards where available.",
             "To help authorized admins manage competitions and registrations safely."
           ]
         },

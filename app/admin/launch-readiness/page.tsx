@@ -106,7 +106,7 @@ export default async function AdminLaunchReadinessPage() {
           <li>Get adult/legal approval for Terms, Privacy, Refund Policy, Pricing, No Shipping, Parent Consent, and Contact pages.</li>
           <li>Generate Live Mode Razorpay keys only after approval, then replace the Test Mode env vars in Vercel.</li>
           <li>Create a Live Mode webhook with a new live webhook secret and redeploy.</li>
-          <li>Run one small real payment test with adult supervision and verify dashboard, admin, prize pool, and LockIn Points.</li>
+          <li>Run one small real payment test with adult supervision and verify dashboard, admin, and prize pool behavior.</li>
         </ul>
       </Card>
     </AdminShell>

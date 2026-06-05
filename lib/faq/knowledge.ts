@@ -16,7 +16,6 @@ export type FAQIntent =
   | "competition_types"
   | "speech_topics"
   | "parent_consent"
-  | "lockin_points"
   | "prize_pool"
   | "account_login_help"
   | "contact_support"
@@ -224,15 +223,6 @@ export const faqCorpus: FAQAnswer[] = [
     followUps: ["Is age proof required?", "What details are required?", "Is LockInTalks safe?"]
   },
   {
-    intent: "lockin_points",
-    title: "LockIn Points",
-    aliases: ["lockin points", "points", "how points work", "use points", "points discount", "rewards points"],
-    keywords: ["lockin", "points", "point", "reward", "discount", "redeem", "balance", "dashboard", "winner", "participation"],
-    answer:
-      "LockIn Points are a LockInTalks reward and discount system where enabled. They are not cash, not withdrawable, and not transferable.\n\nPoints may be earned through verified paid participation or admin-confirmed results. Failed, cancelled, refunded, or unverified payments should not create points. When points are usable, they can reduce eligible LockInTalks checkout amounts according to the platform rules.",
-    followUps: ["Do competitions have cash prizes?", "What appears in the dashboard?", "How do payments work?"]
-  },
-  {
     intent: "prize_pool",
     title: "Prize Pool",
     aliases: ["prize pool", "live prize pool", "how prize pool works", "500 every 5", "verified paid participants"],
@@ -333,7 +323,6 @@ const synonymGroups = [
   ["certificate", "certificates", "recognition", "participation"],
   ["support", "contact", "help", "email", "mail", "issue", "problem"],
   ["topic", "topics", "speech", "idea", "ideas", "prepare", "preparation"],
-  ["lockin", "points", "reward", "rewards", "discount", "redeem"],
   ["pool", "prizepool", "participants", "verified", "paid"]
 ];
 
@@ -512,7 +501,6 @@ function findShortcutAnswer(normalized: string) {
   if (hasAny(["payment pending", "payment failed", "upi", "razorpay", "transaction"])) return faqCorpus.find((item) => item.intent === "payment_help");
   if (hasAny(["prize pool", "live prize pool", "500 every 5", "verified paid participants"])) return faqCorpus.find((item) => item.intent === "prize_pool");
   if (hasAny(["cash prize", "cash prizes", "prize money", "cash award"])) return faqCorpus.find((item) => item.intent === "cash_prizes");
-  if (hasAny(["lockin points", "points discount", "reward points"])) return faqCorpus.find((item) => item.intent === "lockin_points");
   if (hasAny(["speech topic", "topic ideas", "football speech", "role model", "my idol"])) return faqCorpus.find((item) => item.intent === "speech_topics");
   if (hasAny(["parent consent", "guardian consent", "under 18", "parent permission"])) return faqCorpus.find((item) => item.intent === "parent_consent");
   if (hasAny(["login help", "signup help", "cannot login", "forgot password", "email confirmation"])) return faqCorpus.find((item) => item.intent === "account_login_help");

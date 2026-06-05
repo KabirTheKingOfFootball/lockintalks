@@ -7,6 +7,7 @@ import { SupabaseConfigError } from "@/lib/supabase/env";
 import { getLaunchCompetitionDefault } from "@/lib/competition-defaults";
 import { isPaymentInProgress, isSeatConfirmed } from "@/lib/payment/status";
 import { getCreateOrderRegistrationReference } from "@/lib/payment/registration-reference";
+import { areLockInPointsEnabled } from "@/lib/rewards/feature";
 import { calculateLockInPointCheckout, getUserLockInPointsBalance } from "@/lib/rewards/points";
 
 export const runtime = "nodejs";
@@ -109,12 +110,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "This competition does not have a valid payment amount configured." }, { status: 400 });
     }
 
-    const availablePoints = await getUserLockInPointsBalance(userId);
-    const checkout = calculateLockInPointCheckout({
-      feeAmountPaise: feeAmount,
-      requestedPoints: Number(body.lockInPointsToApply || 0),
-      availablePoints
-    });
+    const pointsEnabled = areLockInPointsEnabled();
+    const availablePoints = pointsEnabled ? await getUserLockInPointsBalance(userId) : 0;
+    const checkout = pointsEnabled
+      ? calculateLockInPointCheckout({
+          feeAmountPaise: feeAmount,
+          requestedPoints: Number(body.lockInPointsToApply || 0),
+          availablePoints
+        })
+      : {
+          feeAmountPaise: feeAmount,
+          requestedPoints: 0,
+          availablePoints: 0,
+          maxUsablePoints: 0,
+          appliedPoints: 0,
+          discountAmountPaise: 0,
+          payableAmountPaise: feeAmount
+        };
     const amount = checkout.payableAmountPaise;
 
     const existingOrderId = registration.payment_order_id || registration.razorpay_order_id;
@@ -136,7 +148,6 @@ export async function POST(request: NextRequest) {
           orderId: existingOrderId,
           amount,
           originalAmount: checkout.feeAmountPaise,
-          lockInPoints: checkout,
           currency: registration.payment_currency || paymentCurrency,
           name: "LockInTalks",
           description: registration.competition_name,
@@ -171,8 +182,8 @@ export async function POST(request: NextRequest) {
         payment_order_id: order.id,
         payment_amount: amount,
         amount_due: amount,
-        points_redeemed: checkout.appliedPoints,
-        points_discount_amount: checkout.discountAmountPaise,
+        points_redeemed: pointsEnabled ? checkout.appliedPoints : 0,
+        points_discount_amount: pointsEnabled ? checkout.discountAmountPaise : 0,
         payment_currency: paymentCurrency,
         updated_at: new Date().toISOString()
       })
@@ -199,7 +210,6 @@ export async function POST(request: NextRequest) {
         orderId: order.id,
         amount: order.amount,
         originalAmount: checkout.feeAmountPaise,
-        lockInPoints: checkout,
         currency: order.currency,
         name: "LockInTalks",
         description: registration.competition_name,

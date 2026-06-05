@@ -32,7 +32,6 @@ export default async function PricingPage() {
             <li>Each competition has its own entry fee shown on the competition card and details page.</li>
             <li>A common beta entry fee example is INR 199 where applicable, but the actual fee may vary by competition.</li>
             <li>Taxes, gateway charges, or other applicable charges should be shown before payment if they apply.</li>
-            <li>Any LockIn Points discount is shown before payment. 1 LockIn Point = INR 1 discount where enabled.</li>
             <li>Razorpay may show the final payable INR amount during Checkout before payment is completed.</li>
             <li>No physical shipping fee is charged for standard online competition registrations.</li>
           </ul>
@@ -45,17 +44,7 @@ export default async function PricingPage() {
             <li>Prize pool calculations count only verified successful paid registrations.</li>
             <li>Failed, cancelled, pending, refunded, or unverified payments do not count toward prize pool calculations.</li>
             <li>Where enabled, prize distribution is 1st Place: 45%, 2nd Place: 30%, and 3rd Place: 25%.</li>
-            <li>Cash rewards, Amazon gift cards, certificates, feedback, and LockIn Points apply only when shown for a specific competition.</li>
-          </ul>
-        </Card>
-
-        <Card>
-          <h2 className="text-2xl font-black">LockIn Points</h2>
-          <ul className="mt-4 grid gap-3 text-sm leading-7 text-white/65">
-            <li>1 LockIn Point = INR 1 discount on LockInTalks where points are enabled.</li>
-            <li>LockIn Points are not cash, not withdrawable, and not transferable.</li>
-            <li>Checkout limits may apply, so users may not always be able to use all available points at once.</li>
-            <li>Points connected to refunded, cancelled, failed, duplicate, or invalid registrations may be reversed.</li>
+            <li>Cash rewards, Amazon gift cards, certificates, and feedback apply only when shown for a specific competition.</li>
           </ul>
         </Card>
 

@@ -75,6 +75,7 @@ const defaultSchedule = ["Schedule details will be shared before the competition
 const defaultPrizes = ["Every competition includes cash prizes. Exact award details will be shared by LockInTalks before the event."];
 const defaultJudges = ["Judges will be announced by LockInTalks before the event."];
 const badPrizeCopyPattern = /!PEOPLE!|!FUN!|!PRIZES!|!STAKES!|₍|ₑₓ|examples are/i;
+const hiddenPointsPrizePattern = /LockIn\s*Points?|Lock-in\s*Points?|1\s*LockIn\s*Point\s*=/i;
 
 export async function getLiveCompetitions(limit?: number) {
   try {
@@ -200,17 +201,14 @@ function cleanJudges(items: string[] | null | undefined, fallback?: string[]) {
 function cleanPrizeItems(items: string[]) {
   const cleaned = cleanTextItems(items)
     .filter((item) => !badPrizeCopyPattern.test(item))
+    .filter((item) => !hiddenPointsPrizePattern.test(item))
     .map((item) => {
       if (/prize pool.*INR\s*500.*5.*participants/i.test(item)) {
         return "The prize pool increases by INR 500 for every 5 verified paid participants.";
       }
 
       if (/all participants.*feedback|participation certificate|everyone get/i.test(item)) {
-        return "Participants may receive digital certificates and helpful feedback after the event. Verified paid participation can earn 7 LockIn Points where enabled.";
-      }
-
-      if (/1\s*LockIn\s*Point\s*=\s*1\s*rupee/i.test(item)) {
-        return "1 LockIn Point = INR 1 discount on LockInTalks where enabled.";
+        return "All participants may receive precise feedback and participation certificates after the event.";
       }
 
       return item.replace(/\s*\(Eg\.[^)]+\)/gi, "").trim();

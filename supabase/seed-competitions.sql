@@ -56,11 +56,11 @@ values
   array[
     'The prize pool increases by INR 500 for every 5 verified paid participants.',
     'Prizes may be given as cash or Amazon gift cards.',
-    '1st Place: 45% of the total prize pool + 77 LockIn Points.',
-    '2nd Place: 30% of the total prize pool + 47 LockIn Points.',
-    '3rd Place: 25% of the total prize pool + 27 LockIn Points.',
-    'Participants may receive digital certificates and helpful feedback after the event.',
-    '1 LockIn Point = INR 1 discount on LockInTalks where enabled.'
+    '1st Place: 45% of the total prize pool.',
+    '2nd Place: 30% of the total prize pool.',
+    '3rd Place: 25% of the total prize pool.',
+    'All participants get precise and valuable feedback and participation certificates.',
+    'That is why more people means more fun, more prizes, and more stakes.'
   ],
   array['Confidence', 'Clarity', 'Creativity', 'Story Structure', 'Expression', 'Time Management'],
   array['Arti Sharma']
@@ -97,11 +97,11 @@ values
   array[
     'The prize pool increases by INR 500 for every 5 verified paid participants.',
     'Prizes may be given as cash or Amazon gift cards.',
-    '1st Place: 45% of the total prize pool + 77 LockIn Points.',
-    '2nd Place: 30% of the total prize pool + 47 LockIn Points.',
-    '3rd Place: 25% of the total prize pool + 27 LockIn Points.',
-    'Participants may receive digital certificates and helpful feedback after the event.',
-    '1 LockIn Point = INR 1 discount on LockInTalks where enabled.'
+    '1st Place: 45% of the total prize pool.',
+    '2nd Place: 30% of the total prize pool.',
+    '3rd Place: 25% of the total prize pool.',
+    'All participants get precise and valuable feedback and participation certificates.',
+    'That is why more people means more fun, more prizes, and more stakes.'
   ],
   array['Confidence', 'Clarity', 'Personal Connection', 'Speech Structure', 'Voice Modulation', 'Time Management'],
   array['Arti Sharma']
@@ -138,11 +138,11 @@ values
   array[
     'The prize pool increases by INR 500 for every 5 verified paid participants.',
     'Prizes may be given as cash or Amazon gift cards.',
-    '1st Place: 45% of the total prize pool + 77 LockIn Points.',
-    '2nd Place: 30% of the total prize pool + 47 LockIn Points.',
-    '3rd Place: 25% of the total prize pool + 27 LockIn Points.',
-    'Participants may receive digital certificates and helpful feedback after the event.',
-    '1 LockIn Point = INR 1 discount on LockInTalks where enabled.'
+    '1st Place: 45% of the total prize pool.',
+    '2nd Place: 30% of the total prize pool.',
+    '3rd Place: 25% of the total prize pool.',
+    'All participants get precise and valuable feedback and participation certificates.',
+    'That is why more people means more fun, more prizes, and more stakes.'
   ],
   array['Confidence', 'Motivational Impact', 'Clarity', 'Speech Structure', 'Audience Connection', 'Time Management'],
   array['Arti Sharma']

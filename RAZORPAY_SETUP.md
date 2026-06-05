@@ -88,7 +88,6 @@ This endpoint only shows safe true/false setup information. It does not expose s
    - User dashboard shows payment as paid.
    - Admin registrations page shows paid/captured.
    - Prize pool counts the verified paid registration.
-   - LockIn Points are awarded only once after confirmed payment.
 
 ## 6. Run One Failed Test Payment
 
@@ -99,7 +98,6 @@ This endpoint only shows safe true/false setup information. It does not expose s
    - Dashboard does not show the registration as paid.
    - Admin payment status is failed or cancelled.
    - Prize pool does not increase.
-   - LockIn Points are not awarded for the failed payment.
 
 ## 7. Before Live Payments
 

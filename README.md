@@ -58,6 +58,12 @@ Safe Razorpay setup check:
 
 This route only returns setup booleans and key mode (`test`, `live`, `unknown`, or `missing`). It never returns key values or secrets.
 
+Launch feature flag:
+
+- `NEXT_PUBLIC_LOCKIN_POINTS_ENABLED=false`
+
+This is the safe default for the first public launch. The internal points/reward code is preserved for later, but public UI, checkout discounts, and automatic awards stay disabled unless this flag is intentionally set to `true`.
+
 Razorpay review/support pages:
 
 - `/terms`
@@ -68,7 +74,7 @@ Razorpay review/support pages:
 - `/parent-consent`
 - `/contact`
 
-Payment safety rule: do not mark registrations as paid from the browser callback alone. Successful payments must pass server-side Razorpay signature verification and captured payment confirmation. Failed, cancelled, refunded, or unverified payments must not count toward prize pools or automatic LockIn Points.
+Payment safety rule: do not mark registrations as paid from the browser callback alone. Successful payments must pass server-side Razorpay signature verification and captured payment confirmation. Failed, cancelled, refunded, or unverified payments must not count toward prize pools.
 
 ## Monitoring
 

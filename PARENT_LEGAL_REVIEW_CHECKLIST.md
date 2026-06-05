@@ -53,8 +53,6 @@ https://lockintalks.vercel.app/api/payments/webhook
 - Confirm competition entry fee wording is accurate.
 - Confirm prize pool wording is accurate.
 - Confirm cash/Amazon gift card reward wording is accurate for the actual competition.
-- Confirm LockIn Points are described as non-cash, non-withdrawable, and non-transferable.
-- Confirm points from failed, cancelled, refunded, or invalid registrations are not awarded or are reversed.
 - Confirm certificates and feedback wording matches what LockInTalks actually provides.
 
 ## Refunds and Support

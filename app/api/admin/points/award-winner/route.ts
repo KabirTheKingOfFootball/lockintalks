@@ -31,12 +31,12 @@ export async function POST(request: NextRequest) {
     });
 
     if (!result.ok) {
-      return NextResponse.json({ error: result.error || "Could not award LockIn Points." }, { status: 400, headers: adminNoStoreHeaders });
+      return NextResponse.json({ error: result.error || "Could not award this reward right now." }, { status: 400, headers: adminNoStoreHeaders });
     }
 
     return NextResponse.json(result, { headers: adminNoStoreHeaders });
   } catch (error) {
     console.error("[LockInTalks admin points] Winner award failed:", error);
-    return NextResponse.json({ error: "Could not award winner LockIn Points." }, { status: 500, headers: adminNoStoreHeaders });
+    return NextResponse.json({ error: "Could not award this reward right now." }, { status: 500, headers: adminNoStoreHeaders });
   }
 }

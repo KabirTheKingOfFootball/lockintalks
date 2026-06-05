@@ -6,15 +6,17 @@ import ts from "typescript";
 
 const failures = [];
 const checkout = loadTsModule("lib/rewards/checkout.ts");
+const feature = loadTsModule("lib/rewards/feature.ts");
 const levels = loadTsModule("lib/rewards/levels.ts");
 const prizePool = loadTsModule("lib/rewards/prize-pool.ts");
 const paymentStatus = loadTsModule("lib/payment/status.ts");
 const pointsSource = readFileSync("lib/rewards/points.ts", "utf8");
 
-expectMatch(pointsSource, /export const participationPoints = 7;/, "Participation earns 7 LockIn Points.");
-expectMatch(pointsSource, /first:\s*77/, "1st place winner earns 77 LockIn Points.");
-expectMatch(pointsSource, /second:\s*47/, "2nd place winner earns 47 LockIn Points.");
-expectMatch(pointsSource, /third:\s*27/, "3rd place winner earns 27 LockIn Points.");
+expectEqual(feature.areLockInPointsEnabled(), false, "Internal rewards feature is disabled by default for launch.");
+expectMatch(pointsSource, /export const participationPoints = 7;/, "Internal participation reward constant is preserved for future use.");
+expectMatch(pointsSource, /first:\s*77/, "Internal first-place reward constant is preserved for future use.");
+expectMatch(pointsSource, /second:\s*47/, "Internal second-place reward constant is preserved for future use.");
+expectMatch(pointsSource, /third:\s*27/, "Internal third-place reward constant is preserved for future use.");
 
 const storyTalksCheckout = checkout.calculateLockInPointCheckout({
   feeAmountPaise: 19900,
@@ -22,7 +24,7 @@ const storyTalksCheckout = checkout.calculateLockInPointCheckout({
   availablePoints: 999
 });
 
-expectEqual(storyTalksCheckout.maxUsablePoints, 99, "INR 199 checkout caps LockIn Points at 99.");
+expectEqual(storyTalksCheckout.maxUsablePoints, 99, "Internal checkout math caps points at 99 for INR 199.");
 expectEqual(storyTalksCheckout.appliedPoints, 99, "Checkout applies no more than 50% of entry fee.");
 expectEqual(storyTalksCheckout.discountAmountPaise, 9900, "99 points creates INR 99 discount.");
 expectEqual(storyTalksCheckout.payableAmountPaise, 10000, "Final payable amount never goes negative.");
@@ -60,26 +62,26 @@ expectEqual(paymentStatus.isSeatConfirmed("failed"), false, "Failed payments do 
 expectEqual(paymentStatus.isSeatConfirmed("cancelled"), false, "Cancelled payments do not count as verified.");
 expectEqual(paymentStatus.isSeatConfirmed("refunded"), false, "Refunded payments do not count as verified.");
 
-expectEqual(levels.getNextLevelRequirement(1), 17, "Level 1 next requirement is 17 XP.");
-expectEqual(levels.getNextLevelRequirement(2), 27, "Level 2 next requirement is 27 XP.");
-expectEqual(levels.getNextLevelRequirement(20), 207, "Level 20 next requirement is 207 XP.");
+expectEqual(levels.getNextLevelRequirement(1), 17, "Internal level 1 next requirement is 17.");
+expectEqual(levels.getNextLevelRequirement(2), 27, "Internal level 2 next requirement is 27.");
+expectEqual(levels.getNextLevelRequirement(20), 207, "Internal level 20 next requirement is 207.");
 
 const levelOneProgress = levels.calculateLockInLevel(16);
 expectEqual(levelOneProgress.currentLevel, 1, "16 points keeps user at Level 1.");
-expectEqual(levelOneProgress.currentXP, 16, "16 points shows 16 XP progress.");
-expectEqual(levelOneProgress.nextRequirement, 17, "Level 1 progress targets 17 XP.");
+expectEqual(levelOneProgress.currentXP, 16, "16 points shows 16 internal progress.");
+expectEqual(levelOneProgress.nextRequirement, 17, "Level 1 progress targets 17 internal progress.");
 
 const levelTwoProgress = levels.calculateLockInLevel(17);
 expectEqual(levelTwoProgress.currentLevel, 2, "17 points reaches Level 2.");
-expectEqual(levelTwoProgress.currentXP, 0, "Fresh Level 2 starts at 0 XP progress.");
-expectEqual(levelTwoProgress.nextRequirement, 27, "Level 2 progress targets 27 XP.");
-expectEqual(levelTwoProgress.nextLevelBonus, 3, "Level 2 next level bonus target is +3 LockIn Points.");
+expectEqual(levelTwoProgress.currentXP, 0, "Fresh Level 2 starts at 0 internal progress.");
+expectEqual(levelTwoProgress.nextRequirement, 27, "Level 2 progress targets 27 internal progress.");
+expectEqual(levelTwoProgress.nextLevelBonus, 3, "Level 2 next level bonus target is 3.");
 
 const levelSixProgress = levels.calculateLockInLevel(227);
 expectEqual(levelSixProgress.currentLevel, 6, "227 points reaches Level 6.");
-expectEqual(levelSixProgress.currentXP, 42, "227 points leaves 42 XP inside Level 6.");
-expectEqual(levelSixProgress.nextRequirement, 67, "Level 6 needs 67 XP to reach Level 7.");
-expectEqual(Math.round(levelSixProgress.progressPercent), 63, "42 of 67 XP is roughly 63 percent progress.");
+expectEqual(levelSixProgress.currentXP, 42, "227 points leaves 42 internal progress inside Level 6.");
+expectEqual(levelSixProgress.nextRequirement, 67, "Level 6 needs 67 internal progress to reach Level 7.");
+expectEqual(Math.round(levelSixProgress.progressPercent), 63, "42 of 67 internal progress is roughly 63 percent.");
 
 if (failures.length > 0) {
   console.error("\n[rewards-smoke] Failed checks:");

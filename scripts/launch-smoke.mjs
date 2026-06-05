@@ -17,12 +17,9 @@ const prizePool = require(path.resolve("lib/rewards/prize-pool.ts"));
 const paymentStatus = require(path.resolve("lib/payment/status.ts"));
 const faqKnowledge = require(path.resolve("lib/faq/knowledge.ts"));
 const faqEssay = require(path.resolve("lib/faq/essay-loader.ts"));
-const pointsSource = readFileSync("lib/rewards/points.ts", "utf8");
+const rewardsFeature = require(path.resolve("lib/rewards/feature.ts"));
 
-expectMatch(pointsSource, /export const participationPoints = 7;/, "Participation reward is 7 LockIn Points.");
-expectMatch(pointsSource, /first:\s*77/, "First-place reward is 77 LockIn Points.");
-expectMatch(pointsSource, /second:\s*47/, "Second-place reward is 47 LockIn Points.");
-expectMatch(pointsSource, /third:\s*27/, "Third-place reward is 27 LockIn Points.");
+expectEqual(rewardsFeature.areLockInPointsEnabled(), false, "LockIn Points are disabled by default for launch.");
 
 for (const [paidParticipants, expectedAmount] of [
   [0, 0],
@@ -52,7 +49,6 @@ for (const question of [
   "My child is 7. Can they join?",
   "Can I speak about football or my role model?",
   "How does the prize pool increase every five paid participants?",
-  "What are LockIn Points?",
   "What details do I need for registration?",
   "What happens if payment is pending?",
   "Is LockInTalks safe for parents?"
@@ -82,9 +78,9 @@ console.log("[launch-smoke] Passed.");
 
 function scanSourceForBadLaunchCopy() {
   const files = [
-    ...walk("app"),
-    ...walk("components"),
-    ...walk("lib"),
+    ...walk("app").filter((file) => !file.includes(`${path.sep}api${path.sep}`) && !file.includes(`${path.sep}admin${path.sep}`)),
+    ...walk("components").filter((file) => !file.includes(`${path.sep}admin${path.sep}`)),
+    ...walk("lib").filter((file) => !file.includes(`${path.sep}rewards${path.sep}`)),
     "supabase/seed-competitions.sql",
     "README.md",
     "LAUNCH_CHECKLIST.md",
@@ -102,7 +98,12 @@ function scanSourceForBadLaunchCopy() {
     /examples are/i,
     /lorem ipsum/i,
     /support@lockintalks/i,
-    /hello@lockintalks/i
+    /hello@lockintalks/i,
+    /What are LockIn Points/i,
+    /LockIn Points are/i,
+    /\+\s*(77|47|27)\s+LockIn Points/i,
+    /1\s+LockIn Point\s*=\s*(?:INR\s*)?1/i,
+    /XP meter/i
   ];
 
   for (const file of files) {
@@ -154,6 +155,10 @@ async function smokePublicRoutes(origin) {
     const html = await response.text();
     if (/!PEOPLE!|!FUN!|!PRIZES!|!STAKES!|₍|ₑₓ|examples are/i.test(html)) {
       failures.push(`${route} renders old unprofessional prize copy.`);
+    }
+
+    if (/LockIn Points|Lock-in Points|XP meter|1\s+LockIn Point/i.test(html)) {
+      failures.push(`${route} renders public LockIn Points copy while launch mode is disabled.`);
     }
   }
 }

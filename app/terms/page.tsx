@@ -51,12 +51,10 @@ export default function TermsPage() {
           ]
         },
         {
-          title: "Prizes, Certificates, and LockIn Points",
+          title: "Prizes, Certificates, and Feedback",
           body: [
             "Cash rewards, Amazon gift cards, certificates, feedback, or other recognition may be offered only where clearly stated for a competition.",
             "Prize pool values must be based on verified paid registrations where prize pool logic is enabled.",
-            "LockIn Points are not cash, not withdrawable, not transferable, and only usable as LockInTalks discounts where enabled.",
-            "LockIn Points may be reversed for refunded, cancelled, failed, or invalid registrations.",
             "Certificates, feedback, results, and event communication may be provided digitally."
           ]
         },

@@ -52,14 +52,6 @@ export default function RefundPolicyPage() {
         {
           title: "Failed or Cancelled Payments",
           body: "Failed, cancelled, or unverified payments do not confirm a competition seat. If money is deducted but the dashboard still shows pending or failed, contact support before paying again."
-        },
-        {
-          title: "LockIn Points",
-          body: [
-            "LockIn Points from refunded, cancelled, failed, duplicate, or invalid registrations may be reversed.",
-            "LockIn Points are not cash, cannot be withdrawn, and cannot be transferred to another person or platform.",
-            "Points may only be used as discounts on LockInTalks where enabled."
-          ]
         }
       ]}
     />
