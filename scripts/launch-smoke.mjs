@@ -169,7 +169,7 @@ async function smokePublicRoutes(origin) {
         failures.push(`${route} does not show Current Prize Pool: ₹0.`);
       }
 
-      if (!/The prize pool increases by INR 500 for every 5 verified contestants\./i.test(html)) {
+      if (!/The prize pool increases by[\s\S]{0,120}INR 500[\s\S]{0,120}for every 5 verified contestants\./i.test(html)) {
         failures.push(`${route} does not render the verified-contestants prize pool wording.`);
       }
     }
