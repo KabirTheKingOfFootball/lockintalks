@@ -21,6 +21,7 @@ type CheckoutErrorCode =
 type RegistrationCheckoutResponse = {
   ok?: boolean;
   errorCode?: CheckoutErrorCode | null;
+  detailsCode?: string | null;
   registrationId?: string;
   keyId?: string;
   orderId?: string;
@@ -89,6 +90,7 @@ declare global {
 
 type CheckoutDebugState = {
   lastErrorCode: string | null;
+  lastDetailsCode: string | null;
   createCheckoutStatus: number | null;
   registrationIdExists: boolean;
   orderIdExists: boolean;
@@ -102,6 +104,7 @@ type CheckoutDebugState = {
 
 const initialDebugState: CheckoutDebugState = {
   lastErrorCode: null,
+  lastDetailsCode: null,
   createCheckoutStatus: null,
   registrationIdExists: false,
   orderIdExists: false,
@@ -174,6 +177,7 @@ export function RegisterForm({
     setMessage("");
     updateDebug({
       lastErrorCode: null,
+      lastDetailsCode: null,
       createCheckoutStatus: null,
       registrationIdExists: false,
       orderIdExists: false,
@@ -223,6 +227,7 @@ export function RegisterForm({
       const result = await readJsonResponse<RegistrationCheckoutResponse>(response);
       updateDebug({
         createCheckoutStatus: response.status,
+        lastDetailsCode: result.detailsCode || null,
         registrationIdExists: Boolean(result.registrationId),
         orderIdExists: Boolean(result.orderId),
         amount: typeof result.amount === "number" ? result.amount : null,
@@ -233,6 +238,7 @@ export function RegisterForm({
         slug: competition.slug,
         authenticated,
         status: response.status,
+        detailsCode: result.detailsCode || null,
         registrationIdExists: Boolean(result.registrationId),
         orderIdExists: Boolean(result.orderId),
         amount: result.amount || null,
@@ -242,7 +248,7 @@ export function RegisterForm({
 
       if (response.status === 401) {
         track("register_clicked_logged_out", { competition: competition.slug });
-        showError("AUTH_MISSING", result.error || "Please Log In or Create an Account Before Registering for a Competition.");
+        showError("AUTH_MISSING", result.error || "Please Log In or Create an Account Before Registering for a Competition.", result.detailsCode || "AUTH_MISSING");
         router.push(result.loginTo || `/login?next=${encodeURIComponent(`/register/${competition.slug}`)}`);
         return;
       }
@@ -256,8 +262,8 @@ export function RegisterForm({
 
       if (!response.ok || result.error || !result.registrationId) {
         const code = result.errorCode || (response.status >= 500 ? "ORDER_CREATE_FAILED" : "REGISTRATION_CREATE_FAILED");
-        console.warn(`[LockInTalks registration checkout] Checkout creation failed. code=${code} status=${response.status} slug=${competition.slug}`);
-        showError(code, result.error || "Registration could not be saved. Please try again.");
+        console.warn(`[LockInTalks registration checkout] Checkout creation failed. code=${code} details=${result.detailsCode || "none"} status=${response.status} slug=${competition.slug}`);
+        showError(code, result.error || "Registration could not be saved. Please try again.", result.detailsCode || null);
         setStep("failed");
         return;
       }
@@ -265,7 +271,7 @@ export function RegisterForm({
       if (!result.keyId || !result.orderId || !result.amount || !result.currency) {
         const code = !result.keyId ? "RAZORPAY_KEY_MISSING" : "ORDER_CREATE_FAILED";
         console.warn(`[LockInTalks registration checkout] Checkout payload incomplete. code=${code} slug=${competition.slug} registrationIdExists=${Boolean(result.registrationId)} orderIdExists=${Boolean(result.orderId)} amount=${result.amount || "missing"} currency=${result.currency || "missing"} keyIdConfigured=${Boolean(result.keyId)}`);
-        showError(code, "Registration was saved, but secure payment could not open right now. Please use your dashboard to continue payment later.");
+        showError(code, "Registration was saved, but secure payment could not open right now. Please use your dashboard to continue payment later.", result.detailsCode || null);
         setStep("failed");
         return;
       }
@@ -431,10 +437,10 @@ export function RegisterForm({
 
   const isBusy = isSubmitting || step === "creating" || step === "opening" || step === "verifying";
 
-  function showError(code: CheckoutErrorCode, text: string) {
+  function showError(code: CheckoutErrorCode, text: string, detailsCode: string | null = null) {
     setErrorCode(code);
     setError(text);
-    updateDebug({ lastErrorCode: code });
+    updateDebug({ lastErrorCode: code, lastDetailsCode: detailsCode });
   }
 
   function updateDebug(patch: Partial<CheckoutDebugState>) {
@@ -461,6 +467,7 @@ export function RegisterForm({
       {error && (
         <div className="mt-4 rounded-[8px] border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">
           {errorCode && <p className="mb-1 font-black text-white">Error Code: {errorCode}</p>}
+          {debug && debugState.lastDetailsCode && <p className="mb-1 font-bold text-white/85">Details Code: {debugState.lastDetailsCode}</p>}
           <p>{error}</p>
         </div>
       )}
@@ -488,6 +495,7 @@ function RegisterCheckoutDebugPanel({
     ["slug", slug],
     ["authenticated", yesNo(authenticated)],
     ["last error code", state.lastErrorCode || "none"],
+    ["details code", state.lastDetailsCode || "none"],
     ["create-checkout status", state.createCheckoutStatus === null ? "not called" : String(state.createCheckoutStatus)],
     ["registration id exists", yesNo(state.registrationIdExists)],
     ["order id exists", yesNo(state.orderIdExists)],

@@ -163,6 +163,7 @@ async function smokePublicRoutes(origin) {
   }
 
   await smokeUnauthenticatedCheckoutEndpoint(origin);
+  await smokeInvalidCheckoutPayload(origin);
 }
 
 async function smokeUnauthenticatedCheckoutEndpoint(origin) {
@@ -193,6 +194,36 @@ async function smokeUnauthenticatedCheckoutEndpoint(origin) {
 
   if (body?.errorCode !== "AUTH_MISSING") {
     failures.push("/api/registrations/create-checkout missing-auth smoke did not return AUTH_MISSING.");
+  }
+}
+
+async function smokeInvalidCheckoutPayload(origin) {
+  const response = await fetch(`${origin}/api/registrations/create-checkout`, {
+    method: "POST",
+    cache: "no-store",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      competitionSlug: "idol-talk",
+      studentAge: 12,
+      guardianName: "Smoke Guardian",
+      guardianEmail: "smoke@example.com",
+      city: "Test City",
+      country: "India"
+    })
+  });
+  const cacheControl = response.headers.get("cache-control") || "";
+  const body = await response.json().catch(() => null);
+
+  if (response.status !== 400) {
+    failures.push(`/api/registrations/create-checkout invalid-payload smoke returned HTTP ${response.status}, expected 400.`);
+  }
+
+  if (!cacheControl.toLowerCase().includes("no-store")) {
+    failures.push("/api/registrations/create-checkout invalid-payload smoke is missing no-store cache headers.");
+  }
+
+  if (body?.errorCode !== "REGISTRATION_CREATE_FAILED" || body?.detailsCode !== "MISSING_STUDENT_NAME") {
+    failures.push("/api/registrations/create-checkout invalid-payload smoke did not return MISSING_STUDENT_NAME details.");
   }
 }
 

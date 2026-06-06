@@ -19,6 +19,7 @@ const razorpayEnv = require(path.resolve("lib/razorpay/env.ts"));
 const registrationReference = require(path.resolve("lib/payment/registration-reference.ts"));
 const paymentAmounts = require(path.resolve("lib/payment/amounts.ts"));
 const rewardsFeature = require(path.resolve("lib/rewards/feature.ts"));
+const checkoutRequest = require(path.resolve("lib/registration/checkout-request.ts"));
 const failures = [];
 
 const orderId = "order_lockintalks_smoke";
@@ -82,6 +83,107 @@ expectEqual(Boolean(paymentAmounts.getRegistrationAmountRepairPatch(corruptedLau
 expectEqual(paymentAmounts.getRegistrationAmountRepairPatch(corruptedLaunchAmount, "captured"), null, "Captured registrations are not repaired automatically.");
 expectEqual(rewardsFeature.areLockInPointsEnabled(), false, "LockIn Points feature is disabled by default, so checkout discounts stay off.");
 
+const camelCaseCheckoutRequest = checkoutRequest.normalizeCreateCheckoutRequest({
+  competitionSlug: "idol-talk",
+  studentName: "Smoke Student",
+  studentAge: 12,
+  guardianName: "Smoke Guardian",
+  guardianEmail: "smoke@example.com",
+  city: "Mumbai",
+  country: "India"
+});
+expectEqual(camelCaseCheckoutRequest.ok, true, "Current register form camelCase checkout payload is accepted.");
+if (camelCaseCheckoutRequest.ok) {
+  expectEqual(camelCaseCheckoutRequest.values.competitionSlug, "idol-talk", "CamelCase checkout payload normalizes the idol-talk slug.");
+  expectEqual(camelCaseCheckoutRequest.values.studentAge, 12, "CamelCase checkout payload normalizes numeric age.");
+}
+
+const snakeCaseCheckoutRequest = checkoutRequest.normalizeCreateCheckoutRequest({
+  competition_slug: "story-talks",
+  student_name: "Smoke Student",
+  student_age: "13",
+  guardian_name: "Smoke Guardian",
+  guardian_email: "smoke@example.com",
+  city: "Delhi",
+  country: "India"
+});
+expectEqual(snakeCaseCheckoutRequest.ok, true, "Snake_case checkout payload is accepted.");
+if (snakeCaseCheckoutRequest.ok) {
+  expectEqual(snakeCaseCheckoutRequest.values.competitionSlug, "story-talks", "Snake_case checkout payload normalizes the story-talks slug.");
+  expectEqual(snakeCaseCheckoutRequest.values.studentAge, 13, "Snake_case checkout payload normalizes string age.");
+}
+
+const aliasCheckoutRequest = checkoutRequest.normalizeCreateCheckoutRequest({
+  slug: "power-talk",
+  student: "Smoke Student",
+  age: "14",
+  parentName: "Smoke Parent",
+  parentEmail: "smoke@example.com",
+  city: "Bengaluru",
+  nation: "India"
+});
+expectEqual(aliasCheckoutRequest.ok, true, "Common parent/student alias checkout payload is accepted.");
+if (aliasCheckoutRequest.ok) {
+  expectEqual(aliasCheckoutRequest.values.competitionSlug, "power-talk", "Alias checkout payload normalizes the power-talk slug.");
+}
+
+expectDetailsCode(
+  checkoutRequest.normalizeCreateCheckoutRequest({
+    competitionSlug: "idol-talk",
+    studentAge: 12,
+    guardianName: "Smoke Guardian",
+    guardianEmail: "smoke@example.com",
+    city: "Mumbai",
+    country: "India"
+  }),
+  "MISSING_STUDENT_NAME",
+  "Missing student name returns a specific checkout details code."
+);
+expectDetailsCode(
+  checkoutRequest.normalizeCreateCheckoutRequest({
+    competitionSlug: "idol-talk",
+    studentName: "Smoke Student",
+    studentAge: 4,
+    guardianName: "Smoke Guardian",
+    guardianEmail: "smoke@example.com",
+    city: "Mumbai",
+    country: "India"
+  }),
+  "INVALID_STUDENT_AGE",
+  "Invalid student age returns a specific checkout details code."
+);
+expectDetailsCode(
+  checkoutRequest.normalizeCreateCheckoutRequest({
+    competitionSlug: "../bad",
+    studentName: "Smoke Student",
+    studentAge: 12,
+    guardianName: "Smoke Guardian",
+    guardianEmail: "smoke@example.com",
+    city: "Mumbai",
+    country: "India"
+  }),
+  "INVALID_COMPETITION_SLUG",
+  "Bad competition slug returns a specific checkout details code."
+);
+
+for (const slug of ["story-talks", "idol-talk", "power-talk"]) {
+  const acceptedPayload = checkoutRequest.normalizeCreateCheckoutRequest({
+    competitionSlug: slug,
+    studentName: "Smoke Student",
+    studentAge: 12,
+    guardianName: "Smoke Guardian",
+    guardianEmail: "smoke@example.com",
+    city: "Mumbai",
+    country: "India"
+  });
+  const resolvedLaunchAmount = paymentAmounts.resolvePayableAmountPaise({
+    competition: { fee_amount: 800 },
+    competitionSlug: slug
+  });
+  expectEqual(acceptedPayload.ok, true, `${slug} register checkout payload validates before order creation.`);
+  expectEqual(resolvedLaunchAmount.amountPaise, 19900, `${slug} launch checkout amount resolves to 19900 paise.`);
+}
+
 const envStatus = razorpayEnv.getRazorpayEnvStatus();
 expectEqual(envStatus.checkoutReady, true, "Razorpay checkout env status detects configured test keys.");
 expectEqual(envStatus.webhookReady, true, "Razorpay webhook env status detects configured webhook secret.");
@@ -114,6 +216,7 @@ expectEqual(
 
 const registrationRouteSource = readFileSync("app/api/registrations/route.ts", "utf8");
 const registrationCheckoutSource = readFileSync("app/api/registrations/create-checkout/route.ts", "utf8");
+const registrationCheckoutRequestSource = readFileSync("lib/registration/checkout-request.ts", "utf8");
 const registerPageSource = readFileSync("app/register/[slug]/page.tsx", "utf8");
 const paymentPageSource = readFileSync("app/payment/page.tsx", "utf8");
 const createOrderSource = readFileSync("app/api/payments/create-order/route.ts", "utf8");
@@ -136,7 +239,9 @@ expectMatch(registrationRouteSource, /redirectTo:\s*alreadyPaid\s*\?\s*"\/dashbo
 expectMatch(registrationRouteSource, /row_user=\$\{data\.user_id\}/, "Registration creation logs the database row owner safely.");
 expectMatch(registrationCheckoutSource, /export const dynamic = "force-dynamic"/, "Registration checkout endpoint is dynamic.");
 expectMatch(registrationCheckoutSource, /getServerAuthSession/, "Registration checkout requires the server auth session.");
+expectMatch(registrationCheckoutSource, /normalizeCreateCheckoutRequest/, "Registration checkout normalizes the request before auth and database work.");
 expectMatch(registrationCheckoutSource, /errorCode:\s*"AUTH_MISSING"/, "Registration checkout returns AUTH_MISSING for missing sessions.");
+expectMatch(registrationCheckoutSource, /detailsCode/, "Registration checkout returns safe details codes for production debugging.");
 expectMatch(registrationCheckoutSource, /errorCode:\s*"RAZORPAY_KEY_MISSING"/, "Registration checkout returns RAZORPAY_KEY_MISSING for missing Razorpay config.");
 expectMatch(registrationCheckoutSource, /jsonError\([^)]*"REGISTRATION_CREATE_FAILED"/, "Registration checkout exposes safe registration failure codes.");
 expectMatch(registrationCheckoutSource, /jsonError\([^)]*"ORDER_CREATE_FAILED"/, "Registration checkout exposes safe order failure codes.");
@@ -158,6 +263,19 @@ expectMatch(registrationCheckoutSource, /competitionName:\s*registration\.compet
 expectMatch(registrationCheckoutSource, /participantName:\s*registration\.student_name/, "Registration checkout returns participantName only to the current submitting user.");
 expectNotMatch(registrationCheckoutSource, /amount:\s*body\./, "Registration checkout never trusts a client-provided amount.");
 expectNotMatch(registrationCheckoutSource, /lockInPointsToApply/, "Registration checkout does not expose public LockIn Points checkout controls.");
+expectMatch(registrationCheckoutRequestSource, /studentName", "student_name", "student"/, "Registration checkout accepts current and legacy student-name payload keys.");
+expectMatch(registrationCheckoutRequestSource, /guardianName", "guardian_name", "parentName"/, "Registration checkout accepts guardian and parent-name payload keys.");
+expectMatch(registrationCheckoutRequestSource, /guardianEmail", "guardian_email", "parentEmail"/, "Registration checkout accepts guardian and parent-email payload keys.");
+expectMatch(registrationCheckoutRequestSource, /country", "nation"/, "Registration checkout accepts country and nation payload keys.");
+expectMatch(registrationCheckoutRequestSource, /MISSING_STUDENT_NAME/, "Registration checkout reports missing student name details.");
+expectMatch(registrationCheckoutRequestSource, /INVALID_STUDENT_AGE/, "Registration checkout reports invalid student age details.");
+expectMatch(registrationCheckoutRequestSource, /INVALID_COMPETITION_SLUG/, "Registration checkout reports invalid competition slug details.");
+expectBefore(
+  registrationCheckoutSource,
+  "normalizeCreateCheckoutRequest",
+  "createCheckoutOrder({",
+  "Registration checkout validates payload before trying to create a Razorpay order."
+);
 expectMatch(registerPageSource, /searchParams/, "Register page reads search params for safe debug mode.");
 expectMatch(registerPageSource, /debug=\{debugEnabled\}/, "Register page passes debug mode to the client form.");
 expectMatch(registerPageSource, /authenticated=\{isLoggedIn\}/, "Register page passes server auth state to the debug panel.");
@@ -205,7 +323,9 @@ expectMatch(paymentFormSource, /<form action="\/logout" method="post">/, "Anothe
 expectMatch(registerFormSource, /\/api\/registrations\/create-checkout/, "Register form uses direct create-checkout instead of redirecting to payment first.");
 expectMatch(registerFormSource, /CheckoutErrorCode/, "Register form uses explicit safe checkout error codes.");
 expectMatch(registerFormSource, /Error Code:/, "Register form shows a visible safe error code.");
+expectMatch(registerFormSource, /Details Code:/, "Register form can show safe details code in debug mode.");
 expectMatch(registerFormSource, /Checkout Debug/, "Register form exposes a safe query-param debug panel.");
+expectMatch(registerFormSource, /details code/, "Register form debug panel shows the exact checkout details code.");
 expectMatch(registerFormSource, /create-checkout status/, "Register form debug panel shows create-checkout status.");
 expectMatch(registerFormSource, /registration id exists/, "Register form debug panel avoids exposing registration id values.");
 expectMatch(registerFormSource, /order id exists/, "Register form debug panel avoids exposing order id values.");
@@ -269,6 +389,20 @@ function expectMatch(source, pattern, label) {
 
 function expectNotMatch(source, pattern, label) {
   if (pattern.test(source)) {
+    failures.push(label);
+  }
+}
+
+function expectDetailsCode(result, expectedDetailsCode, label) {
+  if (result.ok || result.detailsCode !== expectedDetailsCode) {
+    failures.push(`${label} Expected ${expectedDetailsCode}, received ${result.ok ? "ok" : result.detailsCode}.`);
+  }
+}
+
+function expectBefore(source, firstNeedle, secondNeedle, label) {
+  const firstIndex = source.indexOf(firstNeedle);
+  const secondIndex = source.indexOf(secondNeedle);
+  if (firstIndex === -1 || secondIndex === -1 || firstIndex > secondIndex) {
     failures.push(label);
   }
 }
