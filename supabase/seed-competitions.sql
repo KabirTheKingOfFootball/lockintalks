@@ -54,7 +54,7 @@ values
     'Results will be announced after judging is complete.'
   ],
   array[
-    'The prize pool increases by INR 500 for every 5 verified paid participants.',
+    'The prize pool increases by INR 500 for every 5 verified contestants.',
     'Prizes may be given as cash or Amazon gift cards.',
     '1st Place: 45% of the total prize pool.',
     '2nd Place: 30% of the total prize pool.',
@@ -95,7 +95,7 @@ values
     'Results will be announced after judging is complete.'
   ],
   array[
-    'The prize pool increases by INR 500 for every 5 verified paid participants.',
+    'The prize pool increases by INR 500 for every 5 verified contestants.',
     'Prizes may be given as cash or Amazon gift cards.',
     '1st Place: 45% of the total prize pool.',
     '2nd Place: 30% of the total prize pool.',
@@ -136,7 +136,7 @@ values
     'Results will be announced after judging is complete.'
   ],
   array[
-    'The prize pool increases by INR 500 for every 5 verified paid participants.',
+    'The prize pool increases by INR 500 for every 5 verified contestants.',
     'Prizes may be given as cash or Amazon gift cards.',
     '1st Place: 45% of the total prize pool.',
     '2nd Place: 30% of the total prize pool.',

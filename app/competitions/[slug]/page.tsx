@@ -80,7 +80,7 @@ export default async function CompetitionDetailsPage({ params }: { params: Promi
             )}
             {competition.prizePool.enabled && (
               <div className="mt-4 rounded-[8px] border border-white/10 bg-white/[0.045] p-4 text-xs leading-6 text-white/62">
-                <p>The prize pool increases by {formatInr(competition.prizePool.perPaidParticipant * 5)} for every 5 successfully paid participants.</p>
+                <p>The prize pool increases by {formatInr(competition.prizePool.perPaidParticipant * 5)} for every 5 verified contestants.</p>
                 <p>Only successfully verified payments count toward the prize pool.</p>
                 <p>1st Place: 45%, 2nd Place: 30%, 3rd Place: 25%. Prizes may be given as cash or Amazon gift cards.</p>
               </div>

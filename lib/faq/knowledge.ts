@@ -225,10 +225,10 @@ export const faqCorpus: FAQAnswer[] = [
   {
     intent: "prize_pool",
     title: "Prize Pool",
-    aliases: ["prize pool", "live prize pool", "how prize pool works", "500 every 5", "verified paid participants"],
+    aliases: ["prize pool", "live prize pool", "how prize pool works", "500 every 5", "verified contestants"],
     keywords: ["prize", "pool", "live", "500", "5", "participants", "verified", "paid", "cash", "amazon", "gift", "cards"],
     answer:
-      "Where prize pool logic is enabled, the prize pool should count only verified successful paid registrations. Failed, cancelled, refunded, pending, or unverified payments should not increase the prize pool.\n\nFor the current launch format, public copy may explain that the prize pool increases by INR 500 for every 5 verified paid participants. Final prize details should always be checked on the live competition page.",
+      "Where prize pool logic is enabled, the prize pool should count only verified successful paid registrations. Failed, cancelled, refunded, pending, or unverified payments should not increase the prize pool.\n\nFor the current launch format, public copy may explain that the prize pool increases by INR 500 for every 5 verified contestants. Final prize details should always be checked on the live competition page.",
     followUps: ["Do competitions have cash prizes?", "How are winners chosen?", "How do payments work?"]
   },
   {
@@ -499,7 +499,7 @@ function findShortcutAnswer(normalized: string) {
   if (hasAny(["refund", "cancel", "money back"])) return faqCorpus.find((item) => item.intent === "refunds");
   if (hasAny(["age proof", "proof of age", "birth certificate", "age verification"])) return faqCorpus.find((item) => item.intent === "age_rules");
   if (hasAny(["payment pending", "payment failed", "upi", "razorpay", "transaction"])) return faqCorpus.find((item) => item.intent === "payment_help");
-  if (hasAny(["prize pool", "live prize pool", "500 every 5", "verified paid participants"])) return faqCorpus.find((item) => item.intent === "prize_pool");
+  if (hasAny(["prize pool", "live prize pool", "500 every 5", "verified contestants"])) return faqCorpus.find((item) => item.intent === "prize_pool");
   if (hasAny(["cash prize", "cash prizes", "prize money", "cash award"])) return faqCorpus.find((item) => item.intent === "cash_prizes");
   if (hasAny(["speech topic", "topic ideas", "football speech", "role model", "my idol"])) return faqCorpus.find((item) => item.intent === "speech_topics");
   if (hasAny(["parent consent", "guardian consent", "under 18", "parent permission"])) return faqCorpus.find((item) => item.intent === "parent_consent");

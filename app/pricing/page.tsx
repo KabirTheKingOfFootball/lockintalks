@@ -40,7 +40,7 @@ export default async function PricingPage() {
         <Card>
           <h2 className="text-2xl font-black">Prize Pool and Rewards</h2>
           <ul className="mt-4 grid gap-3 text-sm leading-7 text-white/65">
-            <li>The prize pool may increase by INR 500 for every 5 verified paid participants where prize pool logic is enabled.</li>
+            <li>The prize pool may increase by INR 500 for every 5 verified contestants where prize pool logic is enabled.</li>
             <li>Prize pool calculations count only verified successful paid registrations.</li>
             <li>Failed, cancelled, pending, refunded, or unverified payments do not count toward prize pool calculations.</li>
             <li>Where enabled, prize distribution is 1st Place: 45%, 2nd Place: 30%, and 3rd Place: 25%.</li>

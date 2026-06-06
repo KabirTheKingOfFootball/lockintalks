@@ -23,9 +23,9 @@ expectEqual(rewardsFeature.areLockInPointsEnabled(), false, "LockIn Points are d
 
 for (const [paidParticipants, expectedAmount] of [
   [0, 0],
-  [4, 0],
+  [4, 400],
   [5, 500],
-  [9, 500],
+  [9, 900],
   [10, 1000]
 ]) {
   expectEqual(
@@ -34,6 +34,9 @@ for (const [paidParticipants, expectedAmount] of [
     `${paidParticipants} paid participants maps to INR ${expectedAmount} prize pool.`
   );
 }
+expectEqual(prizePool.calculatePrizePool({ paidParticipants: 0 }).showBadge, true, "Prize pool display stays visible at INR 0.");
+expectEqual(prizePool.formatPrizePoolBadge(0), "Current Prize Pool: ₹0", "Prize pool display shows INR 0 exactly.");
+expectEqual(prizePool.formatPrizePoolBadge(900), "Current Prize Pool: ₹900", "Prize pool display does not hide below INR 1,000.");
 
 expectEqual(paymentStatus.isSeatConfirmed("captured"), true, "Captured payments confirm seats.");
 expectEqual(paymentStatus.isSeatConfirmed("paid"), true, "Paid payments confirm seats.");
@@ -159,6 +162,16 @@ async function smokePublicRoutes(origin) {
 
     if (/LockIn Points|Lock-in Points|XP meter|1\s+LockIn Point/i.test(html)) {
       failures.push(`${route} renders public LockIn Points copy while launch mode is disabled.`);
+    }
+
+    if (["/competitions", "/competitions/story-talks", "/competitions/idol-talk", "/competitions/power-talk"].includes(route)) {
+      if (!/Current Prize Pool:\s*₹0/i.test(html)) {
+        failures.push(`${route} does not show Current Prize Pool: ₹0.`);
+      }
+
+      if (!/The prize pool increases by INR 500 for every 5 verified contestants\./i.test(html)) {
+        failures.push(`${route} does not render the verified-contestants prize pool wording.`);
+      }
     }
   }
 

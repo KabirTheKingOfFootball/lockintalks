@@ -208,7 +208,7 @@ function cleanPrizeItems(items: string[]) {
     .filter((item) => !hiddenPointsPrizePattern.test(item))
     .map((item) => {
       if (/prize pool.*INR\s*500.*5.*participants/i.test(item)) {
-        return "The prize pool increases by INR 500 for every 5 verified paid participants.";
+        return "The prize pool increases by INR 500 for every 5 verified contestants.";
       }
 
       if (/all participants.*feedback|participation certificate|everyone get/i.test(item)) {
