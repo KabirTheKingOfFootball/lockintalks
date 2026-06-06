@@ -19,18 +19,18 @@ expectMatch(pointsSource, /second:\s*47/, "Internal second-place reward constant
 expectMatch(pointsSource, /third:\s*27/, "Internal third-place reward constant is preserved for future use.");
 
 const storyTalksCheckout = checkout.calculateLockInPointCheckout({
-  feeAmountPaise: 19900,
+  feeAmountPaise: 19999,
   requestedPoints: 999,
   availablePoints: 999
 });
 
-expectEqual(storyTalksCheckout.maxUsablePoints, 99, "Internal checkout math caps points at 99 for INR 199.");
+expectEqual(storyTalksCheckout.maxUsablePoints, 99, "Internal checkout math caps points at 99 for INR 199.99.");
 expectEqual(storyTalksCheckout.appliedPoints, 99, "Checkout applies no more than 50% of entry fee.");
 expectEqual(storyTalksCheckout.discountAmountPaise, 9900, "99 points creates INR 99 discount.");
-expectEqual(storyTalksCheckout.payableAmountPaise, 10000, "Final payable amount never goes negative.");
+expectEqual(storyTalksCheckout.payableAmountPaise, 10099, "Final payable amount never goes negative.");
 
 const limitedBalanceCheckout = checkout.calculateLockInPointCheckout({
-  feeAmountPaise: 19900,
+  feeAmountPaise: 19999,
   requestedPoints: 99,
   availablePoints: 7
 });

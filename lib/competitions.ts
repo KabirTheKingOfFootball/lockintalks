@@ -186,7 +186,11 @@ export function mapCompetitionRecord(record: CompetitionRecord, paidParticipants
 function formatFeeLabel(feeAmountPaise: number) {
   const amount = Math.max(0, Math.floor(Number(feeAmountPaise) || 0));
   if (!amount) return "Fee To Be Announced";
-  return `INR ${(amount / 100).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+  const hasPaise = amount % 100 !== 0;
+  return `INR ${(amount / 100).toLocaleString("en-IN", {
+    minimumFractionDigits: hasPaise ? 2 : 0,
+    maximumFractionDigits: hasPaise ? 2 : 0
+  })}`;
 }
 
 function cleanTextItems(items: string[]) {

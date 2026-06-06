@@ -40,45 +40,45 @@ expectEqual(
 
 const rawWebhookBody = JSON.stringify({
   event: "payment.captured",
-  payload: { payment: { entity: { id: paymentId, order_id: orderId, amount: 19900, currency: "INR", status: "captured" } } }
+  payload: { payment: { entity: { id: paymentId, order_id: orderId, amount: 19999, currency: "INR", status: "captured" } } }
 });
 const webhookSignature = sign(process.env.RAZORPAY_WEBHOOK_SECRET, rawWebhookBody);
 
 expectEqual(payments.verifyRazorpayWebhookSignature(rawWebhookBody, webhookSignature), true, "Valid webhook signature verifies.");
 expectEqual(payments.verifyRazorpayWebhookSignature(rawWebhookBody, webhookSignature.replace(/.$/, "0")), false, "Tampered webhook signature is rejected.");
-expectEqual(payments.formatAmount(19900), "INR 199", "Payment amounts display as INR.");
-expectEqual(paymentAmounts.formatPaiseAsInr(19900), "INR 199", "Shared payment amount display formats 19900 paise as INR 199.");
+expectEqual(payments.formatAmount(19999), "INR 199.99", "Payment amounts display as INR.");
+expectEqual(paymentAmounts.formatPaiseAsInr(19999), "INR 199.99", "Shared payment amount display formats 19999 paise as INR 199.99.");
 
 const corruptedLaunchAmount = paymentAmounts.resolvePayableAmountPaise({
   registration: { payment_amount: 8, amount_due: 800, payment_status: "pending", payment_currency: "INR" },
   competition: { fee_amount: 800 },
   competitionSlug: "story-talks"
 });
-expectEqual(corruptedLaunchAmount.amountPaise, 19900, "Corrupted launch amounts like 8/800 repair to INR 199.");
+expectEqual(corruptedLaunchAmount.amountPaise, 19999, "Corrupted launch amounts like 8/800 repair to INR 199.99.");
 expectEqual(corruptedLaunchAmount.source, "launch_fallback", "Corrupted launch amount uses launch fallback source.");
 expectEqual(corruptedLaunchAmount.shouldRepairRegistration, true, "Corrupted unpaid registration amount is marked for repair.");
 
 const validRegistrationPaymentAmount = paymentAmounts.resolvePayableAmountPaise({
-  registration: { payment_amount: 19899, amount_due: 19899, payment_status: "pending", payment_currency: "INR" },
+  registration: { payment_amount: 19900, amount_due: 19900, payment_status: "pending", payment_currency: "INR" },
   competition: { fee_amount: 800 },
   competitionSlug: "story-talks"
 });
-expectEqual(validRegistrationPaymentAmount.amountPaise, 19900, "Launch checkout repairs stale 19899 registration amounts to INR 199.");
+expectEqual(validRegistrationPaymentAmount.amountPaise, 19999, "Launch checkout repairs stale 19900 registration amounts to INR 199.99.");
 expectEqual(validRegistrationPaymentAmount.source, "launch_fallback", "Launch competition defaults override stale registration amounts.");
 
 const validRegistrationDueAmount = paymentAmounts.resolvePayableAmountPaise({
-  registration: { payment_amount: 8, amount_due: 19899, payment_status: "failed", payment_currency: "INR" },
+  registration: { payment_amount: 8, amount_due: 19900, payment_status: "failed", payment_currency: "INR" },
   competition: { fee_amount: 800 },
   competitionSlug: "idol-talk"
 });
-expectEqual(validRegistrationDueAmount.amountPaise, 19900, "Launch checkout repairs stale 19899 amount_due values to INR 199.");
+expectEqual(validRegistrationDueAmount.amountPaise, 19999, "Launch checkout repairs stale 19900 amount_due values to INR 199.99.");
 expectEqual(validRegistrationDueAmount.source, "launch_fallback", "Launch competition defaults override stale amount_due values.");
 
 const validDifferentCompetitionAmount = paymentAmounts.resolvePayableAmountPaise({
   competition: { fee_amount: 24900 },
   competitionSlug: "power-talk"
 });
-expectEqual(validDifferentCompetitionAmount.amountPaise, 19900, "Power Talk launch checkout always resolves to INR 199.");
+expectEqual(validDifferentCompetitionAmount.amountPaise, 19999, "Power Talk launch checkout always resolves to INR 199.99.");
 expectEqual(validDifferentCompetitionAmount.source, "launch_fallback", "Power Talk launch default overrides Supabase fee_amount drift.");
 expectEqual(Boolean(paymentAmounts.getRegistrationAmountRepairPatch(corruptedLaunchAmount, "pending")), true, "Unpaid corrupted registration gets a repair patch.");
 expectEqual(paymentAmounts.getRegistrationAmountRepairPatch(corruptedLaunchAmount, "captured"), null, "Captured registrations are not repaired automatically.");
@@ -233,12 +233,12 @@ for (const slug of ["story-talks", "idol-talk", "power-talk"]) {
     country: "India"
   });
   const resolvedLaunchAmount = paymentAmounts.resolvePayableAmountPaise({
-    registration: { payment_amount: 19899, amount_due: 19899, payment_status: "order_created", payment_currency: "INR" },
-    competition: { fee_amount: 19899 },
+    registration: { payment_amount: 19900, amount_due: 19900, payment_status: "order_created", payment_currency: "INR" },
+    competition: { fee_amount: 19900 },
     competitionSlug: slug
   });
   expectEqual(acceptedPayload.ok, true, `${slug} register checkout payload validates before order creation.`);
-  expectEqual(resolvedLaunchAmount.amountPaise, 19900, `${slug} launch checkout amount resolves to 19900 paise even if Supabase has 19899.`);
+  expectEqual(resolvedLaunchAmount.amountPaise, 19999, `${slug} launch checkout amount resolves to 19999 paise even if Supabase has 19900.`);
 }
 
 const envStatus = razorpayEnv.getRazorpayEnvStatus();

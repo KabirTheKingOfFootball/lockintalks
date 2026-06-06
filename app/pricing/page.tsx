@@ -30,7 +30,7 @@ export default async function PricingPage() {
           <h2 className="text-2xl font-black">How Fees Work</h2>
           <ul className="mt-4 grid gap-3 text-sm leading-7 text-white/65">
             <li>Each competition has its own entry fee shown on the competition card and details page.</li>
-            <li>A common beta entry fee example is INR 199 where applicable, but the actual fee may vary by competition.</li>
+            <li>A common beta entry fee example is INR 199.99 where applicable, but the actual fee may vary by competition.</li>
             <li>Taxes, gateway charges, or other applicable charges should be shown before payment if they apply.</li>
             <li>Razorpay may show the final payable INR amount during Checkout before payment is completed.</li>
             <li>No physical shipping fee is charged for standard online competition registrations.</li>

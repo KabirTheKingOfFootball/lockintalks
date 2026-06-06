@@ -361,7 +361,12 @@ export function PaymentForm({
 }
 
 function formatPaise(amountPaise: number) {
-  return `INR ${(Math.max(0, Math.floor(Number(amountPaise) || 0)) / 100).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+  const amount = Math.max(0, Math.floor(Number(amountPaise) || 0));
+  const hasPaise = amount % 100 !== 0;
+  return `INR ${(amount / 100).toLocaleString("en-IN", {
+    minimumFractionDigits: hasPaise ? 2 : 0,
+    maximumFractionDigits: hasPaise ? 2 : 0
+  })}`;
 }
 
 async function loadRazorpayScript() {

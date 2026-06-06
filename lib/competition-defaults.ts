@@ -10,20 +10,20 @@ export const launchCompetitionDefaults: Record<
   }
 > = {
   "story-talks": {
-    feeLabel: "INR 199",
-    feeAmount: 19900,
+    feeLabel: "INR 199.99",
+    feeAmount: 19999,
     maxParticipants: 777,
     judges: ["Arti Sharma"]
   },
   "idol-talk": {
-    feeLabel: "INR 199",
-    feeAmount: 19900,
+    feeLabel: "INR 199.99",
+    feeAmount: 19999,
     maxParticipants: 777,
     judges: ["Arti Sharma"]
   },
   "power-talk": {
-    feeLabel: "INR 199",
-    feeAmount: 19900,
+    feeLabel: "INR 199.99",
+    feeAmount: 19999,
     maxParticipants: 777,
     judges: ["Arti Sharma"]
   }

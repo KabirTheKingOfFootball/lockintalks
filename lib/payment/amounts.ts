@@ -67,7 +67,7 @@ export function resolvePayableAmountPaise({ registration, competition, competiti
 export function formatPaiseAsInr(amountPaise: number) {
   const amount = Math.max(0, Math.floor(Number(amountPaise) || 0));
   if (!amount) return "Calculated at Checkout";
-  return `INR ${(amount / 100).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+  return `INR ${formatRupeeAmount(amount)}`;
 }
 
 export function canRepairRegistrationAmount(status: string | null | undefined) {
@@ -121,6 +121,14 @@ function normalizeAmountPaise(value: unknown) {
   const amount = Math.floor(Number(value));
   if (!Number.isFinite(amount)) return 0;
   return amount;
+}
+
+function formatRupeeAmount(amountPaise: number) {
+  const hasPaise = amountPaise % 100 !== 0;
+  return (amountPaise / 100).toLocaleString("en-IN", {
+    minimumFractionDigits: hasPaise ? 2 : 0,
+    maximumFractionDigits: hasPaise ? 2 : 0
+  });
 }
 
 function isValidAmountForCompetition(amountPaise: number, slug: string) {
