@@ -114,6 +114,7 @@ expectEqual(
 
 const registrationRouteSource = readFileSync("app/api/registrations/route.ts", "utf8");
 const registrationCheckoutSource = readFileSync("app/api/registrations/create-checkout/route.ts", "utf8");
+const registerPageSource = readFileSync("app/register/[slug]/page.tsx", "utf8");
 const paymentPageSource = readFileSync("app/payment/page.tsx", "utf8");
 const createOrderSource = readFileSync("app/api/payments/create-order/route.ts", "utf8");
 const paymentFormSource = readFileSync("components/payment-form.tsx", "utf8");
@@ -135,6 +136,10 @@ expectMatch(registrationRouteSource, /redirectTo:\s*alreadyPaid\s*\?\s*"\/dashbo
 expectMatch(registrationRouteSource, /row_user=\$\{data\.user_id\}/, "Registration creation logs the database row owner safely.");
 expectMatch(registrationCheckoutSource, /export const dynamic = "force-dynamic"/, "Registration checkout endpoint is dynamic.");
 expectMatch(registrationCheckoutSource, /getServerAuthSession/, "Registration checkout requires the server auth session.");
+expectMatch(registrationCheckoutSource, /errorCode:\s*"AUTH_MISSING"/, "Registration checkout returns AUTH_MISSING for missing sessions.");
+expectMatch(registrationCheckoutSource, /errorCode:\s*"RAZORPAY_KEY_MISSING"/, "Registration checkout returns RAZORPAY_KEY_MISSING for missing Razorpay config.");
+expectMatch(registrationCheckoutSource, /jsonError\([^)]*"REGISTRATION_CREATE_FAILED"/, "Registration checkout exposes safe registration failure codes.");
+expectMatch(registrationCheckoutSource, /jsonError\([^)]*"ORDER_CREATE_FAILED"/, "Registration checkout exposes safe order failure codes.");
 expectMatch(registrationCheckoutSource, /\.eq\("user_id", userId\)/, "Registration checkout only reuses or updates the current user's registrations.");
 expectMatch(registrationCheckoutSource, /payment_status:\s*"pending"/, "Registration checkout creates a pending registration before payment.");
 expectMatch(registrationCheckoutSource, /payment_amount:\s*feeAmount/, "Registration checkout stores server-resolved payment_amount before Razorpay.");
@@ -149,8 +154,13 @@ expectMatch(registrationCheckoutSource, /isSeatConfirmed/, "Registration checkou
 expectMatch(registrationCheckoutSource, /isPaymentInProgress/, "Registration checkout reuses in-progress orders when safe.");
 expectMatch(registrationCheckoutSource, /payment_status:\s*"order_created"/, "Registration checkout marks registrations order_created after order creation.");
 expectMatch(registrationCheckoutSource, /payment_attempts/, "Registration checkout records payment attempts.");
+expectMatch(registrationCheckoutSource, /competitionName:\s*registration\.competition_name/, "Registration checkout returns a safe competitionName field.");
+expectMatch(registrationCheckoutSource, /participantName:\s*registration\.student_name/, "Registration checkout returns participantName only to the current submitting user.");
 expectNotMatch(registrationCheckoutSource, /amount:\s*body\./, "Registration checkout never trusts a client-provided amount.");
 expectNotMatch(registrationCheckoutSource, /lockInPointsToApply/, "Registration checkout does not expose public LockIn Points checkout controls.");
+expectMatch(registerPageSource, /searchParams/, "Register page reads search params for safe debug mode.");
+expectMatch(registerPageSource, /debug=\{debugEnabled\}/, "Register page passes debug mode to the client form.");
+expectMatch(registerPageSource, /authenticated=\{isLoggedIn\}/, "Register page passes server auth state to the debug panel.");
 expectMatch(paymentPageSource, /PaymentSearchParams/, "Payment page accepts normalized payment search params.");
 expectMatch(paymentPageSource, /findPaymentRegistration/, "Payment page reuses pending registrations by id or competition slug.");
 expectMatch(paymentPageSource, /resolvePayableAmountPaise/, "Payment page displays the shared backend resolved amount.");
@@ -193,6 +203,18 @@ expectMatch(paymentFormSource, /Register again for this competition/, "Payment U
 expectMatch(paymentFormSource, /Contact support/, "Payment UI offers support for owner mismatch.");
 expectMatch(paymentFormSource, /<form action="\/logout" method="post">/, "Another-account action keeps logout POST-only.");
 expectMatch(registerFormSource, /\/api\/registrations\/create-checkout/, "Register form uses direct create-checkout instead of redirecting to payment first.");
+expectMatch(registerFormSource, /CheckoutErrorCode/, "Register form uses explicit safe checkout error codes.");
+expectMatch(registerFormSource, /Error Code:/, "Register form shows a visible safe error code.");
+expectMatch(registerFormSource, /Checkout Debug/, "Register form exposes a safe query-param debug panel.");
+expectMatch(registerFormSource, /create-checkout status/, "Register form debug panel shows create-checkout status.");
+expectMatch(registerFormSource, /registration id exists/, "Register form debug panel avoids exposing registration id values.");
+expectMatch(registerFormSource, /order id exists/, "Register form debug panel avoids exposing order id values.");
+expectMatch(registerFormSource, /key id configured/, "Register form debug panel avoids exposing the public key value.");
+expectMatch(registerFormSource, /script_preload_complete/, "Register form preloads Razorpay script safely.");
+expectMatch(registerFormSource, /waitForRazorpayScript/, "Register form handles existing Razorpay script tags reliably.");
+expectMatch(registerFormSource, /RAZORPAY_SCRIPT_FAILED/, "Register form reports Razorpay script failures.");
+expectMatch(registerFormSource, /RAZORPAY_OPEN_FAILED/, "Register form reports Razorpay open failures.");
+expectMatch(registerFormSource, /VERIFY_FAILED/, "Register form reports verification failures.");
 expectMatch(registerFormSource, /Creating your registration/, "Register form shows the create-registration loading state.");
 expectMatch(registerFormSource, /Opening secure payment/, "Register form shows the opening-payment loading state.");
 expectMatch(registerFormSource, /window\.Razorpay/, "Register form opens Razorpay Checkout directly.");

@@ -64,15 +64,15 @@ export async function POST(request: NextRequest) {
     const country = String(body.country || "").trim();
 
     if (!competitionSlug || !studentName || !guardianName || !city || !country) {
-      return jsonError("Please complete all required fields.", 400);
+      return jsonError("Please complete all required fields.", 400, "REGISTRATION_CREATE_FAILED");
     }
 
     if (!Number.isFinite(studentAge) || studentAge < 6 || studentAge > 19) {
-      return jsonError("Student age must be between 6 and 19.", 400);
+      return jsonError("Student age must be between 6 and 19.", 400, "REGISTRATION_CREATE_FAILED");
     }
 
     if (!/^\S+@\S+\.\S+$/.test(guardianEmail)) {
-      return jsonError("Please enter a valid guardian email.", 400);
+      return jsonError("Please enter a valid guardian email.", 400, "REGISTRATION_CREATE_FAILED");
     }
 
     const session = await getServerAuthSession();
@@ -81,6 +81,7 @@ export async function POST(request: NextRequest) {
       console.warn("[LockInTalks checkout registration] Auth check failed: No active server session.");
       return NextResponse.json(
         {
+          errorCode: "AUTH_MISSING",
           error: "Please Log In or Create an Account Before Registering for a Competition.",
           loginTo: `/login?next=${encodeURIComponent(`/register/${competitionSlug}`)}`
         },
@@ -100,11 +101,11 @@ export async function POST(request: NextRequest) {
 
     if (competitionError) {
       console.error(`[LockInTalks checkout registration] Competition lookup failed: ${competitionError.message}`);
-      return jsonError("This competition could not be loaded right now. Please try again.", 500);
+      return jsonError("This competition could not be loaded right now. Please try again.", 500, "REGISTRATION_CREATE_FAILED");
     }
 
     if (!competition) {
-      return jsonError("This competition is not available for registration right now.", 404);
+      return jsonError("This competition is not available for registration right now.", 404, "REGISTRATION_CREATE_FAILED");
     }
 
     const { data: existingRegistrations, error: existingError } = await supabaseAdmin
@@ -127,6 +128,7 @@ export async function POST(request: NextRequest) {
       console.info(`[LockInTalks checkout registration] Paid duplicate rejected. user=${userId} registration=${paidRegistration.id}`);
       return NextResponse.json(
         {
+          errorCode: "REGISTRATION_CREATE_FAILED",
           error: "You already have a paid registration for this competition. Please check your dashboard.",
           alreadyPaid: true,
           registrationId: paidRegistration.id,
@@ -144,7 +146,7 @@ export async function POST(request: NextRequest) {
 
     if (!feeAmount) {
       console.error(`[LockInTalks checkout registration] Invalid registration amount. competition=${competition.slug} source=${resolvedNewAmount.source}`);
-      return jsonError("This competition does not have a valid registration fee configured. Please contact support.", 400);
+      return jsonError("This competition does not have a valid registration fee configured. Please contact support.", 400, "ORDER_CREATE_FAILED");
     }
 
     if (pendingRegistration) {
@@ -178,7 +180,7 @@ export async function POST(request: NextRequest) {
 
       if (updateError || !updatedRegistration) {
         console.error(`[LockInTalks checkout registration] Pending registration update failed: ${updateError?.message || "Not found"}`);
-        return jsonError("Registration could not be updated. Please try again.", 500);
+        return jsonError("Registration could not be updated. Please try again.", 500, "REGISTRATION_CREATE_FAILED");
       }
 
       registration = updatedRegistration as CheckoutRegistration;
@@ -216,7 +218,7 @@ export async function POST(request: NextRequest) {
 
       if (insertError || !insertedRegistration) {
         console.error(`[LockInTalks checkout registration] Insert failed: ${insertError?.message || "Not found"}`);
-        return jsonError(getReadableSupabaseError(insertError, "Registration could not be saved."), 400);
+        return jsonError(getReadableSupabaseError(insertError, "Registration could not be saved."), 400, "REGISTRATION_CREATE_FAILED");
       }
 
       registration = insertedRegistration as CheckoutRegistration;
@@ -236,6 +238,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         ok: true,
+        errorCode: null,
         ...checkoutPayload
       },
       { status: 200, headers: noStoreHeaders }
@@ -243,13 +246,14 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof SupabaseConfigError || error instanceof AppSessionConfigError) {
       console.error(`[LockInTalks checkout registration] ${error.message}`);
-      return jsonError(error.message, 503);
+      return jsonError(error.message, 503, "AUTH_MISSING");
     }
 
     if (error instanceof RazorpayConfigError) {
       console.error(`[LockInTalks checkout registration] ${error.message}`);
       return NextResponse.json(
         {
+          errorCode: "RAZORPAY_KEY_MISSING",
           error: "Payments are not fully configured yet. Please contact support or try again later.",
           registrationId: activeRegistrationId
         },
@@ -258,7 +262,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.error("[LockInTalks checkout registration] Unexpected checkout registration error:", error);
-    return jsonError("Registration payment is temporarily unavailable. Please try again.", 500);
+    return jsonError("Registration payment is temporarily unavailable. Please try again.", 500, "ORDER_CREATE_FAILED");
   }
 }
 
@@ -335,6 +339,8 @@ async function createCheckoutOrder({
       currency: registration.payment_currency || paymentCurrency,
       name: "LockInTalks",
       description: registration.competition_name,
+      competitionName: registration.competition_name,
+      participantName: registration.student_name,
       registrationId: registration.id,
       paymentStatus: registration.payment_status || "order_created",
       entryFee: formatPaiseAsInr(amount),
@@ -396,6 +402,8 @@ async function createCheckoutOrder({
     currency: order.currency,
     name: "LockInTalks",
     description: registration.competition_name,
+    competitionName: registration.competition_name,
+    participantName: registration.student_name,
     registrationId: registration.id,
     paymentStatus: "order_created",
     entryFee: formatPaiseAsInr(order.amount),
@@ -471,6 +479,6 @@ async function repairRegistrationAmountIfNeeded({
   );
 }
 
-function jsonError(error: string, status: number) {
-  return NextResponse.json({ error }, { status, headers: noStoreHeaders });
+function jsonError(error: string, status: number, errorCode: string) {
+  return NextResponse.json({ errorCode, error }, { status, headers: noStoreHeaders });
 }

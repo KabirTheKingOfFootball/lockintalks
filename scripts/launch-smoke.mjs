@@ -161,6 +161,39 @@ async function smokePublicRoutes(origin) {
       failures.push(`${route} renders public LockIn Points copy while launch mode is disabled.`);
     }
   }
+
+  await smokeUnauthenticatedCheckoutEndpoint(origin);
+}
+
+async function smokeUnauthenticatedCheckoutEndpoint(origin) {
+  const response = await fetch(`${origin}/api/registrations/create-checkout`, {
+    method: "POST",
+    cache: "no-store",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      competitionSlug: "idol-talk",
+      studentName: "Smoke Test",
+      studentAge: 12,
+      guardianName: "Smoke Guardian",
+      guardianEmail: "smoke@example.com",
+      city: "Test City",
+      country: "India"
+    })
+  });
+  const cacheControl = response.headers.get("cache-control") || "";
+  const body = await response.json().catch(() => null);
+
+  if (response.status !== 401) {
+    failures.push(`/api/registrations/create-checkout missing-auth smoke returned HTTP ${response.status}, expected 401.`);
+  }
+
+  if (!cacheControl.toLowerCase().includes("no-store")) {
+    failures.push("/api/registrations/create-checkout missing-auth smoke is missing no-store cache headers.");
+  }
+
+  if (body?.errorCode !== "AUTH_MISSING") {
+    failures.push("/api/registrations/create-checkout missing-auth smoke did not return AUTH_MISSING.");
+  }
 }
 
 function walk(directory) {

@@ -20,11 +20,19 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
-export default async function RegisterPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function RegisterPage({
+  params,
+  searchParams
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ debug?: string | string[] }>;
+}) {
   const { slug } = await params;
+  const query = await searchParams;
   const { competition } = await getLiveCompetitionBySlug(slug);
   if (!competition) notFound();
   const nextPath = `/register/${competition.slug}`;
+  const debugEnabled = Array.isArray(query.debug) ? query.debug.includes("1") : query.debug === "1";
   let session: Awaited<ReturnType<typeof getServerAuthSession>>;
 
   try {
@@ -45,7 +53,7 @@ export default async function RegisterPage({ params }: { params: Promise<{ slug:
 
   return (
     <MotionShell className="mx-auto max-w-4xl px-4 py-14 sm:px-6 lg:px-8">
-      <RegisterForm competition={competition} />
+      <RegisterForm competition={competition} debug={debugEnabled} authenticated={isLoggedIn} />
     </MotionShell>
   );
 }
