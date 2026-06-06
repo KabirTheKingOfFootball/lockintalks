@@ -116,6 +116,7 @@ const registrationRouteSource = readFileSync("app/api/registrations/route.ts", "
 const paymentPageSource = readFileSync("app/payment/page.tsx", "utf8");
 const createOrderSource = readFileSync("app/api/payments/create-order/route.ts", "utf8");
 const paymentFormSource = readFileSync("components/payment-form.tsx", "utf8");
+const dashboardPageSource = readFileSync("app/dashboard/page.tsx", "utf8");
 const dashboardSource = readFileSync("components/dashboard-client.tsx", "utf8");
 const adminDiagnoseSource = readFileSync("app/api/admin/registrations/diagnose/route.ts", "utf8");
 const webhookSource = readFileSync("app/api/payments/webhook/route.ts", "utf8");
@@ -138,6 +139,10 @@ expectMatch(paymentPageSource, /getPaymentRegistrationReference/, "Payment page 
 expectMatch(paymentPageSource, /if \(trimmedRegistrationId\)[\s\S]*\.eq\("id", trimmedRegistrationId\)/, "Payment page performs exact registration id lookup first.");
 expectMatch(paymentPageSource, /owner_matches=\$\{ownerMatches\}/, "Payment page logs exact id owner match diagnostics.");
 expectMatch(paymentPageSource, /Registration owner mismatch/, "Payment page detects exact id owner mismatch.");
+expectMatch(paymentPageSource, /admin_owner_mismatch/, "Payment page has an admin-specific owner mismatch state.");
+expectMatch(paymentPageSource, /This registration was created under a different account/, "Payment page explains owner mismatch without exposing another user's data.");
+expectMatch(paymentPageSource, /You are logged in as an admin account/, "Payment page explains admin opening another user's registration.");
+expectMatch(paymentPageSource, /feeAmount:\s*resolvedAmount\.amountPaise/, "Payment page summary uses the resolved backend amount.");
 expectNotMatch(paymentPageSource, /isUuid/, "Payment page does not reject non-UUID registration references before exact lookup.");
 expectNotMatch(paymentPageSource, /slugCandidates\.add\(trimmedRegistrationId\)/, "Payment page does not treat an exact registration id as a competition slug fallback.");
 expectMatch(createOrderSource, /competitionSlug\?:\s*string/, "Create-order accepts a competition slug fallback.");
@@ -148,6 +153,10 @@ expectMatch(createOrderSource, /getCreateOrderRegistrationReference/, "Create-or
 expectMatch(createOrderSource, /if \(trimmedRegistrationId\)[\s\S]*\.eq\("id", trimmedRegistrationId\)/, "Create-order performs exact registration id lookup first.");
 expectMatch(createOrderSource, /owner_matches=\$\{ownerMatches\}/, "Create-order logs exact id owner match diagnostics.");
 expectMatch(createOrderSource, /Registration owner mismatch/, "Create-order rejects exact id owner mismatch.");
+expectMatch(createOrderSource, /ownerMismatch:\s*true/, "Create-order returns a structured owner mismatch response.");
+expectMatch(createOrderSource, /status:\s*403/, "Create-order rejects owner mismatch with a clear forbidden response.");
+expectMatch(createOrderSource, /You are logged in as an admin account/, "Create-order returns an admin-specific mismatch message.");
+expectMatch(createOrderSource, /return\s*\{\s*registration:\s*data as PaymentRegistration,\s*ownerMismatch:\s*false/, "Create-order still allows exact owner registration lookup.");
 expectNotMatch(createOrderSource, /isUuid/, "Create-order does not reject non-UUID registration references before exact lookup.");
 expectNotMatch(createOrderSource, /slugCandidates\.add\(trimmedRegistrationId\)/, "Create-order does not treat an exact registration id as a competition slug fallback.");
 expectMatch(createOrderSource, /isSeatConfirmed\(registration\.payment_status\)/, "Create-order blocks duplicate orders for paid registrations.");
@@ -157,6 +166,14 @@ expectMatch(paymentFormSource, /competitionSlug:\s*summary\.competitionSlug/, "C
 expectMatch(paymentFormSource, /registration:\s*activeRegistrationId/, "Checkout sends the exact registration id using the registration field.");
 expectMatch(paymentFormSource, /registrationId:\s*activeRegistrationId/, "Checkout sends the exact registration id using the registrationId field.");
 expectMatch(paymentFormSource, /We could not find your registration for this account/, "Missing registration UI is friendly.");
+expectMatch(paymentFormSource, /Registration Account Mismatch/, "Payment UI has a clear owner mismatch state.");
+expectMatch(paymentFormSource, /You are currently logged in as/, "Payment UI shows the current account clue only.");
+expectMatch(paymentFormSource, /Log in with another account/, "Payment UI offers a safe action for another-account login.");
+expectMatch(paymentFormSource, /Register again for this competition/, "Payment UI offers a safe register-again action.");
+expectMatch(paymentFormSource, /Contact support/, "Payment UI offers support for owner mismatch.");
+expectMatch(paymentFormSource, /<form action="\/logout" method="post">/, "Another-account action keeps logout POST-only.");
+expectMatch(dashboardPageSource, /\.eq\("user_id", session\.user\.id\)/, "Dashboard only loads registrations owned by the current server session user.");
+expectMatch(dashboardPageSource, /export const dynamic = "force-dynamic"/, "Dashboard is dynamic so payment links are not stale cached data.");
 expectMatch(dashboardSource, /Continue Payment/, "Dashboard exposes a continue-payment path for unpaid registrations.");
 expectMatch(adminDiagnoseSource, /checkAdmin/, "Registration diagnostic endpoint is admin-only.");
 expectMatch(adminDiagnoseSource, /serverPaymentApiCanReadRow/, "Registration diagnostic endpoint reports whether the server API can read the row.");

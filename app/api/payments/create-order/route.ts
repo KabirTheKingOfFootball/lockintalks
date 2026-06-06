@@ -45,6 +45,12 @@ type PaymentRegistration = {
   points_redeemed: number | null;
 };
 
+type PaymentRegistrationLookup = {
+  registration: PaymentRegistration | null;
+  ownerMismatch: boolean;
+  competitionSlug: string | null;
+};
+
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as CreateOrderRequest;
@@ -66,12 +72,31 @@ export async function POST(request: NextRequest) {
       `[LockInTalks payment order] Create-order request received. user=${userId} registration=${registrationReference || "none"} competition=${body.competitionSlug || "none"}`
     );
     const supabaseAdmin = createAdminClient();
-    const registration = await findPaymentRegistration({
+    const lookup = await findPaymentRegistration({
       competitionSlug: body.competitionSlug || null,
       registrationId: registrationReference,
       supabaseAdmin,
       userId
     });
+    const registration = lookup.registration;
+
+    if (lookup.ownerMismatch) {
+      const isAdmin = session.role === "admin";
+      const registerPath = lookup.competitionSlug || body.competitionSlug ? `/register/${encodeURIComponent(String(lookup.competitionSlug || body.competitionSlug))}` : "/competitions";
+      console.warn(
+        `[LockInTalks payment order] Owner mismatch rejected. user=${userId} role=${session.role} registration=${registrationReference || "none"}`
+      );
+      return NextResponse.json(
+        {
+          error: isAdmin
+            ? "You are logged in as an admin account. This registration belongs to another user account. Please log in as the participant account to pay."
+            : "This registration was created under a different account. Please log in with the same account used for registration, or register again with this account.",
+          ownerMismatch: true,
+          registerPath
+        },
+        { status: 403, headers: { "Cache-Control": "no-store" } }
+      );
+    }
 
     if (!registration) {
       console.warn(`[LockInTalks payment order] Registration not found for user. user=${userId} registration=${registrationReference || "none"} competition=${body.competitionSlug || "none"}`);
@@ -294,7 +319,7 @@ async function findPaymentRegistration({
   registrationId: string | null;
   supabaseAdmin: ReturnType<typeof createAdminClient>;
   userId: string;
-}): Promise<PaymentRegistration | null> {
+}): Promise<PaymentRegistrationLookup> {
   const selectColumns =
     "id, user_id, competition_slug, competition_name, student_name, guardian_email, entry_fee, payment_status, razorpay_order_id, payment_order_id, payment_amount, amount_due, payment_currency, points_redeemed";
   const trimmedRegistrationId = String(registrationId || "").trim();
@@ -321,9 +346,19 @@ async function findPaymentRegistration({
       console.info(
         `[LockInTalks payment order] Exact registration lookup found. requested_user=${userId} registration=${trimmedRegistrationId} owner_user=${ownerUserId} owner_matches=${ownerMatches} competition=${data.competition_slug} payment_status=${data.payment_status || "unknown"}`
       );
-      if (ownerMatches) return data as PaymentRegistration;
+      if (ownerMatches) {
+        return {
+          registration: data as PaymentRegistration,
+          ownerMismatch: false,
+          competitionSlug: data.competition_slug || trimmedCompetitionSlug || null
+        };
+      }
       console.warn(`[LockInTalks payment order] Registration owner mismatch. requested_user=${userId} registration=${trimmedRegistrationId} owner_user=${ownerUserId}`);
-      return null;
+      return {
+        registration: null,
+        ownerMismatch: true,
+        competitionSlug: data.competition_slug || trimmedCompetitionSlug || null
+      };
     }
 
     console.warn(`[LockInTalks payment order] Exact registration lookup not found. user=${userId} registration=${trimmedRegistrationId}`);
@@ -347,7 +382,11 @@ async function findPaymentRegistration({
 
     if (pendingRegistration) {
       console.info(`[LockInTalks payment order] Pending slug fallback found. user=${userId} registration=${pendingRegistration.id} competition=${slug}`);
-      return pendingRegistration as PaymentRegistration;
+      return {
+        registration: pendingRegistration as PaymentRegistration,
+        ownerMismatch: false,
+        competitionSlug: slug
+      };
     }
 
     const { data: paidRegistration, error: paidError } = await supabaseAdmin
@@ -366,11 +405,19 @@ async function findPaymentRegistration({
 
     if (paidRegistration) {
       console.info(`[LockInTalks payment order] Paid slug fallback found. user=${userId} registration=${paidRegistration.id} competition=${slug}`);
-      return paidRegistration as PaymentRegistration;
+      return {
+        registration: paidRegistration as PaymentRegistration,
+        ownerMismatch: false,
+        competitionSlug: slug
+      };
     }
   }
 
-  return null;
+  return {
+    registration: null,
+    ownerMismatch: false,
+    competitionSlug: trimmedCompetitionSlug || null
+  };
 }
 
 async function repairRegistrationAmountIfNeeded({

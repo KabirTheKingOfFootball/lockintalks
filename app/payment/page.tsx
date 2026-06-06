@@ -20,15 +20,17 @@ export default async function PaymentPage({ searchParams }: { searchParams: Prom
   const params = await searchParams;
   const competitionSlug = getPaymentCompetitionSlug(params);
   const registrationId = getPaymentRegistrationReference(params);
-  const summary = await getPaymentSummary({ competitionSlug, registrationId });
+  const paymentState = await getPaymentSummary({ competitionSlug, registrationId });
   const razorpayStatus = getRazorpayEnvStatus();
 
   return (
     <MotionShell className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
       <PaymentForm
-        competitionSlug={summary?.competitionSlug || competitionSlug}
-        registrationId={summary?.registrationId || registrationId}
-        summary={summary}
+        competitionSlug={paymentState.summary?.competitionSlug || paymentState.issue?.competitionSlug || competitionSlug}
+        registrationId={paymentState.summary?.registrationId || registrationId}
+        summary={paymentState.summary}
+        issue={paymentState.issue}
+        currentAccount={paymentState.currentAccount}
         paymentConfig={{
           checkoutReady: razorpayStatus.checkoutReady,
           webhookReady: razorpayStatus.webhookReady,
@@ -52,6 +54,18 @@ type PaymentRegistration = {
   payment_currency: string | null;
 };
 
+type PaymentIssue = {
+  type: "not_authenticated" | "not_found" | "owner_mismatch" | "admin_owner_mismatch" | "invalid_amount";
+  message: string;
+  competitionSlug: string | null;
+};
+
+type PaymentRegistrationLookup = {
+  registration: PaymentRegistration | null;
+  ownerMismatch: boolean;
+  competitionSlug: string | null;
+};
+
 async function getPaymentSummary({
   competitionSlug,
   registrationId
@@ -62,23 +76,65 @@ async function getPaymentSummary({
   try {
     const session = await getServerAuthSession();
 
-    if (!session.authenticated) return null;
+    if (!session.authenticated) {
+      return {
+        summary: null,
+        issue: {
+          type: "not_authenticated",
+          message: "Please log in before paying for a competition registration.",
+          competitionSlug
+        } satisfies PaymentIssue,
+        currentAccount: null
+      };
+    }
+
+    const currentAccount = {
+      email: session.user.email,
+      role: session.role
+    };
 
     console.info(
       `[LockInTalks payment] Payment page query received. user=${session.user.id} registration=${registrationId || "none"} competition=${competitionSlug || "none"}`
     );
 
     const supabaseAdmin = createAdminClient();
-    const registration = await findPaymentRegistration({
+    const lookup = await findPaymentRegistration({
       competitionSlug,
       registrationId,
       supabaseAdmin,
       userId: session.user.id
     });
+    const registration = lookup.registration;
+
+    if (lookup.ownerMismatch) {
+      const isAdmin = session.role === "admin";
+      console.warn(
+        `[LockInTalks payment] Showing owner mismatch payment message. user=${session.user.id} role=${session.role} registration=${registrationId || "none"}`
+      );
+      return {
+        summary: null,
+        issue: {
+          type: isAdmin ? "admin_owner_mismatch" : "owner_mismatch",
+          message: isAdmin
+            ? "You are logged in as an admin account. This registration belongs to another user account. Please log in as the participant account to pay."
+            : "This registration was created under a different account. Please log in with the same account used for registration, or register again with this account.",
+          competitionSlug: lookup.competitionSlug || competitionSlug
+        } satisfies PaymentIssue,
+        currentAccount
+      };
+    }
 
     if (!registration) {
       console.warn(`[LockInTalks payment] No registration found for payment lookup. user=${session.user.id} registration=${registrationId || "none"} competition=${competitionSlug || "none"}`);
-      return null;
+      return {
+        summary: null,
+        issue: {
+          type: "not_found",
+          message: "We could not find your registration for this account. Please register again for this competition.",
+          competitionSlug
+        } satisfies PaymentIssue,
+        currentAccount
+      };
     }
 
     const { data: competition } = await supabaseAdmin
@@ -95,7 +151,15 @@ async function getPaymentSummary({
 
     if (!resolvedAmount.amountPaise) {
       console.error(`[LockInTalks payment] Invalid amount for registration=${registration.id} competition=${registration.competition_slug}`);
-      return null;
+      return {
+        summary: null,
+        issue: {
+          type: "invalid_amount",
+          message: "This registration does not have a valid payment amount configured yet. Please contact support.",
+          competitionSlug: registration.competition_slug
+        } satisfies PaymentIssue,
+        currentAccount
+      };
     }
 
     await repairRegistrationAmountIfNeeded({
@@ -106,14 +170,18 @@ async function getPaymentSummary({
     });
 
     return {
-      registrationId: registration.id,
-      competitionSlug: registration.competition_slug,
-      paymentStatus: registration.payment_status || "pending",
-      alreadyPaid: isSeatConfirmed(registration.payment_status),
-      competitionName: registration.competition_name,
-      competitionDate: competition ? `${competition.event_date} | ${competition.event_time || "TBA"} ${competition.timezone || "IST"}` : "See competition details",
-      entryFee: formatPaiseAsInr(resolvedAmount.amountPaise),
-      feeAmount: resolvedAmount.amountPaise
+      summary: {
+        registrationId: registration.id,
+        competitionSlug: registration.competition_slug,
+        paymentStatus: registration.payment_status || "pending",
+        alreadyPaid: isSeatConfirmed(registration.payment_status),
+        competitionName: registration.competition_name,
+        competitionDate: competition ? `${competition.event_date} | ${competition.event_time || "TBA"} ${competition.timezone || "IST"}` : "See competition details",
+        entryFee: formatPaiseAsInr(resolvedAmount.amountPaise),
+        feeAmount: resolvedAmount.amountPaise
+      },
+      issue: null,
+      currentAccount
     };
   } catch (error) {
     if (error instanceof SupabaseConfigError) {
@@ -122,7 +190,15 @@ async function getPaymentSummary({
       console.error("[LockInTalks payment] Unexpected payment summary error:", error);
     }
 
-    return null;
+    return {
+      summary: null,
+      issue: {
+        type: "not_found",
+        message: "Could not load payment details right now. Please try again or contact support.",
+        competitionSlug
+      } satisfies PaymentIssue,
+      currentAccount: null
+    };
   }
 }
 
@@ -136,7 +212,7 @@ async function findPaymentRegistration({
   registrationId: string | null;
   supabaseAdmin: ReturnType<typeof createAdminClient>;
   userId: string;
-}): Promise<PaymentRegistration | null> {
+}): Promise<PaymentRegistrationLookup> {
   const selectColumns = "id, user_id, competition_slug, competition_name, entry_fee, payment_status, registration_status, payment_amount, amount_due, payment_currency";
   const slugCandidates = new Set<string>();
   const trimmedRegistrationId = String(registrationId || "").trim();
@@ -162,9 +238,19 @@ async function findPaymentRegistration({
       console.info(
         `[LockInTalks payment] Exact registration lookup found. requested_user=${userId} registration=${trimmedRegistrationId} owner_user=${ownerUserId} owner_matches=${ownerMatches} competition=${data.competition_slug}`
       );
-      if (ownerMatches) return data as PaymentRegistration;
+      if (ownerMatches) {
+        return {
+          registration: data as PaymentRegistration,
+          ownerMismatch: false,
+          competitionSlug: data.competition_slug || trimmedCompetitionSlug || null
+        };
+      }
       console.warn(`[LockInTalks payment] Registration owner mismatch. requested_user=${userId} registration=${trimmedRegistrationId} owner_user=${ownerUserId}`);
-      return null;
+      return {
+        registration: null,
+        ownerMismatch: true,
+        competitionSlug: data.competition_slug || trimmedCompetitionSlug || null
+      };
     }
 
     console.warn(`[LockInTalks payment] Exact registration lookup not found. user=${userId} registration=${trimmedRegistrationId}`);
@@ -188,7 +274,11 @@ async function findPaymentRegistration({
 
     if (pendingRegistration) {
       console.info(`[LockInTalks payment] Pending slug fallback found. user=${userId} registration=${pendingRegistration.id} competition=${slug}`);
-      return pendingRegistration as PaymentRegistration;
+      return {
+        registration: pendingRegistration as PaymentRegistration,
+        ownerMismatch: false,
+        competitionSlug: slug
+      };
     }
 
     const { data: paidRegistration, error: paidError } = await supabaseAdmin
@@ -207,11 +297,19 @@ async function findPaymentRegistration({
 
     if (paidRegistration) {
       console.info(`[LockInTalks payment] Paid slug fallback found. user=${userId} registration=${paidRegistration.id} competition=${slug}`);
-      return paidRegistration as PaymentRegistration;
+      return {
+        registration: paidRegistration as PaymentRegistration,
+        ownerMismatch: false,
+        competitionSlug: slug
+      };
     }
   }
 
-  return null;
+  return {
+    registration: null,
+    ownerMismatch: false,
+    competitionSlug: trimmedCompetitionSlug || null
+  };
 }
 
 async function repairRegistrationAmountIfNeeded({

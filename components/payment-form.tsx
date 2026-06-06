@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { track } from "@vercel/analytics";
 import { CheckCircle2, CreditCard, Landmark, Smartphone, WalletCards, type LucideIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { getReadableError, readJsonResponse } from "@/lib/readable-error";
 
 type PaymentStep = "idle" | "creating" | "checkout" | "verifying" | "pending" | "success" | "failed";
@@ -25,6 +25,17 @@ type PaymentConfig = {
   checkoutReady: boolean;
   webhookReady: boolean;
   keyMode: string;
+};
+
+type PaymentIssue = {
+  type: "not_authenticated" | "not_found" | "owner_mismatch" | "admin_owner_mismatch" | "invalid_amount";
+  message: string;
+  competitionSlug: string | null;
+};
+
+type CurrentAccount = {
+  email: string;
+  role: string;
 };
 
 type CreateOrderResponse = {
@@ -98,11 +109,15 @@ export function PaymentForm({
   competitionSlug,
   registrationId,
   summary,
+  issue,
+  currentAccount,
   paymentConfig
 }: {
   competitionSlug: string | null;
   registrationId: string | null;
   summary: PaymentSummary | null;
+  issue: PaymentIssue | null;
+  currentAccount: CurrentAccount | null;
   paymentConfig: PaymentConfig;
 }) {
   const router = useRouter();
@@ -113,7 +128,8 @@ export function PaymentForm({
   const paymentUnavailable = !paymentConfig.checkoutReady;
   const activeRegistrationId = summary?.registrationId || registrationId;
   const alreadyPaid = Boolean(summary?.alreadyPaid);
-  const registerAgainHref = competitionSlug ? `/register/${encodeURIComponent(competitionSlug)}` : "/competitions";
+  const registerAgainHref = issue?.competitionSlug || competitionSlug ? `/register/${encodeURIComponent(String(issue?.competitionSlug || competitionSlug))}` : "/competitions";
+  const ownerMismatch = issue?.type === "owner_mismatch" || issue?.type === "admin_owner_mismatch";
 
   async function startPayment() {
     setError("");
@@ -267,11 +283,37 @@ export function PaymentForm({
         )}
         {!summary && (
           <div className="mt-5 rounded-[8px] border border-red-400/30 bg-red-500/10 p-4 text-sm leading-6 text-red-100">
-            <p className="font-bold">We could not find your registration for this account.</p>
-            <p className="mt-1">Please register again for this competition. If you already registered using another account, log in with that account or contact lockintalks@gmail.com.</p>
-            <Link href={registerAgainHref} className="mt-3 inline-flex font-black text-white underline underline-offset-4">
-              Back to registration
-            </Link>
+            <p className="font-bold">{ownerMismatch ? "Registration Account Mismatch" : "Registration Not Ready For Payment"}</p>
+            <p className="mt-1">
+              {issue?.message || "We could not find your registration for this account. Please register again for this competition."}
+            </p>
+            {currentAccount?.email && (
+              <p className="mt-3 rounded-[8px] border border-white/10 bg-white/[0.06] p-3 text-white/85">
+                You are currently logged in as:{" "}
+                <a className="font-bold text-white underline underline-offset-4" href={`mailto:${currentAccount.email}`}>
+                  {currentAccount.email}
+                </a>
+              </p>
+            )}
+            {ownerMismatch ? (
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <form action="/logout" method="post">
+                  <Button type="submit" variant="glass" className="w-full sm:w-auto">
+                    Log in with another account
+                  </Button>
+                </form>
+                <ButtonLink href={registerAgainHref} variant="glass">
+                  Register again for this competition
+                </ButtonLink>
+                <ButtonLink href="mailto:lockintalks@gmail.com" variant="ghost">
+                  Contact support
+                </ButtonLink>
+              </div>
+            ) : (
+              <Link href={registerAgainHref} className="mt-3 inline-flex font-black text-white underline underline-offset-4">
+                Back to registration
+              </Link>
+            )}
           </div>
         )}
         {alreadyPaid && (
