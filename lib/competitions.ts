@@ -141,12 +141,12 @@ export function mapCompetitionRecord(record: CompetitionRecord, paidParticipants
   const rawFeeLabel = String(record.fee_label || "").trim();
   const parsedFeeAmount = Number(record.fee_amount);
   const rawFeeAmount = Number.isFinite(parsedFeeAmount) ? parsedFeeAmount : 0;
-  const needsLaunchFeeDefault = Boolean(launchDefault && (!rawFeeLabel || rawFeeAmount <= 0));
-  const feeAmount = needsLaunchFeeDefault ? launchDefault?.feeAmount || 0 : rawFeeAmount;
-  const feeLabel = rawFeeLabel || launchDefault?.feeLabel || formatFeeLabel(feeAmount);
+  const usesLaunchFeeDefault = Boolean(launchDefault);
+  const feeAmount = usesLaunchFeeDefault ? launchDefault?.feeAmount || 0 : rawFeeAmount;
+  const feeLabel = usesLaunchFeeDefault ? launchDefault?.feeLabel || formatFeeLabel(feeAmount) : rawFeeLabel || formatFeeLabel(feeAmount);
   const parsedMaxParticipants = Number(record.max_participants);
   const rawMaxParticipants = Number.isFinite(parsedMaxParticipants) ? parsedMaxParticipants : 0;
-  const maxParticipants = needsLaunchFeeDefault && rawMaxParticipants <= 50 ? launchDefault?.maxParticipants || 50 : Number(record.max_participants || launchDefault?.maxParticipants || 50);
+  const maxParticipants = usesLaunchFeeDefault && rawMaxParticipants <= 50 ? launchDefault?.maxParticipants || 50 : Number(record.max_participants || launchDefault?.maxParticipants || 50);
   const slotsRemaining = Math.max(0, maxParticipants - paidParticipants);
   const prizePool = calculatePrizePool({
     paidParticipants

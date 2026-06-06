@@ -59,27 +59,27 @@ expectEqual(corruptedLaunchAmount.source, "launch_fallback", "Corrupted launch a
 expectEqual(corruptedLaunchAmount.shouldRepairRegistration, true, "Corrupted unpaid registration amount is marked for repair.");
 
 const validRegistrationPaymentAmount = paymentAmounts.resolvePayableAmountPaise({
-  registration: { payment_amount: 19900, amount_due: 800, payment_status: "pending", payment_currency: "INR" },
+  registration: { payment_amount: 19899, amount_due: 19899, payment_status: "pending", payment_currency: "INR" },
   competition: { fee_amount: 800 },
   competitionSlug: "story-talks"
 });
-expectEqual(validRegistrationPaymentAmount.amountPaise, 19900, "Registration payment_amount wins when it is valid.");
-expectEqual(validRegistrationPaymentAmount.source, "registration_payment_amount", "Resolver prefers valid registration payment_amount.");
+expectEqual(validRegistrationPaymentAmount.amountPaise, 19900, "Launch checkout repairs stale 19899 registration amounts to INR 199.");
+expectEqual(validRegistrationPaymentAmount.source, "launch_fallback", "Launch competition defaults override stale registration amounts.");
 
 const validRegistrationDueAmount = paymentAmounts.resolvePayableAmountPaise({
-  registration: { payment_amount: 8, amount_due: 19900, payment_status: "failed", payment_currency: "INR" },
+  registration: { payment_amount: 8, amount_due: 19899, payment_status: "failed", payment_currency: "INR" },
   competition: { fee_amount: 800 },
   competitionSlug: "idol-talk"
 });
-expectEqual(validRegistrationDueAmount.amountPaise, 19900, "Registration amount_due wins when payment_amount is corrupted.");
-expectEqual(validRegistrationDueAmount.source, "registration_amount_due", "Resolver falls through to valid registration amount_due.");
+expectEqual(validRegistrationDueAmount.amountPaise, 19900, "Launch checkout repairs stale 19899 amount_due values to INR 199.");
+expectEqual(validRegistrationDueAmount.source, "launch_fallback", "Launch competition defaults override stale amount_due values.");
 
 const validDifferentCompetitionAmount = paymentAmounts.resolvePayableAmountPaise({
   competition: { fee_amount: 24900 },
   competitionSlug: "power-talk"
 });
-expectEqual(validDifferentCompetitionAmount.amountPaise, 24900, "A clearly valid explicit launch competition amount can override fallback.");
-expectEqual(validDifferentCompetitionAmount.source, "competition_fee_amount", "Resolver uses valid competition fee_amount when present.");
+expectEqual(validDifferentCompetitionAmount.amountPaise, 19900, "Power Talk launch checkout always resolves to INR 199.");
+expectEqual(validDifferentCompetitionAmount.source, "launch_fallback", "Power Talk launch default overrides Supabase fee_amount drift.");
 expectEqual(Boolean(paymentAmounts.getRegistrationAmountRepairPatch(corruptedLaunchAmount, "pending")), true, "Unpaid corrupted registration gets a repair patch.");
 expectEqual(paymentAmounts.getRegistrationAmountRepairPatch(corruptedLaunchAmount, "captured"), null, "Captured registrations are not repaired automatically.");
 expectEqual(rewardsFeature.areLockInPointsEnabled(), false, "LockIn Points feature is disabled by default, so checkout discounts stay off.");
@@ -233,11 +233,12 @@ for (const slug of ["story-talks", "idol-talk", "power-talk"]) {
     country: "India"
   });
   const resolvedLaunchAmount = paymentAmounts.resolvePayableAmountPaise({
-    competition: { fee_amount: 800 },
+    registration: { payment_amount: 19899, amount_due: 19899, payment_status: "order_created", payment_currency: "INR" },
+    competition: { fee_amount: 19899 },
     competitionSlug: slug
   });
   expectEqual(acceptedPayload.ok, true, `${slug} register checkout payload validates before order creation.`);
-  expectEqual(resolvedLaunchAmount.amountPaise, 19900, `${slug} launch checkout amount resolves to 19900 paise.`);
+  expectEqual(resolvedLaunchAmount.amountPaise, 19900, `${slug} launch checkout amount resolves to 19900 paise even if Supabase has 19899.`);
 }
 
 const envStatus = razorpayEnv.getRazorpayEnvStatus();
@@ -274,6 +275,8 @@ const registrationRouteSource = readFileSync("app/api/registrations/route.ts", "
 const registrationCheckoutSource = readFileSync("app/api/registrations/create-checkout/route.ts", "utf8");
 const registrationCheckoutRequestSource = readFileSync("lib/registration/checkout-request.ts", "utf8");
 const supabaseMutationErrorSource = readFileSync("lib/registration/supabase-mutation-error.ts", "utf8");
+const amountResolverSource = readFileSync("lib/payment/amounts.ts", "utf8");
+const competitionsSource = readFileSync("lib/competitions.ts", "utf8");
 const registerPageSource = readFileSync("app/register/[slug]/page.tsx", "utf8");
 const paymentPageSource = readFileSync("app/payment/page.tsx", "utf8");
 const createOrderSource = readFileSync("app/api/payments/create-order/route.ts", "utf8");
@@ -290,6 +293,15 @@ expectMatch(registrationRouteSource, /payment_amount:\s*feeAmount/, "Registratio
 expectMatch(registrationRouteSource, /amount_due:\s*feeAmount/, "Registration creation stores amount_due before payment.");
 expectMatch(registrationRouteSource, /resolvePayableAmountPaise/, "Registration creation resolves amount through the shared backend amount utility.");
 expectMatch(registrationRouteSource, /repairRegistrationAmountIfNeeded/, "Registration creation repairs bad unpaid duplicate amount fields.");
+expectBefore(
+  amountResolverSource,
+  "if (launchDefault?.feeAmount",
+  "const candidates =",
+  "Payment amount resolver checks launch defaults before stale registration or competition amounts."
+);
+expectMatch(amountResolverSource, /return amountPaise === launchDefault\.feeAmount/, "Launch payment amounts must exactly match the launch default.");
+expectMatch(competitionsSource, /usesLaunchFeeDefault \? launchDefault\?\.feeAmount/, "Public competition fee amount uses launch defaults for launch slugs.");
+expectMatch(competitionsSource, /usesLaunchFeeDefault \? launchDefault\?\.feeLabel/, "Public competition fee label uses launch defaults for launch slugs.");
 expectMatch(registrationRouteSource, /buildPaymentUrl\(\{\s*registrationId:\s*data\.id,\s*competitionSlug:\s*competition\.slug\s*\}\)/, "New registrations return a payment URL containing the exact registration id.");
 expectMatch(registrationRouteSource, /buildPaymentUrl\(\{\s*registrationId:\s*existingRegistration\.id,\s*competitionSlug:\s*competition\.slug\s*\}\)/, "Pending duplicate registrations return their existing registration id.");
 expectMatch(registrationRouteSource, /redirectTo:\s*alreadyPaid\s*\?\s*"\/dashboard"\s*:\s*paymentUrl/, "Paid duplicate registrations redirect away from duplicate payment.");
@@ -316,6 +328,8 @@ expectMatch(registrationCheckoutSource, /resolvePayableAmountPaise/, "Registrati
 expectMatch(registrationCheckoutSource, /repairRegistrationAmountIfNeeded/, "Registration checkout repairs invalid unpaid launch amounts.");
 expectMatch(registrationCheckoutSource, /createRazorpayClient/, "Registration checkout creates Razorpay orders server-side.");
 expectMatch(registrationCheckoutSource, /razorpay\.orders\.create/, "Registration checkout calls Razorpay Orders API.");
+expectMatch(registrationCheckoutSource, /amount,\s*currency:\s*paymentCurrency/, "Registration checkout creates Razorpay orders with the resolved backend amount.");
+expectMatch(registrationCheckoutSource, /payableAmountPaise:\s*feeAmount/, "Disabled LockIn Points branch does not discount the checkout amount.");
 expectMatch(registrationCheckoutSource, /getPublicRazorpayKey/, "Registration checkout returns only the public Razorpay key id.");
 expectMatch(registrationCheckoutSource, /isSeatConfirmed/, "Registration checkout rejects paid duplicate registrations.");
 expectMatch(registrationCheckoutSource, /isPaymentInProgress/, "Registration checkout reuses in-progress orders when safe.");

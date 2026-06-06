@@ -28,6 +28,16 @@ const maxReasonableAmountPaise = 10000000;
 export function resolvePayableAmountPaise({ registration, competition, competitionSlug }: PaymentAmountInput): ResolvedPaymentAmount {
   const slug = String(competitionSlug || "").trim();
   const launchDefault = getLaunchCompetitionDefault(slug);
+
+  if (launchDefault?.feeAmount && isValidAmountForCompetition(launchDefault.feeAmount, slug)) {
+    return buildResult({
+      amountPaise: launchDefault.feeAmount,
+      source: "launch_fallback",
+      usedLaunchFallback: true,
+      registration
+    });
+  }
+
   const candidates = [
     { source: "registration_payment_amount" as const, value: registration?.payment_amount },
     { source: "registration_amount_due" as const, value: registration?.amount_due },
@@ -44,15 +54,6 @@ export function resolvePayableAmountPaise({ registration, competition, competiti
         registration
       });
     }
-  }
-
-  if (launchDefault?.feeAmount && isValidAmountForCompetition(launchDefault.feeAmount, slug)) {
-    return buildResult({
-      amountPaise: launchDefault.feeAmount,
-      source: "launch_fallback",
-      usedLaunchFallback: true,
-      registration
-    });
   }
 
   return buildResult({
@@ -128,6 +129,5 @@ function isValidAmountForCompetition(amountPaise: number, slug: string) {
   const launchDefault = getLaunchCompetitionDefault(slug);
   if (!launchDefault) return true;
 
-  // The launch competitions must never use tiny corrupted values like 8 paise or INR 8.
-  return amountPaise >= 10000;
+  return amountPaise === launchDefault.feeAmount;
 }
