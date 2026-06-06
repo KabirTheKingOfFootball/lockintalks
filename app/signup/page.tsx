@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AuthForm } from "@/components/auth-form";
 import { MotionShell } from "@/components/motion-shell";
 import { Card } from "@/components/ui/card";
+import { PosterBackdrop } from "@/components/brand-visuals";
 
 export const metadata: Metadata = {
   title: "Sign Up",
@@ -19,7 +20,9 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
   const nextPath = next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
 
   return (
-    <MotionShell className="px-4 py-16">
+    <MotionShell className="relative overflow-hidden px-4 py-16">
+      <PosterBackdrop compact />
+      <div className="relative z-10">
       <AuthForm mode="signup" initialError={readableError} nextPath={nextPath} />
       <div className="mx-auto mt-6 grid max-w-md gap-3">
         <Card>
@@ -29,9 +32,10 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
           </p>
         </Card>
       </div>
-      <p className="mt-6 text-center text-sm text-white/60">
+      <p className="mt-6 text-center text-sm text-[#071b3b]/72">
         Already registered? <Link href={`/login?next=${encodeURIComponent(nextPath)}`} className="font-bold text-[#d4af37]">Login</Link>
       </p>
+      </div>
     </MotionShell>
   );
 }

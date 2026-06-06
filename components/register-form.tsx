@@ -320,7 +320,7 @@ export function RegisterForm({
           order_id: result.orderId,
           prefill: result.prefill,
           theme: {
-            color: "#D4AF37"
+            color: "#0D4EA6"
           },
           modal: {
             ondismiss: async () => {
@@ -448,9 +448,24 @@ export function RegisterForm({
   }
 
   return (
-    <form onSubmit={submit} className="glass rounded-[8px] p-6 sm:p-8">
+    <form onSubmit={submit} className="glass rounded-[8px] p-6 shadow-[0_28px_80px_rgba(7,27,59,0.28)] sm:p-8">
+      <p className="mb-3 text-xs font-black uppercase tracking-[0.24em] text-[#ffe17b]">Register and Pay Securely</p>
       <h1 className="text-3xl font-black">Register for <span className="gold-text">{competition.name}</span></h1>
-      <p className="mt-3 text-sm leading-6 text-white/62">Fill in the speaker details, then continue to the secure payment step. Top performers compete for cash awards, recognition, and confidence-building stage experience.</p>
+      <p className="mt-3 text-sm leading-6 text-white/70">Fill in the speaker details, then continue directly to Razorpay Checkout from this page. Top performers compete for cash awards, recognition, and confidence-building stage experience.</p>
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-[8px] border border-[#ffd765]/35 bg-[#ffd765]/12 p-3">
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#ffe17b]">Entry Fee</p>
+          <p className="mt-1 text-lg font-black text-white">{competition.fee}</p>
+        </div>
+        <div className="rounded-[8px] border border-white/15 bg-white/[0.07] p-3">
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#ffe17b]">Stage</p>
+          <p className="mt-1 text-lg font-black text-white">Online</p>
+        </div>
+        <div className="rounded-[8px] border border-white/15 bg-white/[0.07] p-3">
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#ffe17b]">Rewards</p>
+          <p className="mt-1 text-lg font-black text-white">Cash Prizes</p>
+        </div>
+      </div>
       <div className="mt-5 rounded-[8px] border border-[#d4af37]/25 bg-[#d4af37]/10 p-4 text-sm leading-6 text-[#f7dc83]">
         Participants below 18 should register with parent or guardian awareness or consent. Please enter accurate age and guardian details. Age proof may be requested before participation to keep categories fair. For help, contact{" "}
         <a className="font-bold text-white" href="mailto:lockintalks@gmail.com">lockintalks@gmail.com</a>.

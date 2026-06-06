@@ -6,6 +6,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MotionShell } from "@/components/motion-shell";
 import { Countdown } from "@/components/countdown";
+import { PosterBackdrop, PrizePoolPill, RedHatMark } from "@/components/brand-visuals";
 import { getLiveCompetitionBySlug } from "@/lib/competitions";
 import { formatInr, formatPrizePoolBadge } from "@/lib/rewards/prize-pool";
 
@@ -32,8 +33,9 @@ export default async function CompetitionDetailsPage({ params }: { params: Promi
   if (!competition) notFound();
 
   return (
-    <MotionShell>
-      <section className="mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[1fr_0.42fr] lg:px-8">
+    <MotionShell className="relative overflow-hidden">
+      <PosterBackdrop compact />
+      <section className="relative z-10 mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[1fr_0.42fr] lg:px-8">
         <div>
           <div className={`relative mb-8 overflow-hidden rounded-[8px] bg-gradient-to-br ${competition.accent} p-8 text-[#071b3b]`}>
             {competition.imageUrl && (
@@ -49,9 +51,13 @@ export default async function CompetitionDetailsPage({ params }: { params: Promi
             </div>
             <p className="mt-10 text-sm font-black uppercase tracking-[0.3em]">{competition.category}</p>
             <h1 className="mt-2 text-4xl font-black sm:text-6xl">{competition.name}</h1>
+            <div className="mt-5 flex items-center gap-3 text-sm font-black uppercase tracking-[0.18em]">
+              <RedHatMark className="scale-75" />
+              <span>Speak. Perform. Inspire.</span>
+            </div>
             </div>
           </div>
-          <p className="text-xl leading-9 text-white/74">{competition.description}</p>
+          <p className="poster-panel rounded-[8px] p-6 text-xl leading-9">{competition.description}</p>
           <div className="mt-8 grid gap-5 md:grid-cols-2">
             <Info title="Rules" icon={<Gavel />} items={competition.rules} />
             <Info title="How Participants Will Be Judged" icon={<ClipboardCheck />} items={competition.criteria} />
@@ -74,9 +80,9 @@ export default async function CompetitionDetailsPage({ params }: { params: Promi
               <p className="flex items-center gap-2"><Trophy size={16} className="text-[#d4af37]" /> Top Performers Win Cash Awards</p>
             </div>
             {competition.prizePool.showBadge && (
-              <div className="mt-5 rounded-[8px] border border-[#d4af37]/50 bg-[#d4af37]/15 p-3 text-sm font-black uppercase tracking-[0.14em] text-[#f7dc83] shadow-[0_0_28px_rgba(212,175,55,0.18)]">
+              <PrizePoolPill className="mt-5 w-full justify-center px-3 py-3 text-sm font-black uppercase tracking-[0.12em]">
                 {formatPrizePoolBadge(competition.prizePool.amount)}
-              </div>
+              </PrizePoolPill>
             )}
             {competition.prizePool.enabled && (
               <div className="mt-4 rounded-[8px] border border-white/10 bg-white/[0.045] p-4 text-xs leading-6 text-white/62">

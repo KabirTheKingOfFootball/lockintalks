@@ -1,17 +1,19 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Mail, PlayCircle } from "lucide-react";
+import { RedHatMark } from "@/components/brand-visuals";
 
 export function Footer() {
   return (
-    <footer className="border-t border-white/10 bg-black/30">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[1.3fr_1fr_1fr_1fr] lg:px-8">
+    <footer className="relative overflow-hidden border-t border-white/15 bg-[#071b3b]/92">
+      <div className="poster-backdrop poster-backdrop-compact opacity-35" aria-hidden="true" />
+      <div className="relative z-10 mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[1.3fr_1fr_1fr_1fr] lg:px-8">
         <div>
           <div className="mb-4 flex items-center gap-3">
-            <Image src="/lockintalks-logo.png" alt="LockInTalks logo" width={58} height={58} className="rounded-full" />
+            <Image src="/lockintalks-logo.png" alt="LockInTalks logo" width={62} height={62} className="rounded-full border border-[#ffd765]/35 object-cover shadow-[0_0_26px_rgba(255,215,101,0.4)]" />
             <div>
-              <p className="text-xl font-black">LockIn<span className="gold-text">Talks</span></p>
-              <p className="text-sm text-white/55">Speak. Inspire. Lead.</p>
+              <p className="flex items-center gap-2 text-xl font-black">LockIn<span className="gold-text">Talks</span><RedHatMark className="scale-50" /></p>
+              <p className="text-sm text-white/70">Speak. Perform. Inspire.</p>
             </div>
           </div>
           <p className="max-w-md text-sm leading-6 text-white/60">
@@ -52,7 +54,7 @@ export function Footer() {
           </div>
         </div>
       </div>
-      <div className="border-t border-white/10 px-4 py-5 text-center text-xs text-white/45">Copyright 2026 LockInTalks. All Rights Reserved.</div>
+      <div className="relative z-10 border-t border-white/10 px-4 py-5 text-center text-xs text-white/45">Copyright 2026 LockInTalks. All Rights Reserved.</div>
     </footer>
   );
 }

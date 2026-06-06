@@ -101,7 +101,7 @@ export async function getLiveCompetitions(limit?: number) {
     return { competitions: (data || []).map((record) => mapCompetitionRecord(record as CompetitionRecord, paidCounts.get(String(record.slug)) || 0)), error: null };
   } catch (error) {
     if (error instanceof SupabaseConfigError) {
-      console.error(`[LockInTalks competitions] ${error.message}`);
+      console.warn(`[LockInTalks competitions] ${error.message}`);
       return { competitions: [] as PublicCompetition[], error: error.message };
     }
 
@@ -125,7 +125,7 @@ export async function getLiveCompetitionBySlug(slug: string) {
     return { competition: data ? mapCompetitionRecord(data as CompetitionRecord, paidCounts.get(String(data.slug)) || 0) : null, error: null };
   } catch (error) {
     if (error instanceof SupabaseConfigError) {
-      console.error(`[LockInTalks competitions] ${error.message}`);
+      console.warn(`[LockInTalks competitions] ${error.message}`);
       return { competition: null, error: error.message };
     }
 

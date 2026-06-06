@@ -6,6 +6,7 @@ import { Menu, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Button, ButtonLink } from "@/components/ui/button";
+import { RedHatMark } from "@/components/brand-visuals";
 
 type AuthNavState =
   | {
@@ -145,11 +146,14 @@ export function Navbar() {
   }, [auth]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-[#020817]/75 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-white/15 bg-[#071b3b]/86 shadow-[0_10px_35px_rgba(7,27,59,0.24)] backdrop-blur-xl">
       <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8" aria-label="Main navigation">
         <Link href="/" className="focus-ring flex items-center gap-3 rounded-full" onClick={() => setOpen(false)}>
-          <Image src="/lockintalks-logo.png" alt="LockInTalks logo" width={54} height={54} priority className="rounded-full shadow-[0_0_28px_rgba(212,175,55,0.45)]" />
-          <span className="text-lg font-black tracking-wide">LockIn<span className="gold-text">Talks</span></span>
+          <Image src="/lockintalks-logo.png" alt="LockInTalks logo" width={58} height={58} priority className="rounded-full border border-[#ffd765]/35 object-cover shadow-[0_0_28px_rgba(255,215,101,0.5)]" />
+          <span className="hidden items-center gap-2 text-lg font-black tracking-wide sm:inline-flex">
+            LockIn<span className="gold-text">Talks</span>
+            <RedHatMark className="ml-1 scale-75" />
+          </span>
         </Link>
         <div className="hidden items-center gap-1 md:flex">
           {links.map((link) => <NavLink key={link.href} href={link.href} label={link.label} />)}
@@ -162,7 +166,7 @@ export function Navbar() {
         </button>
       </nav>
       {open && (
-        <div className="border-t border-white/10 bg-[#020817]/95 px-4 py-5 md:hidden">
+        <div className="border-t border-white/10 bg-[#071b3b]/96 px-4 py-5 shadow-[0_20px_45px_rgba(7,27,59,0.32)] md:hidden">
           <div className="flex flex-col gap-2">
             {links.map((link) => <NavLink key={link.href} href={link.href} label={link.label} mobile onClick={() => setOpen(false)} />)}
             <div className="mt-2 grid grid-cols-2 gap-3" onClick={() => setOpen(false)}>

@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "LockInTalks",
-    description: "Speak. Inspire. Lead.",
+    description: "Speak. Perform. Inspire.",
     images: ["/lockintalks-logo.png"]
   }
 };

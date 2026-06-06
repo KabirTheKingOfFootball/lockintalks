@@ -3,6 +3,7 @@ import { HelpCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { MotionShell } from "@/components/motion-shell";
 import { FAQAssistant } from "@/components/faq-assistant";
+import { PosterBackdrop } from "@/components/brand-visuals";
 import { getFAQEssayKnowledge } from "@/lib/faq/essay-loader";
 
 export const metadata: Metadata = {
@@ -24,9 +25,11 @@ export default function FAQPage() {
   const { chunks, wordCount } = getFAQEssayKnowledge();
 
   return (
-    <MotionShell className="mx-auto max-w-5xl px-4 py-14 sm:px-6 lg:px-8">
-      <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-[#d4af37]">FAQ</p>
-      <h1 className="text-4xl font-black sm:text-6xl">Questions Before the Spotlight</h1>
+    <MotionShell className="relative overflow-hidden px-4 py-14 sm:px-6 lg:px-8">
+      <PosterBackdrop compact />
+      <div className="relative z-10 mx-auto max-w-5xl">
+      <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-[#071b3b]">FAQ</p>
+      <h1 className="poster-title text-5xl font-black sm:text-7xl">Questions Before the Spotlight</h1>
       <div className="mt-10">
         <FAQAssistant knowledgeChunks={chunks} essayWordCount={wordCount} />
       </div>
@@ -42,6 +45,7 @@ export default function FAQPage() {
             </div>
           </Card>
         ))}
+      </div>
       </div>
     </MotionShell>
   );

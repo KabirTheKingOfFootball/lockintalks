@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { MotionShell } from "@/components/motion-shell";
+import { PosterBackdrop } from "@/components/brand-visuals";
 import { getLiveCompetitions } from "@/lib/competitions";
 
 export const metadata: Metadata = {
@@ -15,15 +16,19 @@ export default async function PricingPage() {
   const { competitions, error } = await getLiveCompetitions();
 
   return (
-    <MotionShell className="mx-auto max-w-5xl px-4 py-14 sm:px-6 lg:px-8">
-      <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-[#d4af37]">Pricing</p>
-      <h1 className="text-4xl font-black sm:text-6xl">Pricing and Competition Fees</h1>
-      <p className="mt-5 text-sm leading-7 text-white/68">
+    <MotionShell className="relative overflow-hidden px-4 py-14 sm:px-6 lg:px-8">
+      <PosterBackdrop compact />
+      <div className="relative z-10 mx-auto max-w-5xl">
+      <div className="poster-panel rounded-[8px] p-6">
+      <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-[#0d4ea6]">Pricing</p>
+      <h1 className="text-4xl font-black text-[#071b3b] sm:text-6xl">Pricing and Competition Fees</h1>
+      <p className="mt-5 text-sm leading-7 text-[#071b3b]/75">
         LockInTalks entry fees are shown on each live competition page before checkout. Payments are processed through Razorpay Checkout when enabled, and registrations are confirmed only after server-side verification.
       </p>
-      <p className="mt-4 text-xs leading-6 text-white/45">
+      <p className="mt-4 text-xs leading-6 text-[#071b3b]/55">
         Last Updated: May 31, 2026. Pricing should be reviewed before public launch and may change for future events.
       </p>
+      </div>
 
       <div className="mt-8 grid gap-5">
         <Card>
@@ -79,6 +84,7 @@ export default async function PricingPage() {
             .
           </p>
         </Card>
+      </div>
       </div>
     </MotionShell>
   );

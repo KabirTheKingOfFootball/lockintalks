@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { MotionShell } from "@/components/motion-shell";
+import { PosterBackdrop } from "@/components/brand-visuals";
 
 type PolicySection = {
   title: string;
@@ -19,13 +20,17 @@ export function PolicyPage({
   sections: PolicySection[];
 }) {
   return (
-    <MotionShell className="mx-auto max-w-4xl px-4 py-14 sm:px-6 lg:px-8">
-      <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-[#d4af37]">{eyebrow}</p>
-      <h1 className="text-4xl font-black sm:text-6xl">{title}</h1>
-      <p className="mt-5 text-sm leading-7 text-white/68">{intro}</p>
-      <p className="mt-4 text-xs leading-6 text-white/45">
+    <MotionShell className="relative overflow-hidden px-4 py-14 sm:px-6 lg:px-8">
+      <PosterBackdrop compact />
+      <div className="relative z-10 mx-auto max-w-4xl">
+      <div className="poster-panel rounded-[8px] p-6">
+      <p className="mb-3 text-xs font-black uppercase tracking-[0.3em] text-[#0d4ea6]">{eyebrow}</p>
+      <h1 className="text-4xl font-black text-[#071b3b] sm:text-6xl">{title}</h1>
+      <p className="mt-5 text-sm leading-7 text-[#071b3b]/75">{intro}</p>
+      <p className="mt-4 text-xs leading-6 text-[#071b3b]/55">
         Last Updated: May 31, 2026. These pages are written for beta launch clarity and Razorpay review. They should be reviewed by an adult/legal advisor before wider public launch.
       </p>
+      </div>
       <div className="mt-8 grid gap-5">
         {sections.map((section) => (
           <Card key={section.title}>
@@ -55,6 +60,7 @@ export function PolicyPage({
           .
         </p>
       </Card>
+      </div>
     </MotionShell>
   );
 }

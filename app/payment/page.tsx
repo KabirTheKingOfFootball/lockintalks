@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PaymentForm } from "@/components/payment-form";
 import { MotionShell } from "@/components/motion-shell";
+import { PosterBackdrop } from "@/components/brand-visuals";
 import { getServerAuthSession } from "@/lib/auth/server-session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SupabaseConfigError } from "@/lib/supabase/env";
@@ -24,7 +25,9 @@ export default async function PaymentPage({ searchParams }: { searchParams: Prom
   const razorpayStatus = getRazorpayEnvStatus();
 
   return (
-    <MotionShell className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
+    <MotionShell className="relative overflow-hidden px-4 py-14 sm:px-6 lg:px-8">
+      <PosterBackdrop compact />
+      <div className="relative z-10 mx-auto max-w-6xl">
       <PaymentForm
         competitionSlug={paymentState.summary?.competitionSlug || paymentState.issue?.competitionSlug || competitionSlug}
         registrationId={paymentState.summary?.registrationId || registrationId}
@@ -37,6 +40,7 @@ export default async function PaymentPage({ searchParams }: { searchParams: Prom
           keyMode: razorpayStatus.keyMode
         }}
       />
+      </div>
     </MotionShell>
   );
 }

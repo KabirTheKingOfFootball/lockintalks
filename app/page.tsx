@@ -1,10 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Award, BadgeCheck, Crown, Globe2, Mic2, ShieldCheck, Sparkles, Trophy } from "lucide-react";
+import { ArrowRight, Award, BadgeCheck, Crown, Globe2, Mic2, ShieldCheck, Trophy } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MotionShell, Reveal } from "@/components/motion-shell";
 import { Section } from "@/components/section";
+import { PosterBackdrop, PosterHeroArt, PrizePoolPill, RedHatMark } from "@/components/brand-visuals";
 import { getLiveCompetitions } from "@/lib/competitions";
 import { formatPrizePoolBadge } from "@/lib/rewards/prize-pool";
 
@@ -32,55 +33,35 @@ export default async function HomePage() {
   return (
     <MotionShell>
       <section className="relative overflow-hidden">
-        <div className="mesh-bg animated-grid absolute inset-0" aria-hidden="true" />
-        <div className="stage-light absolute inset-0" aria-hidden="true" />
-        <div className="hero-watermark" aria-hidden="true">
-          <div className="hero-starfield" />
-          <div className="speech-wave speech-wave-one" />
-          <div className="speech-wave speech-wave-two" />
-          <div className="stage-silhouette">
-            <span className="stage-helmet" />
-            <span className="stage-torso" />
-            <span className="stage-mic" />
-          </div>
-        </div>
-        <div className="energy-line absolute left-0 top-32 hidden h-px w-1/3 lg:block" aria-hidden="true" />
-        <div className="energy-line absolute bottom-24 right-0 hidden h-px w-1/4 lg:block" aria-hidden="true" />
-        <div className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8">
+        <PosterBackdrop />
+        <div className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:px-8">
           <div className="relative z-10">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#d4af37]/35 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.22em] text-[#f7dc83]">
-              <Trophy size={16} /> Global Youth Speaking Competitions
+            <div className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-[#071b3b]/15 bg-white/80 px-4 py-2 text-[0.62rem] font-black uppercase tracking-[0.12em] text-[#071b3b] shadow-[0_14px_35px_rgba(7,27,59,0.14)] sm:text-xs sm:tracking-[0.22em]">
+              <Trophy size={16} className="shrink-0 text-[#d49a22]" />
+              <span className="min-w-0 truncate"><span className="hidden sm:inline">Global </span>Youth Speaking Competitions</span>
+              <RedHatMark className="hidden scale-50 sm:inline-block" />
             </div>
-            <h1 className="max-w-4xl text-5xl font-black leading-[0.95] text-white sm:text-7xl lg:text-8xl">
-              Speak. <span className="gold-text">Inspire.</span> Lead.
+            <h1 className="poster-title max-w-4xl text-[clamp(2.65rem,11vw,7rem)] font-black leading-[0.9] sm:text-8xl lg:text-9xl">
+              LockInTalks
             </h1>
-            <p className="mt-7 max-w-2xl text-lg leading-8 text-white/72">
-              LockInTalks gives students a structured online stage to practise public speaking, build confidence, earn recognition, and compete for exciting cash prizes in a supportive environment.
+            <p className="mt-4 max-w-2xl text-2xl font-black leading-8 text-[#071b3b]">
+              Speak. Perform. Inspire.
+            </p>
+            <p className="mt-5 max-w-2xl text-lg leading-8 text-[#071b3b]/78">
+              Online speaking competitions for kids and teens to build confidence, creativity, communication, and stage presence.
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <ButtonLink href="/competitions" className="gap-2">Explore Competitions <ArrowRight size={18} /></ButtonLink>
               <ButtonLink href="/signup" variant="glass">Register Now</ButtonLink>
             </div>
-            <div className="mt-10 grid max-w-xl grid-cols-3 gap-3">
-              {["Speaking Practice", "Live Online Events", "Confidence Building"].map((item) => (
-                <div key={item} className="rounded-[8px] border border-white/10 bg-white/[0.05] p-3 text-center text-sm font-bold text-white/75">{item}</div>
+            <div className="mt-10 grid max-w-2xl grid-cols-1 gap-3 min-[430px]:grid-cols-2 sm:grid-cols-4">
+              {["Cash Prizes", "Online Events", "Certificates", "Feedback"].map((item) => (
+                <div key={item} className="poster-panel rounded-[8px] p-3 text-center text-sm font-black">{item}</div>
               ))}
             </div>
           </div>
-          <div className="relative mx-auto w-full max-w-lg">
-            <div className="absolute inset-x-6 top-10 h-3/4 bg-[#d4af37]/18 blur-3xl" aria-hidden="true" />
-            <Image
-              src="/lockintalks-logo.png"
-              alt="LockInTalks logo"
-              width={720}
-              height={720}
-              priority
-              className="relative rounded-full drop-shadow-[0_0_55px_rgba(212,175,55,0.45)]"
-            />
-            <div className="glass absolute -bottom-4 left-2 flex items-center gap-3 rounded-[8px] p-4">
-              <Sparkles className="text-[#d4af37]" size={22} />
-              <span className="text-sm font-bold">Confidence, Recognition, and Cash Awards</span>
-            </div>
+          <div className="relative z-10">
+            <PosterHeroArt />
           </div>
         </div>
       </section>
@@ -184,9 +165,9 @@ export default async function HomePage() {
                 <h3 className="text-lg font-black">{competition.name}</h3>
                 <p className="mt-2 text-sm text-white/58">{competition.ageGroup} | {competition.fee} | Cash Prizes</p>
                 {competition.prizePool.showBadge && (
-                  <p className="mt-3 rounded-[8px] border border-[#d4af37]/45 bg-[#d4af37]/12 p-2 text-xs font-black uppercase tracking-[0.12em] text-[#f7dc83]">
+                  <PrizePoolPill className="mt-3 px-3 py-2 text-xs font-black uppercase tracking-[0.12em]">
                     {formatPrizePoolBadge(competition.prizePool.amount)}
-                  </p>
+                  </PrizePoolPill>
                 )}
                 <ButtonLink href={`/competitions/${competition.slug}`} variant="glass" className="mt-5 w-full">View Details</ButtonLink>
               </Card>

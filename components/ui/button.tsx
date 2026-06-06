@@ -6,9 +6,9 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const variants = {
-  gold: "bg-gradient-to-r from-[#fff1a8] via-[#d4af37] to-[#9b7415] text-[#071225] shadow-[0_14px_40px_rgba(212,175,55,0.28)] hover:shadow-[0_18px_54px_rgba(212,175,55,0.42)]",
-  glass: "glass text-white hover:border-[#d4af37]/60",
-  ghost: "text-white/80 hover:bg-white/10 hover:text-white"
+  gold: "relative overflow-hidden bg-gradient-to-r from-[#fff3a3] via-[#ffd765] to-[#d49a22] text-[#071225] shadow-[0_14px_40px_rgba(255,215,101,0.32)] hover:shadow-[0_18px_54px_rgba(255,215,101,0.48)] before:absolute before:inset-y-[-40%] before:left-[-45%] before:w-1/3 before:rotate-12 before:bg-white/45 before:transition before:duration-700 hover:before:left-[120%]",
+  glass: "glass text-white hover:border-[#ffd765]/70",
+  ghost: "text-white/86 hover:bg-white/14 hover:text-white"
 };
 
 export function Button({ className, variant = "gold", ...props }: ButtonProps) {

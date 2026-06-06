@@ -5,6 +5,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MotionShell } from "@/components/motion-shell";
 import { Countdown } from "@/components/countdown";
+import { PosterBackdrop, PrizePoolPill } from "@/components/brand-visuals";
 import { getLiveCompetitions } from "@/lib/competitions";
 import { formatInr, formatPrizePoolBadge } from "@/lib/rewards/prize-pool";
 
@@ -19,15 +20,17 @@ export default async function CompetitionsPage() {
   const { competitions, error } = await getLiveCompetitions();
 
   return (
-    <MotionShell className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+    <MotionShell className="relative overflow-hidden px-4 py-14 sm:px-6 lg:px-8">
+      <PosterBackdrop compact />
+      <div className="relative z-10 mx-auto max-w-7xl">
       <div className="mb-10 grid gap-5 lg:grid-cols-[1fr_0.38fr] lg:items-end">
         <div className="max-w-3xl">
-        <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-[#d4af37]">Competitions</p>
-        <h1 className="text-4xl font-black sm:text-6xl">Choose Your Speaking Event</h1>
-        <p className="mt-5 text-lg leading-8 text-white/65">Age-grouped online events built for confidence, clarity, meaningful stage practice, and exciting cash prize opportunities.</p>
+        <p className="mb-3 text-xs font-black uppercase tracking-[0.3em] text-[#071b3b]">Competitions</p>
+        <h1 className="poster-title text-5xl font-black sm:text-7xl">Choose Your Speaking Event</h1>
+        <p className="mt-5 text-lg leading-8 text-[#071b3b]/75">Age-grouped online events built for confidence, clarity, meaningful stage practice, and exciting cash prize opportunities.</p>
         </div>
-        <div className="glass rounded-[8px] p-4 text-sm leading-6 text-white/65">
-          <p className="font-bold text-white">New Here?</p>
+        <div className="poster-panel rounded-[8px] p-4 text-sm leading-6">
+          <p className="font-black text-[#071b3b]">New Here?</p>
           <p>Pick an event, register, pay securely, then join the live online stage from your dashboard.</p>
         </div>
       </div>
@@ -68,9 +71,9 @@ export default async function CompetitionsPage() {
                 <span className="flex items-center gap-2"><Trophy size={16} className="text-[#d4af37]" /> Every Competition Includes Cash Prizes</span>
               </div>
               {competition.prizePool.showBadge && (
-                <div className="mt-5 rounded-[8px] border border-[#d4af37]/50 bg-[#d4af37]/15 p-3 text-sm font-black uppercase tracking-[0.14em] text-[#f7dc83] shadow-[0_0_28px_rgba(212,175,55,0.18)]">
+                <PrizePoolPill className="mt-5 px-3 py-3 text-sm font-black uppercase tracking-[0.12em]">
                   {formatPrizePoolBadge(competition.prizePool.amount)}
-                </div>
+                </PrizePoolPill>
               )}
               {competition.prizePool.enabled && (
                 <p className="mt-3 text-xs leading-5 text-white/45">
@@ -84,6 +87,7 @@ export default async function CompetitionsPage() {
         ))}
       </div>
       )}
+      </div>
     </MotionShell>
   );
 }

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { DashboardClient } from "@/components/dashboard-client";
 import { MotionShell } from "@/components/motion-shell";
 import { SetupWarning } from "@/components/setup-warning";
+import { PosterBackdrop } from "@/components/brand-visuals";
 import { AppSessionConfigError } from "@/lib/auth/app-session";
 import { getServerAuthSession } from "@/lib/auth/server-session";
 import { SupabaseConfigError } from "@/lib/supabase/env";
@@ -65,7 +66,8 @@ export default async function DashboardPage() {
   const email = session.user.email;
 
   return (
-    <MotionShell>
+    <MotionShell className="relative overflow-hidden">
+      <PosterBackdrop compact />
       <DashboardClient user={{ name: displayName, email }} registrations={registrations} dataError={dataError} />
     </MotionShell>
   );

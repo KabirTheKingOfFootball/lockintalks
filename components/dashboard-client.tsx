@@ -26,10 +26,10 @@ export function DashboardClient({
   const paidRegistrations = registrations.filter((registration) => isSeatConfirmed(registration.payment_status));
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-      <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-[#d4af37]">Dashboard</p>
-      <h1 className="text-4xl font-black sm:text-6xl">Welcome, {user.name.split(" ")[0]}</h1>
-      <p className="mt-4 text-white/62">{user.email}</p>
+    <div className="relative z-10 mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+      <p className="mb-3 text-xs font-black uppercase tracking-[0.3em] text-[#071b3b]">Dashboard</p>
+      <h1 className="poster-title text-5xl font-black sm:text-7xl">Welcome, {user.name.split(" ")[0]}</h1>
+      <p className="mt-4 font-bold text-[#071b3b]/70">{user.email}</p>
       <div className="mt-8 grid gap-5 lg:grid-cols-[1fr_0.8fr]">
         <Card>
           <Sparkles className="mb-4 text-[#d4af37]" />
