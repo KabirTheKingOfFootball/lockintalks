@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { AppSessionConfigError } from "@/lib/auth/app-session";
 import { getServerAuthSession } from "@/lib/auth/server-session";
-import { getLaunchCompetitionDefault } from "@/lib/competition-defaults";
+import { formatPaiseAsInr, getRegistrationAmountRepairPatch, resolvePayableAmountPaise } from "@/lib/payment/amounts";
+import { isSeatConfirmed } from "@/lib/payment/status";
 import { getReadableSupabaseError } from "@/lib/readable-error";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -76,25 +77,42 @@ export async function POST(request: NextRequest) {
       return jsonError("This competition is not available for registration right now.", 404);
     }
 
-    const { data: existingRegistration, error: existingError } = await supabaseAdmin
+    const { data: existingRegistrations, error: existingError } = await supabaseAdmin
       .from("registrations")
-      .select("id,user_id,competition_slug,payment_status")
+      .select("id,user_id,competition_slug,competition_name,payment_status,registration_status,payment_amount,amount_due,payment_currency,entry_fee")
       .eq("user_id", session.user.id)
       .eq("competition_slug", competition.slug)
-      .not("payment_status", "in", "(failed,cancelled,refunded)")
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(10);
 
     if (existingError) {
       console.warn(`[LockInTalks registration] Duplicate registration check skipped: ${existingError.message}`);
     }
 
+    const existingRegistration =
+      (existingRegistrations || []).find((registration) => isSeatConfirmed(registration.payment_status)) ||
+      (existingRegistrations || []).find((registration) => !isSeatConfirmed(registration.payment_status));
+
     if (existingRegistration) {
-      const alreadyPaid = existingRegistration.payment_status === "captured" || existingRegistration.payment_status === "paid";
+      const alreadyPaid = isSeatConfirmed(existingRegistration.payment_status);
+      const resolvedAmount = resolvePayableAmountPaise({
+        registration: existingRegistration,
+        competition,
+        competitionSlug: competition.slug
+      });
+
+      if (!alreadyPaid) {
+        await repairRegistrationAmountIfNeeded({
+          registration: existingRegistration,
+          resolvedAmount,
+          supabaseAdmin,
+          source: "registration_reuse"
+        });
+      }
+
       const paymentUrl = buildPaymentUrl({ registrationId: existingRegistration.id, competitionSlug: competition.slug });
       console.info(
-        `[LockInTalks registration] Existing registration returned. current_user=${session.user.id} row_user=${existingRegistration.user_id} registration=${existingRegistration.id} competition=${existingRegistration.competition_slug} payment_status=${existingRegistration.payment_status} redirect=${alreadyPaid ? "/dashboard" : paymentUrl}`
+        `[LockInTalks registration] Existing registration returned. current_user=${session.user.id} row_user=${existingRegistration.user_id} registration=${existingRegistration.id} competition=${existingRegistration.competition_slug} payment_status=${existingRegistration.payment_status} amount=${resolvedAmount.amountPaise} source=${resolvedAmount.source} redirect=${alreadyPaid ? "/dashboard" : paymentUrl}`
       );
       return NextResponse.json(
         {
@@ -109,10 +127,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const launchDefault = getLaunchCompetitionDefault(competition.slug);
-    const parsedFeeAmount = Number(competition.fee_amount);
-    const feeAmount = Number.isFinite(parsedFeeAmount) && parsedFeeAmount > 0 ? parsedFeeAmount : launchDefault?.feeAmount || 0;
-    const feeLabel = String(competition.fee_label || "").trim() || launchDefault?.feeLabel || formatFeeLabel(feeAmount);
+    const resolvedAmount = resolvePayableAmountPaise({ competition, competitionSlug: competition.slug });
+    const feeAmount = resolvedAmount.amountPaise;
+    const feeLabel = formatPaiseAsInr(feeAmount);
+
+    if (!feeAmount) {
+      console.error(`[LockInTalks registration] Invalid registration amount. competition=${competition.slug} source=${resolvedAmount.source}`);
+      return jsonError("This competition does not have a valid registration fee configured. Please contact support.", 400);
+    }
 
     const { data, error: insertError } = await supabaseAdmin
       .from("registrations")
@@ -147,7 +169,7 @@ export async function POST(request: NextRequest) {
 
     const paymentUrl = buildPaymentUrl({ registrationId: data.id, competitionSlug: competition.slug });
     console.info(
-      `[LockInTalks registration] Registration created. current_user=${session.user.id} row_user=${data.user_id} registration=${data.id} competition=${data.competition_slug} redirect=${paymentUrl}`
+      `[LockInTalks registration] Registration created. current_user=${session.user.id} row_user=${data.user_id} registration=${data.id} competition=${data.competition_slug} amount=${feeAmount} source=${resolvedAmount.source} redirect=${paymentUrl}`
     );
 
     return NextResponse.json({ ok: true, registrationId: data.id, paymentUrl, redirectTo: paymentUrl }, { status: 200, headers: noStoreHeaders });
@@ -166,8 +188,30 @@ function jsonError(error: string, status: number) {
   return NextResponse.json({ error }, { status, headers: noStoreHeaders });
 }
 
-function formatFeeLabel(feeAmountPaise: number) {
-  const amount = Math.max(0, Math.floor(Number(feeAmountPaise) || 0));
-  if (!amount) return "Calculated at Checkout";
-  return `INR ${(amount / 100).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+async function repairRegistrationAmountIfNeeded({
+  registration,
+  resolvedAmount,
+  supabaseAdmin,
+  source
+}: {
+  registration: {
+    id: string;
+    payment_status: string | null;
+  };
+  resolvedAmount: ReturnType<typeof resolvePayableAmountPaise>;
+  supabaseAdmin: ReturnType<typeof createAdminClient>;
+  source: string;
+}) {
+  const repairPatch = getRegistrationAmountRepairPatch(resolvedAmount, registration.payment_status);
+  if (!repairPatch) return;
+
+  const { error } = await supabaseAdmin.from("registrations").update(repairPatch).eq("id", registration.id);
+  if (error) {
+    console.warn(`[LockInTalks registration] Could not repair amount for registration=${registration.id}: ${error.message}`);
+    return;
+  }
+
+  console.info(
+    `[LockInTalks registration] Repaired unpaid registration amount. source=${source} registration=${registration.id} amount=${resolvedAmount.amountPaise} reason=${resolvedAmount.repairReason || "unknown"}`
+  );
 }

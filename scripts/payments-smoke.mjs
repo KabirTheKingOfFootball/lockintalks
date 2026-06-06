@@ -17,6 +17,8 @@ installTsLoader();
 const payments = require(path.resolve("lib/razorpay/payments.ts"));
 const razorpayEnv = require(path.resolve("lib/razorpay/env.ts"));
 const registrationReference = require(path.resolve("lib/payment/registration-reference.ts"));
+const paymentAmounts = require(path.resolve("lib/payment/amounts.ts"));
+const rewardsFeature = require(path.resolve("lib/rewards/feature.ts"));
 const failures = [];
 
 const orderId = "order_lockintalks_smoke";
@@ -43,6 +45,42 @@ const webhookSignature = sign(process.env.RAZORPAY_WEBHOOK_SECRET, rawWebhookBod
 expectEqual(payments.verifyRazorpayWebhookSignature(rawWebhookBody, webhookSignature), true, "Valid webhook signature verifies.");
 expectEqual(payments.verifyRazorpayWebhookSignature(rawWebhookBody, webhookSignature.replace(/.$/, "0")), false, "Tampered webhook signature is rejected.");
 expectEqual(payments.formatAmount(19900), "INR 199", "Payment amounts display as INR.");
+expectEqual(paymentAmounts.formatPaiseAsInr(19900), "INR 199", "Shared payment amount display formats 19900 paise as INR 199.");
+
+const corruptedLaunchAmount = paymentAmounts.resolvePayableAmountPaise({
+  registration: { payment_amount: 8, amount_due: 800, payment_status: "pending", payment_currency: "INR" },
+  competition: { fee_amount: 800 },
+  competitionSlug: "story-talks"
+});
+expectEqual(corruptedLaunchAmount.amountPaise, 19900, "Corrupted launch amounts like 8/800 repair to INR 199.");
+expectEqual(corruptedLaunchAmount.source, "launch_fallback", "Corrupted launch amount uses launch fallback source.");
+expectEqual(corruptedLaunchAmount.shouldRepairRegistration, true, "Corrupted unpaid registration amount is marked for repair.");
+
+const validRegistrationPaymentAmount = paymentAmounts.resolvePayableAmountPaise({
+  registration: { payment_amount: 19900, amount_due: 800, payment_status: "pending", payment_currency: "INR" },
+  competition: { fee_amount: 800 },
+  competitionSlug: "story-talks"
+});
+expectEqual(validRegistrationPaymentAmount.amountPaise, 19900, "Registration payment_amount wins when it is valid.");
+expectEqual(validRegistrationPaymentAmount.source, "registration_payment_amount", "Resolver prefers valid registration payment_amount.");
+
+const validRegistrationDueAmount = paymentAmounts.resolvePayableAmountPaise({
+  registration: { payment_amount: 8, amount_due: 19900, payment_status: "failed", payment_currency: "INR" },
+  competition: { fee_amount: 800 },
+  competitionSlug: "idol-talk"
+});
+expectEqual(validRegistrationDueAmount.amountPaise, 19900, "Registration amount_due wins when payment_amount is corrupted.");
+expectEqual(validRegistrationDueAmount.source, "registration_amount_due", "Resolver falls through to valid registration amount_due.");
+
+const validDifferentCompetitionAmount = paymentAmounts.resolvePayableAmountPaise({
+  competition: { fee_amount: 24900 },
+  competitionSlug: "power-talk"
+});
+expectEqual(validDifferentCompetitionAmount.amountPaise, 24900, "A clearly valid explicit launch competition amount can override fallback.");
+expectEqual(validDifferentCompetitionAmount.source, "competition_fee_amount", "Resolver uses valid competition fee_amount when present.");
+expectEqual(Boolean(paymentAmounts.getRegistrationAmountRepairPatch(corruptedLaunchAmount, "pending")), true, "Unpaid corrupted registration gets a repair patch.");
+expectEqual(paymentAmounts.getRegistrationAmountRepairPatch(corruptedLaunchAmount, "captured"), null, "Captured registrations are not repaired automatically.");
+expectEqual(rewardsFeature.areLockInPointsEnabled(), false, "LockIn Points feature is disabled by default, so checkout discounts stay off.");
 
 const envStatus = razorpayEnv.getRazorpayEnvStatus();
 expectEqual(envStatus.checkoutReady, true, "Razorpay checkout env status detects configured test keys.");
@@ -86,12 +124,16 @@ const liveModeChecklistSource = readFileSync("LIVE_MODE_SWITCH_CHECKLIST.md", "u
 
 expectMatch(registrationRouteSource, /payment_amount:\s*feeAmount/, "Registration creation stores the server-side fee amount.");
 expectMatch(registrationRouteSource, /amount_due:\s*feeAmount/, "Registration creation stores amount_due before payment.");
+expectMatch(registrationRouteSource, /resolvePayableAmountPaise/, "Registration creation resolves amount through the shared backend amount utility.");
+expectMatch(registrationRouteSource, /repairRegistrationAmountIfNeeded/, "Registration creation repairs bad unpaid duplicate amount fields.");
 expectMatch(registrationRouteSource, /buildPaymentUrl\(\{\s*registrationId:\s*data\.id,\s*competitionSlug:\s*competition\.slug\s*\}\)/, "New registrations return a payment URL containing the exact registration id.");
 expectMatch(registrationRouteSource, /buildPaymentUrl\(\{\s*registrationId:\s*existingRegistration\.id,\s*competitionSlug:\s*competition\.slug\s*\}\)/, "Pending duplicate registrations return their existing registration id.");
 expectMatch(registrationRouteSource, /redirectTo:\s*alreadyPaid\s*\?\s*"\/dashboard"\s*:\s*paymentUrl/, "Paid duplicate registrations redirect away from duplicate payment.");
 expectMatch(registrationRouteSource, /row_user=\$\{data\.user_id\}/, "Registration creation logs the database row owner safely.");
 expectMatch(paymentPageSource, /PaymentSearchParams/, "Payment page accepts normalized payment search params.");
 expectMatch(paymentPageSource, /findPaymentRegistration/, "Payment page reuses pending registrations by id or competition slug.");
+expectMatch(paymentPageSource, /resolvePayableAmountPaise/, "Payment page displays the shared backend resolved amount.");
+expectMatch(paymentPageSource, /repairRegistrationAmountIfNeeded/, "Payment page repairs unpaid bad amount rows.");
 expectMatch(paymentPageSource, /getPaymentRegistrationReference/, "Payment page reads registration, registrationId, and id aliases.");
 expectMatch(paymentPageSource, /if \(trimmedRegistrationId\)[\s\S]*\.eq\("id", trimmedRegistrationId\)/, "Payment page performs exact registration id lookup first.");
 expectMatch(paymentPageSource, /owner_matches=\$\{ownerMatches\}/, "Payment page logs exact id owner match diagnostics.");
@@ -100,6 +142,8 @@ expectNotMatch(paymentPageSource, /isUuid/, "Payment page does not reject non-UU
 expectNotMatch(paymentPageSource, /slugCandidates\.add\(trimmedRegistrationId\)/, "Payment page does not treat an exact registration id as a competition slug fallback.");
 expectMatch(createOrderSource, /competitionSlug\?:\s*string/, "Create-order accepts a competition slug fallback.");
 expectMatch(createOrderSource, /findPaymentRegistration/, "Create-order resolves registration server-side before Razorpay order creation.");
+expectMatch(createOrderSource, /resolvePayableAmountPaise/, "Create-order uses shared backend amount resolver before Razorpay order creation.");
+expectMatch(createOrderSource, /repairRegistrationAmountIfNeeded/, "Create-order repairs unpaid bad amount rows before creating a new order.");
 expectMatch(createOrderSource, /getCreateOrderRegistrationReference/, "Create-order normalizes registration id aliases.");
 expectMatch(createOrderSource, /if \(trimmedRegistrationId\)[\s\S]*\.eq\("id", trimmedRegistrationId\)/, "Create-order performs exact registration id lookup first.");
 expectMatch(createOrderSource, /owner_matches=\$\{ownerMatches\}/, "Create-order logs exact id owner match diagnostics.");
@@ -107,6 +151,8 @@ expectMatch(createOrderSource, /Registration owner mismatch/, "Create-order reje
 expectNotMatch(createOrderSource, /isUuid/, "Create-order does not reject non-UUID registration references before exact lookup.");
 expectNotMatch(createOrderSource, /slugCandidates\.add\(trimmedRegistrationId\)/, "Create-order does not treat an exact registration id as a competition slug fallback.");
 expectMatch(createOrderSource, /isSeatConfirmed\(registration\.payment_status\)/, "Create-order blocks duplicate orders for paid registrations.");
+expectNotMatch(createOrderSource, /amount:\s*body\./, "Create-order does not trust a client-provided amount.");
+expectNotMatch(createOrderSource, /lockInPointsToApply:\s*appliedPointsPreview/, "Create-order client no longer receives public points discounts.");
 expectMatch(paymentFormSource, /competitionSlug:\s*summary\.competitionSlug/, "Checkout sends the competition slug alongside the registration id.");
 expectMatch(paymentFormSource, /registration:\s*activeRegistrationId/, "Checkout sends the exact registration id using the registration field.");
 expectMatch(paymentFormSource, /registrationId:\s*activeRegistrationId/, "Checkout sends the exact registration id using the registrationId field.");

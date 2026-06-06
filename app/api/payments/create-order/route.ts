@@ -4,7 +4,7 @@ import { createRazorpayClient, getPublicRazorpayKey, paymentCurrency } from "@/l
 import { getServerAuthSession } from "@/lib/auth/server-session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SupabaseConfigError } from "@/lib/supabase/env";
-import { getLaunchCompetitionDefault } from "@/lib/competition-defaults";
+import { getRegistrationAmountRepairPatch, resolvePayableAmountPaise } from "@/lib/payment/amounts";
 import { isPaymentInProgress, isSeatConfirmed } from "@/lib/payment/status";
 import { getCreateOrderRegistrationReference } from "@/lib/payment/registration-reference";
 import { areLockInPointsEnabled } from "@/lib/rewards/feature";
@@ -103,12 +103,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "This competition is not currently accepting payments." }, { status: 409 });
     }
 
-    const launchDefault = getLaunchCompetitionDefault(registration.competition_slug);
-    const parsedFeeAmount = Number(competition.fee_amount);
-    const feeAmount = Number.isFinite(parsedFeeAmount) && parsedFeeAmount > 0 ? parsedFeeAmount : launchDefault?.feeAmount || 0;
-    if (!Number.isFinite(feeAmount) || feeAmount <= 0) {
+    const resolvedAmount = resolvePayableAmountPaise({
+      registration,
+      competition,
+      competitionSlug: registration.competition_slug
+    });
+    const feeAmount = resolvedAmount.amountPaise;
+    if (!feeAmount) {
       return NextResponse.json({ error: "This competition does not have a valid payment amount configured." }, { status: 400 });
     }
+
+    await repairRegistrationAmountIfNeeded({
+      registration,
+      resolvedAmount,
+      supabaseAdmin,
+      source: "create_order"
+    });
 
     const pointsEnabled = areLockInPointsEnabled();
     const availablePoints = pointsEnabled ? await getUserLockInPointsBalance(userId) : 0;
@@ -130,9 +140,14 @@ export async function POST(request: NextRequest) {
     const amount = checkout.payableAmountPaise;
 
     const existingOrderId = registration.payment_order_id || registration.razorpay_order_id;
-    const existingAmount = Number(registration.amount_due || registration.payment_amount || 0);
+    const existingAmountBeforeRepair = Number(registration.amount_due || registration.payment_amount || 0);
 
-    if (existingOrderId && isPaymentInProgress(registration.payment_status) && existingAmount === amount && Number(registration.points_redeemed || 0) === checkout.appliedPoints) {
+    if (
+      existingOrderId &&
+      isPaymentInProgress(registration.payment_status) &&
+      existingAmountBeforeRepair === amount &&
+      Number(registration.points_redeemed || 0) === checkout.appliedPoints
+    ) {
       await savePaymentAttempt({
         registrationId: registration.id,
         userId,
@@ -321,7 +336,7 @@ async function findPaymentRegistration({
       .select(selectColumns)
       .eq("user_id", userId)
       .eq("competition_slug", slug)
-      .in("payment_status", ["pending", "order_created", "payment_created", "signature_verified"])
+      .in("payment_status", ["pending", "order_created", "payment_created", "signature_verified", "failed", "cancelled", "refunded"])
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -356,4 +371,29 @@ async function findPaymentRegistration({
   }
 
   return null;
+}
+
+async function repairRegistrationAmountIfNeeded({
+  registration,
+  resolvedAmount,
+  supabaseAdmin,
+  source
+}: {
+  registration: PaymentRegistration;
+  resolvedAmount: ReturnType<typeof resolvePayableAmountPaise>;
+  supabaseAdmin: ReturnType<typeof createAdminClient>;
+  source: string;
+}) {
+  const repairPatch = getRegistrationAmountRepairPatch(resolvedAmount, registration.payment_status);
+  if (!repairPatch) return;
+
+  const { error } = await supabaseAdmin.from("registrations").update(repairPatch).eq("id", registration.id);
+  if (error) {
+    console.warn(`[LockInTalks payment order] Could not repair amount for registration=${registration.id}: ${error.message}`);
+    return;
+  }
+
+  console.info(
+    `[LockInTalks payment order] Repaired unpaid registration amount. source=${source} registration=${registration.id} amount=${resolvedAmount.amountPaise} reason=${resolvedAmount.repairReason || "unknown"}`
+  );
 }

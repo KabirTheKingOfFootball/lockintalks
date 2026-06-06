@@ -4,7 +4,7 @@ import { MotionShell } from "@/components/motion-shell";
 import { getServerAuthSession } from "@/lib/auth/server-session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SupabaseConfigError } from "@/lib/supabase/env";
-import { getLaunchCompetitionDefault } from "@/lib/competition-defaults";
+import { formatPaiseAsInr, getRegistrationAmountRepairPatch, resolvePayableAmountPaise } from "@/lib/payment/amounts";
 import { getRazorpayEnvStatus } from "@/lib/razorpay/env";
 import { isSeatConfirmed } from "@/lib/payment/status";
 import { getPaymentCompetitionSlug, getPaymentRegistrationReference, type PaymentSearchParams } from "@/lib/payment/registration-reference";
@@ -46,6 +46,10 @@ type PaymentRegistration = {
   competition_name: string;
   entry_fee: string | null;
   payment_status: string | null;
+  registration_status: string | null;
+  payment_amount: number | null;
+  amount_due: number | null;
+  payment_currency: string | null;
 };
 
 async function getPaymentSummary({
@@ -83,9 +87,23 @@ async function getPaymentSummary({
       .eq("slug", registration.competition_slug)
       .maybeSingle();
 
-    const launchDefault = getLaunchCompetitionDefault(registration.competition_slug);
-    const parsedFeeAmount = Number(competition?.fee_amount);
-    const feeAmount = Number.isFinite(parsedFeeAmount) && parsedFeeAmount > 0 ? parsedFeeAmount : launchDefault?.feeAmount || 0;
+    const resolvedAmount = resolvePayableAmountPaise({
+      registration,
+      competition,
+      competitionSlug: registration.competition_slug
+    });
+
+    if (!resolvedAmount.amountPaise) {
+      console.error(`[LockInTalks payment] Invalid amount for registration=${registration.id} competition=${registration.competition_slug}`);
+      return null;
+    }
+
+    await repairRegistrationAmountIfNeeded({
+      registration,
+      resolvedAmount,
+      supabaseAdmin,
+      source: "payment_page"
+    });
 
     return {
       registrationId: registration.id,
@@ -94,8 +112,8 @@ async function getPaymentSummary({
       alreadyPaid: isSeatConfirmed(registration.payment_status),
       competitionName: registration.competition_name,
       competitionDate: competition ? `${competition.event_date} | ${competition.event_time || "TBA"} ${competition.timezone || "IST"}` : "See competition details",
-      entryFee: registration.entry_fee || launchDefault?.feeLabel || formatFeeLabel(feeAmount),
-      feeAmount
+      entryFee: formatPaiseAsInr(resolvedAmount.amountPaise),
+      feeAmount: resolvedAmount.amountPaise
     };
   } catch (error) {
     if (error instanceof SupabaseConfigError) {
@@ -119,7 +137,7 @@ async function findPaymentRegistration({
   supabaseAdmin: ReturnType<typeof createAdminClient>;
   userId: string;
 }): Promise<PaymentRegistration | null> {
-  const selectColumns = "id, user_id, competition_slug, competition_name, entry_fee, payment_status";
+  const selectColumns = "id, user_id, competition_slug, competition_name, entry_fee, payment_status, registration_status, payment_amount, amount_due, payment_currency";
   const slugCandidates = new Set<string>();
   const trimmedRegistrationId = String(registrationId || "").trim();
   const trimmedCompetitionSlug = String(competitionSlug || "").trim();
@@ -159,7 +177,7 @@ async function findPaymentRegistration({
       .select(selectColumns)
       .eq("user_id", userId)
       .eq("competition_slug", slug)
-      .in("payment_status", ["pending", "order_created", "payment_created", "signature_verified"])
+      .in("payment_status", ["pending", "order_created", "payment_created", "signature_verified", "failed", "cancelled", "refunded"])
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -196,8 +214,27 @@ async function findPaymentRegistration({
   return null;
 }
 
-function formatFeeLabel(feeAmountPaise: number) {
-  const amount = Math.max(0, Math.floor(Number(feeAmountPaise) || 0));
-  if (!amount) return "Calculated at Checkout";
-  return `INR ${(amount / 100).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+async function repairRegistrationAmountIfNeeded({
+  registration,
+  resolvedAmount,
+  supabaseAdmin,
+  source
+}: {
+  registration: PaymentRegistration;
+  resolvedAmount: ReturnType<typeof resolvePayableAmountPaise>;
+  supabaseAdmin: ReturnType<typeof createAdminClient>;
+  source: string;
+}) {
+  const repairPatch = getRegistrationAmountRepairPatch(resolvedAmount, registration.payment_status);
+  if (!repairPatch) return;
+
+  const { error } = await supabaseAdmin.from("registrations").update(repairPatch).eq("id", registration.id);
+  if (error) {
+    console.warn(`[LockInTalks payment] Could not repair amount for registration=${registration.id}: ${error.message}`);
+    return;
+  }
+
+  console.info(
+    `[LockInTalks payment] Repaired unpaid registration amount. source=${source} registration=${registration.id} amount=${resolvedAmount.amountPaise} reason=${resolvedAmount.repairReason || "unknown"}`
+  );
 }
