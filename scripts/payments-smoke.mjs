@@ -20,6 +20,7 @@ const registrationReference = require(path.resolve("lib/payment/registration-ref
 const paymentAmounts = require(path.resolve("lib/payment/amounts.ts"));
 const rewardsFeature = require(path.resolve("lib/rewards/feature.ts"));
 const checkoutRequest = require(path.resolve("lib/registration/checkout-request.ts"));
+const mutationError = require(path.resolve("lib/registration/supabase-mutation-error.ts"));
 const failures = [];
 
 const orderId = "order_lockintalks_smoke";
@@ -166,6 +167,61 @@ expectDetailsCode(
   "Bad competition slug returns a specific checkout details code."
 );
 
+expectEqual(
+  mutationError.classifySupabaseMutationError({ code: "42501", message: "new row violates row-level security policy for table registrations" }).detailsCode,
+  "INSERT_RLS_BLOCKED",
+  "RLS blocked insert maps to INSERT_RLS_BLOCKED."
+);
+expectEqual(
+  mutationError.classifySupabaseMutationError({ code: "23502", message: "null value in column student_name violates not-null constraint" }).detailsCode,
+  "INSERT_MISSING_REQUIRED_COLUMN",
+  "Missing required column insert maps to INSERT_MISSING_REQUIRED_COLUMN."
+);
+expectEqual(
+  mutationError.classifySupabaseMutationError({ code: "PGRST204", message: "Could not find the 'age_proof_status' column of 'registrations' in the schema cache" }).detailsCode,
+  "INSERT_UNKNOWN_COLUMN",
+  "Unknown schema column maps to INSERT_UNKNOWN_COLUMN."
+);
+expectEqual(
+  mutationError.classifySupabaseMutationError({ code: "23514", message: "new row for relation registrations violates check constraint registrations_payment_status_check" }).detailsCode,
+  "INSERT_CHECK_CONSTRAINT_FAILED",
+  "Bad status/check constraint maps to INSERT_CHECK_CONSTRAINT_FAILED."
+);
+expectEqual(
+  mutationError.classifySupabaseMutationError({ code: "23503", message: "insert or update on table registrations violates foreign key constraint registrations_user_id_fkey" }).detailsCode,
+  "INSERT_FOREIGN_KEY_FAILED",
+  "Foreign-key failure maps to INSERT_FOREIGN_KEY_FAILED."
+);
+expectEqual(
+  mutationError.classifySupabaseMutationError({ code: "23505", message: "duplicate key value violates unique constraint" }).detailsCode,
+  "INSERT_DUPLICATE_CONSTRAINT",
+  "Duplicate constraint maps to INSERT_DUPLICATE_CONSTRAINT."
+);
+expectEqual(
+  mutationError.classifySupabaseMutationError({ code: "22P02", message: "invalid input syntax for type integer" }).detailsCode,
+  "INSERT_TYPE_MISMATCH",
+  "Type mismatch maps to INSERT_TYPE_MISMATCH."
+);
+expectEqual(
+  mutationError.classifySupabaseMutationError({
+    code: "23514",
+    message: "new row violates check constraint",
+    details: "Failing row contains (7b902893-30e1-4e03-bfcd-b6922cdc6ec6, kid@example.com, Secret Student)."
+  }).supabaseError.details.includes("kid@example.com"),
+  false,
+  "Supabase insert error details redact private row/email values."
+);
+expectEqual(
+  mutationError.shouldRetryWithLegacyRegistrationPayload("INSERT_UNKNOWN_COLUMN"),
+  true,
+  "Unknown optional columns retry with the legacy-safe registration payload."
+);
+expectEqual(
+  mutationError.shouldRetryWithLegacyRegistrationPayload("INSERT_RLS_BLOCKED"),
+  false,
+  "RLS failures do not retry with a legacy payload."
+);
+
 for (const slug of ["story-talks", "idol-talk", "power-talk"]) {
   const acceptedPayload = checkoutRequest.normalizeCreateCheckoutRequest({
     competitionSlug: slug,
@@ -217,6 +273,7 @@ expectEqual(
 const registrationRouteSource = readFileSync("app/api/registrations/route.ts", "utf8");
 const registrationCheckoutSource = readFileSync("app/api/registrations/create-checkout/route.ts", "utf8");
 const registrationCheckoutRequestSource = readFileSync("lib/registration/checkout-request.ts", "utf8");
+const supabaseMutationErrorSource = readFileSync("lib/registration/supabase-mutation-error.ts", "utf8");
 const registerPageSource = readFileSync("app/register/[slug]/page.tsx", "utf8");
 const paymentPageSource = readFileSync("app/payment/page.tsx", "utf8");
 const createOrderSource = readFileSync("app/api/payments/create-order/route.ts", "utf8");
@@ -240,6 +297,11 @@ expectMatch(registrationRouteSource, /row_user=\$\{data\.user_id\}/, "Registrati
 expectMatch(registrationCheckoutSource, /export const dynamic = "force-dynamic"/, "Registration checkout endpoint is dynamic.");
 expectMatch(registrationCheckoutSource, /getServerAuthSession/, "Registration checkout requires the server auth session.");
 expectMatch(registrationCheckoutSource, /normalizeCreateCheckoutRequest/, "Registration checkout normalizes the request before auth and database work.");
+expectMatch(registrationCheckoutSource, /insertCheckoutRegistration/, "Registration checkout uses a schema-aware insert helper.");
+expectMatch(registrationCheckoutSource, /buildModernRegistrationInsertPayload/, "Registration checkout first tries the modern launch registration insert payload.");
+expectMatch(registrationCheckoutSource, /buildLegacyRegistrationInsertPayload/, "Registration checkout can retry a legacy-safe registration insert payload.");
+expectMatch(registrationCheckoutSource, /saveOrderOnRegistration/, "Registration checkout uses a schema-aware order-save helper.");
+expectMatch(registrationCheckoutSource, /payment_created/, "Registration checkout can fall back to legacy payment_created status when needed.");
 expectMatch(registrationCheckoutSource, /errorCode:\s*"AUTH_MISSING"/, "Registration checkout returns AUTH_MISSING for missing sessions.");
 expectMatch(registrationCheckoutSource, /detailsCode/, "Registration checkout returns safe details codes for production debugging.");
 expectMatch(registrationCheckoutSource, /errorCode:\s*"RAZORPAY_KEY_MISSING"/, "Registration checkout returns RAZORPAY_KEY_MISSING for missing Razorpay config.");
@@ -247,8 +309,8 @@ expectMatch(registrationCheckoutSource, /jsonError\([^)]*"REGISTRATION_CREATE_FA
 expectMatch(registrationCheckoutSource, /jsonError\([^)]*"ORDER_CREATE_FAILED"/, "Registration checkout exposes safe order failure codes.");
 expectMatch(registrationCheckoutSource, /\.eq\("user_id", userId\)/, "Registration checkout only reuses or updates the current user's registrations.");
 expectMatch(registrationCheckoutSource, /payment_status:\s*"pending"/, "Registration checkout creates a pending registration before payment.");
-expectMatch(registrationCheckoutSource, /payment_amount:\s*feeAmount/, "Registration checkout stores server-resolved payment_amount before Razorpay.");
-expectMatch(registrationCheckoutSource, /amount_due:\s*feeAmount/, "Registration checkout stores server-resolved amount_due before Razorpay.");
+expectMatch(registrationCheckoutSource, /payment_amount:\s*fields\.amountPaise/, "Registration checkout stores server-resolved payment_amount before Razorpay.");
+expectMatch(registrationCheckoutSource, /amount_due:\s*fields\.amountPaise/, "Registration checkout stores server-resolved amount_due before Razorpay.");
 expectMatch(registrationCheckoutSource, /payment_currency:\s*"INR"/, "Registration checkout stores INR currency before Razorpay.");
 expectMatch(registrationCheckoutSource, /resolvePayableAmountPaise/, "Registration checkout uses the shared backend amount resolver.");
 expectMatch(registrationCheckoutSource, /repairRegistrationAmountIfNeeded/, "Registration checkout repairs invalid unpaid launch amounts.");
@@ -270,6 +332,10 @@ expectMatch(registrationCheckoutRequestSource, /country", "nation"/, "Registrati
 expectMatch(registrationCheckoutRequestSource, /MISSING_STUDENT_NAME/, "Registration checkout reports missing student name details.");
 expectMatch(registrationCheckoutRequestSource, /INVALID_STUDENT_AGE/, "Registration checkout reports invalid student age details.");
 expectMatch(registrationCheckoutRequestSource, /INVALID_COMPETITION_SLUG/, "Registration checkout reports invalid competition slug details.");
+expectMatch(supabaseMutationErrorSource, /INSERT_RLS_BLOCKED/, "Supabase mutation classifier reports RLS insert failures.");
+expectMatch(supabaseMutationErrorSource, /INSERT_UNKNOWN_COLUMN/, "Supabase mutation classifier reports unknown column insert failures.");
+expectMatch(supabaseMutationErrorSource, /INSERT_CHECK_CONSTRAINT_FAILED/, "Supabase mutation classifier reports check constraint failures.");
+expectMatch(supabaseMutationErrorSource, /Failing row contains \[redacted row\]/, "Supabase mutation classifier redacts failing row details.");
 expectBefore(
   registrationCheckoutSource,
   "normalizeCreateCheckoutRequest",

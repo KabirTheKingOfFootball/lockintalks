@@ -6,6 +6,7 @@ import { isPaymentInProgress, isSeatConfirmed } from "@/lib/payment/status";
 import { RazorpayConfigError } from "@/lib/razorpay/env";
 import { createRazorpayClient, getPublicRazorpayKey, paymentCurrency } from "@/lib/razorpay/payments";
 import { normalizeCreateCheckoutRequest, type RegistrationCheckoutDetailsCode } from "@/lib/registration/checkout-request";
+import { classifySupabaseMutationError, shouldRetryWithLegacyRegistrationPayload, type SafeSupabaseMutationError } from "@/lib/registration/supabase-mutation-error";
 import { areLockInPointsEnabled } from "@/lib/rewards/feature";
 import { calculateLockInPointCheckout, getUserLockInPointsBalance } from "@/lib/rewards/points";
 import { getReadableSupabaseError } from "@/lib/readable-error";
@@ -40,6 +41,8 @@ type RazorpayOrder = {
 };
 
 const noStoreHeaders = { "Cache-Control": "no-store, no-cache, max-age=0, must-revalidate" };
+const registrationSelectColumns =
+  "id,user_id,competition_slug,competition_name,student_name,guardian_email,entry_fee,payment_status,razorpay_order_id,payment_amount,payment_currency";
 
 export async function POST(request: NextRequest) {
   let activeRegistrationId: string | null = null;
@@ -93,9 +96,7 @@ export async function POST(request: NextRequest) {
 
     const { data: existingRegistrations, error: existingError } = await supabaseAdmin
       .from("registrations")
-      .select(
-        "id,user_id,competition_slug,competition_name,student_name,guardian_email,entry_fee,payment_status,registration_status,razorpay_order_id,payment_order_id,payment_amount,amount_due,payment_currency,points_redeemed"
-      )
+      .select(registrationSelectColumns)
       .eq("user_id", userId)
       .eq("competition_slug", competition.slug)
       .order("created_at", { ascending: false })
@@ -105,7 +106,8 @@ export async function POST(request: NextRequest) {
       console.warn(`[LockInTalks checkout registration] Duplicate registration check skipped: ${existingError.message}`);
     }
 
-    const paidRegistration = (existingRegistrations || []).find((registration) => isSeatConfirmed(registration.payment_status));
+    const normalizedExistingRegistrations = (existingRegistrations || []).map(normalizeCheckoutRegistration);
+    const paidRegistration = normalizedExistingRegistrations.find((registration) => isSeatConfirmed(registration.payment_status));
 
     if (paidRegistration) {
       console.info(`[LockInTalks checkout registration] Paid duplicate rejected. user=${userId} registration=${paidRegistration.id}`);
@@ -121,7 +123,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const pendingRegistration = (existingRegistrations || []).find((registration) => !isSeatConfirmed(registration.payment_status));
+    const pendingRegistration = normalizedExistingRegistrations.find((registration) => !isSeatConfirmed(registration.payment_status));
     let registration: CheckoutRegistration;
     const resolvedNewAmount = resolvePayableAmountPaise({ competition, competitionSlug: competition.slug });
     const feeAmount = resolvedNewAmount.amountPaise;
@@ -140,73 +142,75 @@ export async function POST(request: NextRequest) {
         competitionSlug: competition.slug
       });
       const amountPatch = getRegistrationAmountRepairPatch(resolvedExistingAmount, pendingRegistration.payment_status) || {};
-      const { data: updatedRegistration, error: updateError } = await supabaseAdmin
-        .from("registrations")
-        .update({
-          ...amountPatch,
-          student_name: studentName,
-          student_age: studentAge,
-          guardian_name: guardianName,
-          guardian_email: guardianEmail,
+      const updateResult = await updatePendingRegistration({
+        supabaseAdmin,
+        registrationId: pendingRegistration.id,
+        userId,
+        fields: {
+          studentName,
+          studentAge,
+          guardianName,
+          guardianEmail,
           city,
           country,
-          city_country: `${city}, ${country}`,
-          entry_fee: formatPaiseAsInr(resolvedExistingAmount.amountPaise),
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", pendingRegistration.id)
-        .eq("user_id", userId)
-        .select(
-          "id,user_id,competition_slug,competition_name,student_name,guardian_email,entry_fee,payment_status,razorpay_order_id,payment_order_id,payment_amount,amount_due,payment_currency,points_redeemed"
-        )
-        .single();
+          entryFee: formatPaiseAsInr(resolvedExistingAmount.amountPaise),
+          amountPaise: resolvedExistingAmount.amountPaise,
+          amountPatch
+        }
+      });
 
-      if (updateError || !updatedRegistration) {
-        console.error(`[LockInTalks checkout registration] Pending registration update failed: ${updateError?.message || "Not found"}`);
-        return jsonError("Registration could not be updated. Please try again.", 500, "REGISTRATION_CREATE_FAILED", "INSERT_FAILED", {
-          registrationId: activeRegistrationId
+      if (updateResult.error || !updateResult.registration) {
+        const classifiedError = updateResult.error || {
+          detailsCode: "INSERT_UNKNOWN_SUPABASE_ERROR" as const,
+          supabaseError: { code: null, message: "Pending registration update returned no row.", details: null, hint: null }
+        };
+        console.error(
+          `[LockInTalks checkout registration] Pending registration update failed. details=${classifiedError.detailsCode} supabase_code=${classifiedError.supabaseError.code || "none"}`
+        );
+        return jsonError("Registration could not be updated. Please try again.", 500, "REGISTRATION_CREATE_FAILED", classifiedError.detailsCode, {
+          registrationId: activeRegistrationId,
+          supabaseError: classifiedError.supabaseError
         });
       }
 
-      registration = updatedRegistration as CheckoutRegistration;
+      registration = updateResult.registration;
       console.info(
         `[LockInTalks checkout registration] Pending registration reused. user=${userId} registration=${registration.id} amount=${resolvedExistingAmount.amountPaise} source=${resolvedExistingAmount.source}`
       );
     } else {
-      const { data: insertedRegistration, error: insertError } = await supabaseAdmin
-        .from("registrations")
-        .insert({
-          user_id: userId,
-          competition_slug: competition.slug,
-          competition_name: competition.name,
-          student_name: studentName,
-          student_age: studentAge,
-          guardian_name: guardianName,
-          guardian_email: guardianEmail,
+      const insertResult = await insertCheckoutRegistration({
+        supabaseAdmin,
+        userId,
+        competition: {
+          slug: competition.slug,
+          name: competition.name
+        },
+        fields: {
+          studentName,
+          studentAge,
+          guardianName,
+          guardianEmail,
           city,
           country,
-          city_country: `${city}, ${country}`,
-          entry_fee: feeLabel,
-          registration_status: "submitted",
-          age_proof_status: "not_required_yet",
-          payment_required: true,
-          payment_provider: "razorpay",
-          payment_status: "pending",
-          payment_amount: feeAmount,
-          amount_due: feeAmount,
-          payment_currency: "INR"
-        })
-        .select(
-          "id,user_id,competition_slug,competition_name,student_name,guardian_email,entry_fee,payment_status,razorpay_order_id,payment_order_id,payment_amount,amount_due,payment_currency,points_redeemed"
-        )
-        .single();
+          entryFee: feeLabel,
+          amountPaise: feeAmount
+        }
+      });
 
-      if (insertError || !insertedRegistration) {
-        console.error(`[LockInTalks checkout registration] Insert failed: ${insertError?.message || "Not found"}`);
-        return jsonError(getReadableSupabaseError(insertError, "Registration could not be saved."), 400, "REGISTRATION_CREATE_FAILED", "INSERT_FAILED");
+      if (insertResult.error || !insertResult.registration) {
+        const classifiedError = insertResult.error || {
+          detailsCode: "INSERT_UNKNOWN_SUPABASE_ERROR" as const,
+          supabaseError: { code: null, message: "Registration insert returned no row.", details: null, hint: null }
+        };
+        console.error(
+          `[LockInTalks checkout registration] Insert failed. details=${classifiedError.detailsCode} supabase_code=${classifiedError.supabaseError.code || "none"} message=${classifiedError.supabaseError.message || "none"}`
+        );
+        return jsonError(getReadableSupabaseError(insertResult.originalError, "Registration could not be saved."), 400, "REGISTRATION_CREATE_FAILED", classifiedError.detailsCode, {
+          supabaseError: classifiedError.supabaseError
+        });
       }
 
-      registration = insertedRegistration as CheckoutRegistration;
+      registration = insertResult.registration;
       activeRegistrationId = registration.id;
       console.info(
         `[LockInTalks checkout registration] Registration created. user=${userId} registration=${registration.id} competition=${registration.competition_slug} amount=${feeAmount} source=${resolvedNewAmount.source}`
@@ -247,6 +251,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (error instanceof CheckoutOrderSaveError) {
+      return jsonError("Payment order was created, but could not be saved. Please contact support.", 500, "ORDER_CREATE_FAILED", error.classifiedError.detailsCode, {
+        registrationId: activeRegistrationId,
+        supabaseError: error.classifiedError.supabaseError
+      });
+    }
+
     console.error("[LockInTalks checkout registration] Unexpected checkout registration error:", error);
     return jsonError("Registration payment is temporarily unavailable. Please try again.", 500, "ORDER_CREATE_FAILED", "ORDER_FAILED", {
       registrationId: activeRegistrationId
@@ -260,6 +271,230 @@ async function readJsonBody(request: NextRequest) {
   } catch {
     return null;
   }
+}
+
+async function insertCheckoutRegistration({
+  supabaseAdmin,
+  userId,
+  competition,
+  fields
+}: {
+  supabaseAdmin: ReturnType<typeof createAdminClient>;
+  userId: string;
+  competition: { slug: string; name: string };
+  fields: RegistrationWriteFields;
+}) {
+  const modernPayload = buildModernRegistrationInsertPayload({ userId, competition, fields });
+  const modernResult = await supabaseAdmin.from("registrations").insert(modernPayload).select(registrationSelectColumns).single();
+
+  if (!modernResult.error && modernResult.data) {
+    return {
+      registration: normalizeCheckoutRegistration(modernResult.data),
+      error: null,
+      originalError: null
+    };
+  }
+
+  const modernError = classifySupabaseMutationError(modernResult.error);
+  console.warn(
+    `[LockInTalks checkout registration] Modern insert failed. details=${modernError.detailsCode} supabase_code=${modernError.supabaseError.code || "none"}`
+  );
+
+  if (!shouldRetryWithLegacyRegistrationPayload(modernError.detailsCode)) {
+    return {
+      registration: null,
+      error: modernError,
+      originalError: modernResult.error
+    };
+  }
+
+  const legacyPayload = buildLegacyRegistrationInsertPayload({ userId, competition, fields });
+  const legacyResult = await supabaseAdmin.from("registrations").insert(legacyPayload).select(registrationSelectColumns).single();
+
+  if (!legacyResult.error && legacyResult.data) {
+    console.info(`[LockInTalks checkout registration] Legacy-safe insert succeeded after ${modernError.detailsCode}. competition=${competition.slug}`);
+    return {
+      registration: normalizeCheckoutRegistration(legacyResult.data),
+      error: null,
+      originalError: null
+    };
+  }
+
+  const legacyError = classifySupabaseMutationError(legacyResult.error);
+  console.error(
+    `[LockInTalks checkout registration] Legacy-safe insert failed. details=${legacyError.detailsCode} supabase_code=${legacyError.supabaseError.code || "none"}`
+  );
+
+  return {
+    registration: null,
+    error: legacyError,
+    originalError: legacyResult.error || modernResult.error
+  };
+}
+
+async function updatePendingRegistration({
+  supabaseAdmin,
+  registrationId,
+  userId,
+  fields
+}: {
+  supabaseAdmin: ReturnType<typeof createAdminClient>;
+  registrationId: string;
+  userId: string;
+  fields: RegistrationUpdateFields;
+}) {
+  const modernPayload = buildModernRegistrationUpdatePayload(fields);
+  const modernResult = await supabaseAdmin
+    .from("registrations")
+    .update(modernPayload)
+    .eq("id", registrationId)
+    .eq("user_id", userId)
+    .select(registrationSelectColumns)
+    .single();
+
+  if (!modernResult.error && modernResult.data) {
+    return {
+      registration: normalizeCheckoutRegistration(modernResult.data),
+      error: null
+    };
+  }
+
+  const modernError = classifySupabaseMutationError(modernResult.error);
+  console.warn(
+    `[LockInTalks checkout registration] Modern pending update failed. details=${modernError.detailsCode} supabase_code=${modernError.supabaseError.code || "none"}`
+  );
+
+  if (!shouldRetryWithLegacyRegistrationPayload(modernError.detailsCode)) {
+    return {
+      registration: null,
+      error: modernError
+    };
+  }
+
+  const legacyPayload = buildLegacyRegistrationUpdatePayload(fields);
+  const legacyResult = await supabaseAdmin
+    .from("registrations")
+    .update(legacyPayload)
+    .eq("id", registrationId)
+    .eq("user_id", userId)
+    .select(registrationSelectColumns)
+    .single();
+
+  if (!legacyResult.error && legacyResult.data) {
+    console.info(`[LockInTalks checkout registration] Legacy-safe pending update succeeded after ${modernError.detailsCode}. registration=${registrationId}`);
+    return {
+      registration: normalizeCheckoutRegistration(legacyResult.data),
+      error: null
+    };
+  }
+
+  return {
+    registration: null,
+    error: classifySupabaseMutationError(legacyResult.error)
+  };
+}
+
+type RegistrationWriteFields = {
+  studentName: string;
+  studentAge: number;
+  guardianName: string;
+  guardianEmail: string;
+  city: string;
+  country: string;
+  entryFee: string;
+  amountPaise: number;
+};
+
+type RegistrationUpdateFields = RegistrationWriteFields & {
+  amountPatch: Record<string, string | number>;
+};
+
+function buildModernRegistrationInsertPayload({
+  userId,
+  competition,
+  fields
+}: {
+  userId: string;
+  competition: { slug: string; name: string };
+  fields: RegistrationWriteFields;
+}) {
+  return {
+    ...buildLegacyRegistrationInsertPayload({ userId, competition, fields }),
+    registration_status: "submitted",
+    age_proof_status: "not_required_yet",
+    payment_required: true,
+    payment_provider: "razorpay",
+    amount_due: fields.amountPaise
+  };
+}
+
+function buildLegacyRegistrationInsertPayload({
+  userId,
+  competition,
+  fields
+}: {
+  userId: string;
+  competition: { slug: string; name: string };
+  fields: RegistrationWriteFields;
+}) {
+  return {
+    user_id: userId,
+    competition_slug: competition.slug,
+    competition_name: competition.name,
+    student_name: fields.studentName,
+    student_age: fields.studentAge,
+    guardian_name: fields.guardianName,
+    guardian_email: fields.guardianEmail,
+    city: fields.city,
+    country: fields.country,
+    city_country: `${fields.city}, ${fields.country}`,
+    entry_fee: fields.entryFee,
+    payment_status: "pending",
+    payment_amount: fields.amountPaise,
+    payment_currency: "INR"
+  };
+}
+
+function buildModernRegistrationUpdatePayload(fields: RegistrationUpdateFields) {
+  return {
+    ...fields.amountPatch,
+    ...buildLegacyRegistrationUpdatePayload(fields),
+    updated_at: new Date().toISOString()
+  };
+}
+
+function buildLegacyRegistrationUpdatePayload(fields: RegistrationWriteFields) {
+  return {
+    student_name: fields.studentName,
+    student_age: fields.studentAge,
+    guardian_name: fields.guardianName,
+    guardian_email: fields.guardianEmail,
+    city: fields.city,
+    country: fields.country,
+    city_country: `${fields.city}, ${fields.country}`,
+    entry_fee: fields.entryFee,
+    payment_amount: fields.amountPaise,
+    payment_currency: "INR"
+  };
+}
+
+function normalizeCheckoutRegistration(row: Partial<CheckoutRegistration>): CheckoutRegistration {
+  return {
+    id: String(row.id || ""),
+    user_id: String(row.user_id || ""),
+    competition_slug: String(row.competition_slug || ""),
+    competition_name: String(row.competition_name || ""),
+    student_name: String(row.student_name || ""),
+    guardian_email: String(row.guardian_email || ""),
+    entry_fee: row.entry_fee ?? null,
+    payment_status: row.payment_status ?? null,
+    razorpay_order_id: row.razorpay_order_id ?? null,
+    payment_order_id: row.payment_order_id ?? null,
+    payment_amount: row.payment_amount ?? null,
+    amount_due: row.amount_due ?? null,
+    payment_currency: row.payment_currency ?? null,
+    points_redeemed: row.points_redeemed ?? null
+  };
 }
 
 async function createCheckoutOrder({
@@ -358,27 +593,21 @@ async function createCheckoutOrder({
     }
   })) as RazorpayOrder;
 
-  const { error: updateError } = await supabaseAdmin
-    .from("registrations")
-    .update({
-      payment_status: "order_created",
-      registration_status: "payment_pending",
-      payment_provider: "razorpay",
-      razorpay_order_id: order.id,
-      payment_order_id: order.id,
-      payment_amount: amount,
-      amount_due: amount,
-      points_redeemed: pointsEnabled ? checkout.appliedPoints : 0,
-      points_discount_amount: pointsEnabled ? checkout.discountAmountPaise : 0,
-      payment_currency: paymentCurrency,
-      updated_at: new Date().toISOString()
-    })
-    .eq("id", registration.id)
-    .eq("user_id", userId);
+  const orderSaveResult = await saveOrderOnRegistration({
+    supabaseAdmin,
+    registrationId: registration.id,
+    userId,
+    order,
+    amount,
+    pointsRedeemed: pointsEnabled ? checkout.appliedPoints : 0,
+    pointsDiscountAmount: pointsEnabled ? checkout.discountAmountPaise : 0
+  });
 
-  if (updateError) {
-    console.error(`[LockInTalks checkout registration] Failed to save Razorpay order ${order.id}: ${updateError.message}`);
-    throw new Error("Payment order was created, but could not be saved. Please contact support.");
+  if (orderSaveResult.error) {
+    console.error(
+      `[LockInTalks checkout registration] Failed to save Razorpay order. details=${orderSaveResult.error.detailsCode} supabase_code=${orderSaveResult.error.supabaseError.code || "none"}`
+    );
+    throw new CheckoutOrderSaveError(orderSaveResult.error);
   }
 
   await savePaymentAttempt({
@@ -408,6 +637,80 @@ async function createCheckoutOrder({
       email: registration.guardian_email
     }
   };
+}
+
+async function saveOrderOnRegistration({
+  supabaseAdmin,
+  registrationId,
+  userId,
+  order,
+  amount,
+  pointsRedeemed,
+  pointsDiscountAmount
+}: {
+  supabaseAdmin: ReturnType<typeof createAdminClient>;
+  registrationId: string;
+  userId: string;
+  order: RazorpayOrder;
+  amount: number;
+  pointsRedeemed: number;
+  pointsDiscountAmount: number;
+}) {
+  const modernPayload = {
+    payment_status: "order_created",
+    registration_status: "payment_pending",
+    payment_provider: "razorpay",
+    razorpay_order_id: order.id,
+    payment_order_id: order.id,
+    payment_amount: amount,
+    amount_due: amount,
+    points_redeemed: pointsRedeemed,
+    points_discount_amount: pointsDiscountAmount,
+    payment_currency: paymentCurrency,
+    updated_at: new Date().toISOString()
+  };
+  const modernResult = await supabaseAdmin.from("registrations").update(modernPayload).eq("id", registrationId).eq("user_id", userId);
+
+  if (!modernResult.error) {
+    return { error: null };
+  }
+
+  const modernError = classifySupabaseMutationError(modernResult.error);
+  console.warn(
+    `[LockInTalks checkout registration] Modern order save failed. details=${modernError.detailsCode} supabase_code=${modernError.supabaseError.code || "none"}`
+  );
+
+  if (!shouldRetryWithLegacyRegistrationPayload(modernError.detailsCode)) {
+    return { error: modernError };
+  }
+
+  const legacyPayload = {
+    payment_status: modernError.detailsCode === "INSERT_CHECK_CONSTRAINT_FAILED" ? "payment_created" : "order_created",
+    razorpay_order_id: order.id,
+    payment_amount: amount,
+    payment_currency: paymentCurrency
+  };
+  const legacyResult = await supabaseAdmin.from("registrations").update(legacyPayload).eq("id", registrationId).eq("user_id", userId);
+
+  if (!legacyResult.error) {
+    console.info(`[LockInTalks checkout registration] Legacy-safe order save succeeded after ${modernError.detailsCode}. registration=${registrationId}`);
+    return { error: null };
+  }
+
+  return { error: classifySupabaseMutationError(legacyResult.error) };
+}
+
+class CheckoutOrderSaveError extends Error {
+  classifiedError: {
+    detailsCode: RegistrationCheckoutDetailsCode;
+    supabaseError: SafeSupabaseMutationError;
+  };
+
+  constructor(classifiedError: { detailsCode: RegistrationCheckoutDetailsCode; supabaseError: SafeSupabaseMutationError }) {
+    super("Payment order was created, but could not be saved.");
+    this.name = "CheckoutOrderSaveError";
+    this.classifiedError = classifiedError;
+  }
 }
 
 async function savePaymentAttempt({
@@ -480,7 +783,7 @@ function jsonError(
   status: number,
   errorCode: string,
   detailsCode: RegistrationCheckoutDetailsCode | "AUTH_MISSING",
-  extra?: Record<string, string | null>
+  extra?: Record<string, unknown>
 ) {
   return NextResponse.json({ errorCode, detailsCode, error, ...extra }, { status, headers: noStoreHeaders });
 }
