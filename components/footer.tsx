@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Mail, PlayCircle } from "lucide-react";
-import { RedHatMark } from "@/components/brand-visuals";
 
 export function Footer() {
   return (
@@ -12,7 +11,7 @@ export function Footer() {
           <div className="mb-4 flex items-center gap-3">
             <Image src="/lockintalks-logo.png" alt="LockInTalks logo" width={62} height={62} className="rounded-full border border-[#ffd765]/35 object-cover shadow-[0_0_26px_rgba(255,215,101,0.4)]" />
             <div>
-              <p className="flex items-center gap-2 text-xl font-black">LockIn<span className="gold-text">Talks</span><RedHatMark className="scale-50" /></p>
+              <p className="flex items-center gap-2 text-xl font-black">LockIn<span className="gold-text">Talks</span></p>
               <p className="text-sm text-white/70">Speak. Perform. Inspire.</p>
             </div>
           </div>

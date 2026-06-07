@@ -5,7 +5,7 @@ import { RegisterForm } from "@/components/register-form";
 import { MotionShell } from "@/components/motion-shell";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { PosterBackdrop, RedHatMark } from "@/components/brand-visuals";
+import { PosterBackdrop } from "@/components/brand-visuals";
 import { AppSessionConfigError } from "@/lib/auth/app-session";
 import { getServerAuthSession } from "@/lib/auth/server-session";
 import { getLiveCompetitionBySlug } from "@/lib/competitions";
@@ -68,7 +68,6 @@ function LoginRequired({ competitionName, nextPath }: { competitionName: string;
       <PosterBackdrop compact />
       <div className="relative z-10 mx-auto max-w-3xl">
       <Card className="text-center">
-        <div className="mb-4 flex justify-center"><RedHatMark /></div>
         <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-[#d4af37]">Registration</p>
         <h1 className="text-3xl font-black sm:text-5xl">Please Log In or Create an Account Before Registering for a Competition.</h1>
         <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-white/65">

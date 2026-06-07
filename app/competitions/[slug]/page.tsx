@@ -6,7 +6,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MotionShell } from "@/components/motion-shell";
 import { Countdown } from "@/components/countdown";
-import { PosterBackdrop, PrizePoolPill, RedHatMark } from "@/components/brand-visuals";
+import { PosterBackdrop, PrizePoolPill } from "@/components/brand-visuals";
 import { getLiveCompetitionBySlug } from "@/lib/competitions";
 import { formatInr, formatPrizePoolBadge } from "@/lib/rewards/prize-pool";
 
@@ -52,7 +52,6 @@ export default async function CompetitionDetailsPage({ params }: { params: Promi
             <p className="mt-10 text-sm font-black uppercase tracking-[0.3em]">{competition.category}</p>
             <h1 className="mt-2 text-4xl font-black sm:text-6xl">{competition.name}</h1>
             <div className="mt-5 flex items-center gap-3 text-sm font-black uppercase tracking-[0.18em]">
-              <RedHatMark className="scale-75" />
               <span>Speak. Perform. Inspire.</span>
             </div>
             </div>

@@ -5,7 +5,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MotionShell, Reveal } from "@/components/motion-shell";
 import { Section } from "@/components/section";
-import { PosterBackdrop, PosterHeroArt, PrizePoolPill, RedHatMark } from "@/components/brand-visuals";
+import { PosterBackdrop, PosterHeroArt, PrizePoolPill } from "@/components/brand-visuals";
 import { getLiveCompetitions } from "@/lib/competitions";
 import { formatPrizePoolBadge } from "@/lib/rewards/prize-pool";
 
@@ -39,7 +39,6 @@ export default async function HomePage() {
             <div className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-[#071b3b]/15 bg-white/80 px-4 py-2 text-[0.62rem] font-black uppercase tracking-[0.12em] text-[#071b3b] shadow-[0_14px_35px_rgba(7,27,59,0.14)] sm:text-xs sm:tracking-[0.22em]">
               <Trophy size={16} className="shrink-0 text-[#d49a22]" />
               <span className="min-w-0 truncate"><span className="hidden sm:inline">Global </span>Youth Speaking Competitions</span>
-              <RedHatMark className="hidden scale-50 sm:inline-block" />
             </div>
             <h1 className="poster-title max-w-4xl text-[clamp(2.65rem,11vw,7rem)] font-black leading-[0.9] sm:text-8xl lg:text-9xl">
               LockInTalks

@@ -6,7 +6,7 @@ import { Menu, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { RedHatMark } from "@/components/brand-visuals";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 type AuthNavState =
   | {
@@ -152,18 +152,21 @@ export function Navbar() {
           <Image src="/lockintalks-logo.png" alt="LockInTalks logo" width={58} height={58} priority className="rounded-full border border-[#ffd765]/35 object-cover shadow-[0_0_28px_rgba(255,215,101,0.5)]" />
           <span className="hidden items-center gap-2 text-lg font-black tracking-wide sm:inline-flex">
             LockIn<span className="gold-text">Talks</span>
-            <RedHatMark className="ml-1 scale-75" />
           </span>
         </Link>
         <div className="hidden items-center gap-1 md:flex">
           {links.map((link) => <NavLink key={link.href} href={link.href} label={link.label} />)}
         </div>
         <div className="hidden items-center gap-3 md:flex">
+          <ThemeToggle />
           <AuthActions auth={auth} />
         </div>
-        <button className="focus-ring rounded-full p-2 md:hidden" aria-label="Toggle navigation" onClick={() => setOpen((value) => !value)}>
-          {open ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        <div className="flex items-center gap-2 md:hidden">
+          <ThemeToggle />
+          <button className="focus-ring rounded-full p-2" aria-label="Toggle navigation" onClick={() => setOpen((value) => !value)}>
+            {open ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </nav>
       {open && (
         <div className="border-t border-white/10 bg-[#071b3b]/96 px-4 py-5 shadow-[0_20px_45px_rgba(7,27,59,0.32)] md:hidden">
