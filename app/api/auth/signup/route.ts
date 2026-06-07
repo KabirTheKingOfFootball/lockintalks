@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
         {
           ok: true,
           needsEmailConfirmation: true,
-          message: "Account Created. Please check your email to confirm your account, then log in."
+          message: "Account created. Please check your email to verify your account before logging in."
         },
         { status: 200, headers: authNoStoreHeaders }
       );

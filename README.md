@@ -30,7 +30,7 @@ Copy `.env.example` to `.env.local` and replace secrets before deploying.
 
 ## Supabase + Razorpay Setup
 
-For the beginner-friendly payment setup walkthrough, use `RAZORPAY_SETUP.md`. For the final pre-launch checklist, use `LAUNCH_CHECKLIST.md`. For parent/adult review, use `PARENT_LEGAL_REVIEW_CHECKLIST.md`.
+For Supabase email verification and SMTP setup, use `SUPABASE_EMAIL_SETUP.md`. For the beginner-friendly payment setup walkthrough, use `RAZORPAY_SETUP.md`. For the final pre-launch checklist, use `LAUNCH_CHECKLIST.md`. For parent/adult review, use `PARENT_LEGAL_REVIEW_CHECKLIST.md`.
 
 1. Run `supabase/schema.sql` in Supabase SQL Editor.
 2. Add Supabase environment variables in Vercel:
@@ -45,8 +45,13 @@ For the beginner-friendly payment setup walkthrough, use `RAZORPAY_SETUP.md`. Fo
 4. In Razorpay Dashboard, create a payment webhook that points to:
    - `https://YOUR-VERCEL-DOMAIN/api/payments/webhook`
    - Enable payment events such as `payment.captured`, `payment.failed`, and refund-related events.
-5. Add the deployed site URL and `/auth/callback` in Supabase Auth URL settings.
+5. Add Supabase Auth URL settings:
+   - Site URL: `https://lockintalks.vercel.app`
+   - Redirect URL: `https://lockintalks.vercel.app/auth/callback`
+   - Redirect URL: `https://lockintalks.vercel.app/**`
 6. Redeploy on Vercel.
+
+If Supabase Confirm Email is ON, configure and test custom SMTP before public launch. Supabase's built-in email provider is better for development than real public signup. The app already shows a "check your email" message and includes a resend verification email flow.
 
 `APP_SESSION_SECRET` should be a random server-only string with at least 32 characters. It signs the temporary LockInTalks app session cookie used as the server-side auth source of truth when Supabase browser cookies are unreliable in production.
 

@@ -67,7 +67,7 @@ export function AuthForm({ mode, initialError = "", initialNotice = "", nextPath
 
       if (result.needsEmailConfirmation) {
         setConfirmationEmail(form.email.trim());
-        setNotice(result.message || "Please check your email to verify your account.");
+        setNotice(result.message || "Please check your email to verify your account before logging in.");
         return;
       }
 
@@ -163,7 +163,7 @@ export function AuthForm({ mode, initialError = "", initialNotice = "", nextPath
               disabled={isResending}
               className="mt-3 text-left text-sm font-black text-white underline underline-offset-4 disabled:text-white/50"
             >
-              {isResending ? "Resending Verification Email..." : "Resend Verification Email"}
+              {isResending ? "Resending verification email..." : "Resend verification email"}
             </button>
           )}
         </div>

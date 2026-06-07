@@ -40,7 +40,23 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.warn(`[LockInTalks auth resend] Supabase resend failed for ${maskEmail(email)}: ${error.message}`);
-      return jsonError(getReadableSupabaseError(error, "Could not resend verification email."), 400);
+      const readableError = getReadableSupabaseError(error, "Could not resend verification email.");
+
+      if (isEmailRateLimitError(error.message)) {
+        return jsonError(readableError, 429);
+      }
+
+      if (isEmailDeliverySetupError(error.message)) {
+        return jsonError(readableError, 503);
+      }
+
+      return NextResponse.json(
+        {
+          ok: true,
+          message: "If this account still needs verification, we will send a verification email. Please check your inbox and spam folder."
+        },
+        { status: 200, headers: authNoStoreHeaders }
+      );
     }
 
     return NextResponse.json(
@@ -63,4 +79,12 @@ export async function POST(request: NextRequest) {
 
 function jsonError(error: string, status: number) {
   return NextResponse.json({ ok: false, error }, { status, headers: authNoStoreHeaders });
+}
+
+function isEmailRateLimitError(message: string) {
+  return /rate limit|too many requests|too many emails|email.*limit|request this after/i.test(message);
+}
+
+function isEmailDeliverySetupError(message: string) {
+  return /email address not authorized|sending not allowed|mailer|smtp|email.*not configured|could not send/i.test(message);
 }

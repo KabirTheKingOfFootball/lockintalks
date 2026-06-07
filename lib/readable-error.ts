@@ -17,6 +17,18 @@ export function getReadableError(error: unknown, fallback = "Something went wron
 export function getReadableSupabaseError(error: unknown, fallback = "Supabase is temporarily unavailable. Please try again.") {
   const message = getReadableError(error, fallback);
 
+  if (/email.*not confirmed|not confirmed.*email|email confirmation/i.test(message)) {
+    return "Please check your email to verify your account before logging in. You can resend the verification email from the signup page.";
+  }
+
+  if (/rate limit|too many requests|too many emails|email.*limit|request this after/i.test(message)) {
+    return "Too many emails sent. Please wait a while and try again.";
+  }
+
+  if (/email address not authorized|sending not allowed|mailer|smtp|email.*not configured|could not send/i.test(message)) {
+    return "Email delivery is not fully configured yet. Please contact lockintalks@gmail.com for help, and ask an admin to check Supabase SMTP settings.";
+  }
+
   if (/auth session missing|session.*missing|no active session/i.test(message)) {
     return "Please Log In or Create an Account Before Registering for a Competition.";
   }

@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { readFileSync } from "node:fs";
+
 const baseUrl = normalizeBaseUrl(process.env.LOCKINTALKS_TEST_BASE_URL || "http://localhost:3000");
 const testEmail = process.env.LOCKINTALKS_TEST_EMAIL || "";
 const testPassword = process.env.LOCKINTALKS_TEST_PASSWORD || "";
@@ -16,6 +18,7 @@ try {
   await checkNoStore("/api/auth/session");
   await checkNoStore("/api/debug/auth-cookies");
   await checkResendConfirmationEndpoint();
+  await checkAuthEmailWording();
   await checkFirstPartyCookie();
   await checkAuthStyleCookie();
   await checkHtmlAuthStyleCookie();
@@ -75,6 +78,26 @@ async function checkResendConfirmationEndpoint() {
   if (response.status === 400 && cacheControl.toLowerCase().includes("no-store") && body?.error) {
     console.log("[auth-smoke] Resend confirmation endpoint has safe validation and no-store headers.");
   }
+}
+
+async function checkAuthEmailWording() {
+  const signupRoute = readFileSync(new URL("../app/api/auth/signup/route.ts", import.meta.url), "utf8");
+  const authForm = readFileSync(new URL("../components/auth-form.tsx", import.meta.url), "utf8");
+  const readableError = readFileSync(new URL("../lib/readable-error.ts", import.meta.url), "utf8");
+
+  if (!signupRoute.includes("Please check your email to verify your account before logging in.")) {
+    fail("Signup route is missing the email verification success message.");
+  }
+
+  if (!authForm.includes("Resend verification email")) {
+    fail("Auth form is missing the resend verification email button text.");
+  }
+
+  if (!readableError.includes("Too many emails sent. Please wait a while and try again.")) {
+    fail("Readable errors are missing the Supabase email rate-limit message.");
+  }
+
+  console.log("[auth-smoke] Email verification wording is present.");
 }
 
 async function checkFirstPartyCookie() {

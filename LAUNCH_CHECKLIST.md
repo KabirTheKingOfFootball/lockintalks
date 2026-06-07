@@ -22,6 +22,32 @@ Use this before opening payments to real users.
 - Add `RAZORPAY_WEBHOOK_SECRET`.
 - Redeploy after saving environment variables.
 
+## Supabase Email Verification Setup
+
+- Open `SUPABASE_EMAIL_SETUP.md`.
+- In Supabase Dashboard -> Authentication -> URL Configuration, set Site URL:
+
+```text
+https://lockintalks.vercel.app
+```
+
+- Add Redirect URLs:
+
+```text
+https://lockintalks.vercel.app/auth/callback
+https://lockintalks.vercel.app/**
+```
+
+- Decide Confirm Email mode:
+  - Recommended public launch: Confirm Email ON with custom SMTP configured and tested.
+  - Temporary private beta only: Confirm Email OFF if email delivery is not ready.
+- If Confirm Email is ON, configure and test custom SMTP before public signup.
+- Test signup confirmation email with a fresh email address.
+- Test `Resend verification email`.
+- Check Supabase Auth logs for the signup attempt.
+- Test password reset email if password reset is enabled.
+- Confirm support wording points users to `lockintalks@gmail.com`.
+
 ## Razorpay Test Mode Setup
 
 - Create or copy Test Mode API keys in Razorpay.
