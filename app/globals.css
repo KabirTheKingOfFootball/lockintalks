@@ -389,32 +389,30 @@ html[data-theme="dark"] .poster-grass {
 
 .poster-hero-art {
   position: relative;
-  min-height: 600px;
   width: min(100%, 560px);
   margin-inline: auto;
+  aspect-ratio: 2 / 3;
   overflow: hidden;
   border-radius: 8px;
-  background:
-    radial-gradient(circle at 50% 22%, rgba(255, 255, 255, 0.92), transparent 5rem),
-    linear-gradient(180deg, rgba(3, 158, 255, 0.92), rgba(96, 217, 255, 0.72) 52%, rgba(146, 224, 62, 0.9) 100%);
+  background: #18a9ef;
   border: 1px solid rgba(255, 255, 255, 0.32);
   box-shadow: 0 28px 90px rgba(4, 54, 126, 0.28);
   animation: hero-card-float 9s ease-in-out infinite alternate;
 }
 
 html[data-theme="dark"] .poster-hero-art {
-  background:
-    radial-gradient(circle at 50% 22%, rgba(255, 227, 148, 0.34), transparent 6rem),
-    linear-gradient(180deg, rgba(6, 21, 66, 0.96), rgba(23, 54, 126, 0.88) 52%, rgba(8, 80, 58, 0.9) 100%);
+  background: #0b2a64;
   border-color: rgba(255, 227, 148, 0.24);
   box-shadow: 0 30px 95px rgba(0, 0, 0, 0.34), 0 0 45px rgba(126, 158, 255, 0.18);
 }
 
 .poster-hero-art::before,
 .poster-hero-art::after {
-  position: absolute;
-  pointer-events: none;
-  content: "";
+  display: none;
+}
+
+.poster-hero-image {
+  object-fit: cover;
 }
 
 .poster-hero-art::before {
