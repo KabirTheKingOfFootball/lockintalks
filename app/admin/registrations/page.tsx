@@ -23,7 +23,12 @@ export default async function AdminRegistrationsPage() {
   let errorMessage: string | null = null;
 
   try {
-    const { data, error } = await createAdminClient().from("registrations").select("*").order("created_at", { ascending: false });
+    const { data, error } = await createAdminClient()
+      .from("registrations")
+      .select("*")
+      .in("payment_status", ["captured", "paid"])
+      .order("paid_at", { ascending: false })
+      .order("created_at", { ascending: false });
     registrations = (data || []) as RegistrationRow[];
     errorMessage = error?.message || null;
   } catch (error) {

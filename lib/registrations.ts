@@ -25,6 +25,9 @@ export type RegistrationRow = {
   razorpay_signature: string | null;
   amount_due: number | null;
   amount_paid: number | null;
+  confirmation_email_sent: boolean | null;
+  confirmation_email_sent_at: string | null;
+  confirmation_email_sent_by: string | null;
   points_redeemed: number | null;
   points_discount_amount: number | null;
   payment_amount: number | null;

@@ -12,7 +12,12 @@ export async function GET() {
   if (!admin.ok) return NextResponse.json({ error: admin.message }, { status: admin.status, headers: adminNoStoreHeaders });
 
   const supabaseAdmin = createAdminClient();
-  const { data, error } = await supabaseAdmin.from("registrations").select("*").order("created_at", { ascending: false });
+  const { data, error } = await supabaseAdmin
+    .from("registrations")
+    .select("*")
+    .in("payment_status", ["captured", "paid"])
+    .order("paid_at", { ascending: false })
+    .order("created_at", { ascending: false });
 
   if (error) {
     console.error(`[LockInTalks admin export] Export failed: ${error.message}`);
@@ -39,6 +44,9 @@ export async function GET() {
     "razorpay_payment_id",
     "amount_due",
     "amount_paid",
+    "confirmation_email_sent",
+    "confirmation_email_sent_at",
+    "confirmation_email_sent_by",
     "points_redeemed",
     "points_discount_amount",
     "seat_confirmed_at",

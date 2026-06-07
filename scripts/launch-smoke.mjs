@@ -44,6 +44,8 @@ expectEqual(paymentStatus.isSeatConfirmed("failed"), false, "Failed payments do 
 expectEqual(paymentStatus.isSeatConfirmed("cancelled"), false, "Cancelled payments do not confirm seats.");
 expectEqual(paymentStatus.isSeatConfirmed("refunded"), false, "Refunded payments do not confirm seats.");
 
+checkAdminRegistrationReview();
+
 const essayKnowledge = faqEssay.getFAQEssayKnowledge();
 expectAtLeast(essayKnowledge.wordCount, 7000, "FAQ essay knowledge base is at least 7,000 words.");
 expectAtLeast(essayKnowledge.chunks.length, 20, "FAQ essay produces enough safe searchable context sections.");
@@ -179,6 +181,28 @@ async function smokePublicRoutes(origin) {
   await smokeInvalidCheckoutPayload(origin);
 }
 
+function checkAdminRegistrationReview() {
+  const adminPageSource = readFileSync("app/admin/registrations/page.tsx", "utf8");
+  const managerSource = readFileSync("components/admin/registration-manager.tsx", "utf8");
+  const adminPatchSource = readFileSync("app/api/admin/registrations/[id]/route.ts", "utf8");
+  const exportSource = readFileSync("app/api/admin/registrations/export/route.ts", "utf8");
+  const schemaSource = readFileSync("supabase/schema.sql", "utf8");
+
+  expectMatch(adminPageSource, /\.in\("payment_status",\s*\["captured",\s*"paid"\]\)/, "Admin registrations page loads only paid/captured rows.");
+  expectMatch(exportSource, /\.in\("payment_status",\s*\["captured",\s*"paid"\]\)/, "Admin registrations CSV export includes only paid/captured rows.");
+  expectMatch(managerSource, /No successful paid registrations yet\./, "Admin registrations empty state is paid-only.");
+  expectMatch(managerSource, /confirmation_email_sent/, "Admin registration manager displays confirmation email tracking.");
+  expectMatch(managerSource, /Mark Email Sent/, "Admin registration manager can mark confirmation email sent.");
+  expectMatch(managerSource, /Mark Email Not Sent/, "Admin registration manager can mark confirmation email not sent.");
+  expectMatch(adminPatchSource, /confirmation_email_sent/, "Admin registration PATCH route updates only confirmation email tracking.");
+  expectMatch(adminPatchSource, /\.in\("payment_status",\s*\["captured",\s*"paid"\]\)/, "Admin registration PATCH route only updates paid/captured rows.");
+  expectNotMatch(managerSource, /paymentStatuses|<select/i, "Admin registration manager no longer exposes manual payment/status dropdowns.");
+  expectNotMatch(adminPatchSource, /syncLockInPointsForRegistration|updates\.payment_status|paymentStatus\s*=/, "Admin registration PATCH route does not manually change payment status or reward state.");
+  expectMatch(schemaSource, /confirmation_email_sent boolean not null default false/, "Schema includes confirmation email sent column.");
+  expectMatch(schemaSource, /confirmation_email_sent_at timestamptz/, "Schema includes confirmation email sent timestamp column.");
+  expectMatch(schemaSource, /confirmation_email_sent_by uuid/, "Schema includes confirmation email sent by column.");
+}
+
 async function smokeUnauthenticatedCheckoutEndpoint(origin) {
   const response = await fetch(`${origin}/api/registrations/create-checkout`, {
     method: "POST",
@@ -265,6 +289,12 @@ function expectEqual(actual, expected, label) {
 
 function expectMatch(source, pattern, label) {
   if (!pattern.test(source)) {
+    failures.push(label);
+  }
+}
+
+function expectNotMatch(source, pattern, label) {
+  if (pattern.test(source)) {
     failures.push(label);
   }
 }
