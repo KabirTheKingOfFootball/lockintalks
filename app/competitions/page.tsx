@@ -71,14 +71,14 @@ export default async function CompetitionsPage() {
                 <span className="flex items-center gap-2"><Trophy size={16} className="text-[#d4af37]" /> Every Competition Includes Cash Prizes</span>
               </div>
               {competition.prizePool.showBadge && (
-                <PrizePoolPill className="mt-5 px-3 py-3 text-sm font-black uppercase tracking-[0.12em]">
-                  {formatPrizePoolBadge(competition.prizePool.amount)}
-                </PrizePoolPill>
-              )}
-              {competition.prizePool.enabled && (
-                <p className="mt-3 text-xs leading-5 text-white/45">
-                  The prize pool increases by {formatInr(competition.prizePool.perPaidParticipant * 5)} for every 5 verified contestants.
-                </p>
+                <>
+                  <PrizePoolPill className="mt-5 px-3 py-3 text-sm font-black uppercase tracking-[0.12em]">
+                    {formatPrizePoolBadge(competition.prizePool.amount)}
+                  </PrizePoolPill>
+                  <p className="mt-3 text-xs leading-5 text-white/45">
+                    The prize pool increases by {formatInr(competition.prizePool.perPaidParticipant * 5)} for every 5 verified contestants.
+                  </p>
+                </>
               )}
               <div className="mt-5"><Countdown targetIso={competition.dateIso} /></div>
               <ButtonLink href={`/competitions/${competition.slug}`} className="mt-6 w-full">View Details</ButtonLink>

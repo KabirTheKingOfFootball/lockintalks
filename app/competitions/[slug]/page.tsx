@@ -79,16 +79,16 @@ export default async function CompetitionDetailsPage({ params }: { params: Promi
               <p className="flex items-center gap-2"><Trophy size={16} className="text-[#d4af37]" /> Top Performers Win Cash Awards</p>
             </div>
             {competition.prizePool.showBadge && (
-              <PrizePoolPill className="mt-5 w-full justify-center px-3 py-3 text-sm font-black uppercase tracking-[0.12em]">
-                {formatPrizePoolBadge(competition.prizePool.amount)}
-              </PrizePoolPill>
-            )}
-            {competition.prizePool.enabled && (
-              <div className="mt-4 rounded-[8px] border border-white/10 bg-white/[0.045] p-4 text-xs leading-6 text-white/62">
-                <p>The prize pool increases by {formatInr(competition.prizePool.perPaidParticipant * 5)} for every 5 verified contestants.</p>
-                <p>Only successfully verified payments count toward the prize pool.</p>
-                <p>1st Place: 45%, 2nd Place: 30%, 3rd Place: 25%. Prizes may be given as cash or Amazon gift cards.</p>
-              </div>
+              <>
+                <PrizePoolPill className="mt-5 w-full justify-center px-3 py-3 text-sm font-black uppercase tracking-[0.12em]">
+                  {formatPrizePoolBadge(competition.prizePool.amount)}
+                </PrizePoolPill>
+                <div className="mt-4 rounded-[8px] border border-white/10 bg-white/[0.045] p-4 text-xs leading-6 text-white/62">
+                  <p>The prize pool increases by {formatInr(competition.prizePool.perPaidParticipant * 5)} for every 5 verified contestants.</p>
+                  <p>Only successfully verified payments count toward the prize pool.</p>
+                  <p>1st Place: 45%, 2nd Place: 30%, 3rd Place: 25%. Prizes may be given as cash or Amazon gift cards.</p>
+                </div>
+              </>
             )}
             <div className="mt-5"><Countdown targetIso={competition.dateIso} /></div>
             <ButtonLink href={`/register/${competition.slug}`} className="mt-7 w-full">Register for This Competition</ButtonLink>

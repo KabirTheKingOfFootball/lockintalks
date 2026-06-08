@@ -34,7 +34,7 @@ export function calculatePrizePool({
     perPaidParticipant: safePerParticipant,
     displayThreshold: safeThreshold,
     amount,
-    showBadge: enabled !== false,
+    showBadge: enabled !== false && amount > 0,
     distribution: getPrizeDistribution(amount)
   };
 }

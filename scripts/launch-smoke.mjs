@@ -34,9 +34,10 @@ for (const [paidParticipants, expectedAmount] of [
     `${paidParticipants} paid participants maps to INR ${expectedAmount} prize pool.`
   );
 }
-expectEqual(prizePool.calculatePrizePool({ paidParticipants: 0 }).showBadge, true, "Prize pool display stays visible at INR 0.");
-expectEqual(prizePool.formatPrizePoolBadge(0), "Current Prize Pool: ₹0", "Prize pool display shows INR 0 exactly.");
-expectEqual(prizePool.formatPrizePoolBadge(900), "Current Prize Pool: ₹900", "Prize pool display does not hide below INR 1,000.");
+expectEqual(prizePool.calculatePrizePool({ paidParticipants: 0 }).showBadge, false, "Prize pool display hides at INR 0.");
+expectEqual(prizePool.calculatePrizePool({ paidParticipants: 1 }).showBadge, true, "Prize pool display appears above INR 0.");
+expectEqual(prizePool.formatPrizePoolBadge(100), "Current Prize Pool: ₹100", "Prize pool display shows INR 100 exactly.");
+expectEqual(prizePool.formatPrizePoolBadge(900), "Current Prize Pool: ₹900", "Prize pool display does not use old INR 1,000 threshold logic.");
 
 expectEqual(paymentStatus.isSeatConfirmed("captured"), true, "Captured payments confirm seats.");
 expectEqual(paymentStatus.isSeatConfirmed("paid"), true, "Paid payments confirm seats.");
@@ -124,12 +125,18 @@ function scanSourceForBadLaunchCopy() {
 }
 
 async function smokePublicRoutes(origin) {
+  const localMissingSupabase = isLocalOrigin(origin) && !process.env.NEXT_PUBLIC_SUPABASE_URL && !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   const publicRoutes = [
     "/",
+    "/about",
     "/competitions",
     "/competitions/story-talks",
     "/competitions/idol-talk",
     "/competitions/power-talk",
+    "/register/story-talks",
+    "/register/idol-talk",
+    "/register/power-talk",
+    "/dashboard",
     "/login",
     "/signup",
     "/contact",
@@ -140,12 +147,22 @@ async function smokePublicRoutes(origin) {
     "/shipping-policy",
     "/terms",
     "/parent-consent",
-    "/api/health/razorpay"
+    "/api/health/razorpay",
+    "/api/health/supabase"
   ];
 
   for (const route of publicRoutes) {
     const response = await fetch(`${origin}${route}`, { cache: "no-store" });
     if (!response.ok) {
+      if (localMissingSupabase && route === "/api/health/supabase" && response.status === 503) {
+        warnings.push("/api/health/supabase returned 503 on local production server because Supabase env vars are not configured locally.");
+        continue;
+      }
+
+      if (localMissingSupabase && (isCompetitionRoute(route) || isRegisterRoute(route)) && response.status === 404) {
+        warnings.push(`${route} returned 404 on local production server because Supabase env vars are not configured locally.`);
+        continue;
+      }
       failures.push(`${route} returned HTTP ${response.status}.`);
       continue;
     }
@@ -154,6 +171,14 @@ async function smokePublicRoutes(origin) {
       const health = await response.json();
       expectType(health.checkoutReady, "boolean", "Razorpay health exposes checkoutReady boolean.");
       expectType(health.webhookReady, "boolean", "Razorpay health exposes webhookReady boolean.");
+      continue;
+    }
+
+    if (route === "/api/health/supabase") {
+      const health = await response.json();
+      expectType(health.ok, "boolean", "Supabase health exposes ok boolean.");
+      expectType(health.env?.urlConfigured, "boolean", "Supabase health exposes URL config boolean.");
+      expectType(health.env?.publishableKeyConfigured, "boolean", "Supabase health exposes publishable key config boolean.");
       continue;
     }
 
@@ -166,19 +191,47 @@ async function smokePublicRoutes(origin) {
       failures.push(`${route} renders public LockIn Points copy while launch mode is disabled.`);
     }
 
-    if (["/competitions", "/competitions/story-talks", "/competitions/idol-talk", "/competitions/power-talk"].includes(route)) {
-      if (!/Current Prize Pool:\s*₹0/i.test(html)) {
-        failures.push(`${route} does not show Current Prize Pool: ₹0.`);
+    if (isRegisterRoute(route)) {
+      if (localMissingSupabase && /Missing Supabase environment variables|not found|404/i.test(html)) {
+        warnings.push(`${route} register HTML check skipped on local production server because Supabase env vars are not configured locally.`);
+        continue;
       }
 
-      if (!/The prize pool increases by[\s\S]{0,120}INR 500[\s\S]{0,120}for every 5 verified contestants\./i.test(html)) {
-        failures.push(`${route} does not render the verified-contestants prize pool wording.`);
+      if (!/Please Log In or Create an Account Before Registering for a Competition|Register for/i.test(html)) {
+        failures.push(`${route} does not render the expected registration/login-gate content.`);
+      }
+    }
+
+    if (isCompetitionRoute(route)) {
+      if (localMissingSupabase && /Missing Supabase environment variables|No Live Competitions Yet|could not load|not found|404/i.test(html)) {
+        warnings.push(`${route} prize pool HTML check skipped on local production server because Supabase env vars are not configured locally.`);
+        continue;
+      }
+
+      if (/Current Prize Pool:\s*₹0/i.test(html)) {
+        failures.push(`${route} publicly shows Current Prize Pool: ₹0.`);
+      }
+
+      if (/Current Prize Pool:/i.test(html) && !/The prize pool increases by[\s\S]{0,120}INR 500[\s\S]{0,120}for every 5 verified contestants\./i.test(html)) {
+        failures.push(`${route} renders a current prize pool without the verified-contestants prize pool wording.`);
       }
     }
   }
 
   await smokeUnauthenticatedCheckoutEndpoint(origin);
   await smokeInvalidCheckoutPayload(origin);
+}
+
+function isLocalOrigin(origin) {
+  return /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i.test(origin);
+}
+
+function isCompetitionRoute(route) {
+  return route === "/competitions" || route.startsWith("/competitions/");
+}
+
+function isRegisterRoute(route) {
+  return route.startsWith("/register/");
 }
 
 function checkAdminRegistrationReview() {
@@ -190,6 +243,7 @@ function checkAdminRegistrationReview() {
 
   expectMatch(adminPageSource, /\.in\("payment_status",\s*\["captured",\s*"paid"\]\)/, "Admin registrations page loads only paid/captured rows.");
   expectMatch(exportSource, /\.in\("payment_status",\s*\["captured",\s*"paid"\]\)/, "Admin registrations CSV export includes only paid/captured rows.");
+  expectNotMatch(exportSource, /points_redeemed|points_discount_amount/, "Admin paid CSV export does not expose hidden LockIn Points fields.");
   expectMatch(managerSource, /No successful paid registrations yet\./, "Admin registrations empty state is paid-only.");
   expectMatch(managerSource, /confirmation_email_sent/, "Admin registration manager displays confirmation email tracking.");
   expectMatch(managerSource, /Mark Email Sent/, "Admin registration manager can mark confirmation email sent.");

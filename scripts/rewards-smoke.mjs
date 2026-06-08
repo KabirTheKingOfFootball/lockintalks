@@ -38,6 +38,9 @@ const limitedBalanceCheckout = checkout.calculateLockInPointCheckout({
 expectEqual(limitedBalanceCheckout.appliedPoints, 7, "Checkout cannot apply more points than the user owns.");
 
 expectEqual(prizePool.calculatePrizePool({ paidParticipants: 0 }).amount, 0, "Zero verified contestants creates INR 0 prize pool.");
+expectEqual(prizePool.calculatePrizePool({ paidParticipants: 0 }).showBadge, false, "Zero verified contestants hides the public prize pool badge.");
+expectEqual(prizePool.calculatePrizePool({ paidParticipants: 1 }).amount, 100, "One verified contestant creates INR 100 prize pool.");
+expectEqual(prizePool.calculatePrizePool({ paidParticipants: 1 }).showBadge, true, "One verified contestant shows the public prize pool badge.");
 expectEqual(prizePool.calculatePrizePool({ paidParticipants: 4 }).amount, 400, "Four verified contestants creates INR 400 prize pool.");
 expectEqual(prizePool.calculatePrizePool({ paidParticipants: 5 }).amount, 500, "Five verified contestants creates INR 500 prize pool.");
 expectEqual(prizePool.calculatePrizePool({ paidParticipants: 9 }).amount, 900, "Nine verified contestants creates INR 900 prize pool.");
@@ -45,7 +48,7 @@ expectEqual(prizePool.calculatePrizePool({ paidParticipants: 10 }).amount, 1000,
 
 const belowThreshold = prizePool.calculatePrizePool({ paidParticipants: 9, perPaidParticipant: 100, displayThreshold: 1000 });
 expectEqual(belowThreshold.amount, 900, "Prize pool increases by INR 100 for each verified paid participant.");
-expectEqual(belowThreshold.showBadge, true, "Prize pool badge stays visible below INR 1,000.");
+expectEqual(belowThreshold.showBadge, true, "Prize pool badge stays visible for any amount above INR 0.");
 
 const atThreshold = prizePool.calculatePrizePool({ paidParticipants: 10, perPaidParticipant: 100, displayThreshold: 1000 });
 expectEqual(atThreshold.amount, 1000, "Prize pool reaches INR 1,000 at 10 paid participants.");
@@ -53,7 +56,8 @@ expectEqual(atThreshold.showBadge, true, "Prize pool badge appears at INR 1,000 
 expectEqual(atThreshold.distribution.first, 450, "1st place receives 45% of prize pool.");
 expectEqual(atThreshold.distribution.second, 300, "2nd place receives 30% of prize pool.");
 expectEqual(atThreshold.distribution.third, 250, "3rd place receives remaining 25% of prize pool.");
-expectEqual(prizePool.formatPrizePoolBadge(0), "Current Prize Pool: ₹0", "Prize pool badge stays visible at INR 0.");
+expectEqual(prizePool.formatPrizePoolBadge(100), "Current Prize Pool: ₹100", "Prize pool badge shows INR 100 exactly.");
+expectEqual(prizePool.formatPrizePoolBadge(500), "Current Prize Pool: ₹500", "Prize pool badge shows INR 500 exactly.");
 expectEqual(prizePool.formatPrizePoolBadge(1000), "Current Prize Pool: ₹1,000", "Prize pool badge shows an exact INR amount without fake plus signs.");
 
 expectEqual(paymentStatus.isSeatConfirmed("captured"), true, "Captured payments count as verified.");
@@ -62,6 +66,10 @@ expectEqual(paymentStatus.isSeatConfirmed("pending"), false, "Pending payments d
 expectEqual(paymentStatus.isSeatConfirmed("failed"), false, "Failed payments do not count as verified.");
 expectEqual(paymentStatus.isSeatConfirmed("cancelled"), false, "Cancelled payments do not count as verified.");
 expectEqual(paymentStatus.isSeatConfirmed("refunded"), false, "Refunded payments do not count as verified.");
+
+const nonVerifiedStatuses = ["pending", "failed", "cancelled", "refunded", "signature_verified", "order_created"];
+const nonVerifiedCount = nonVerifiedStatuses.filter((status) => paymentStatus.isSeatConfirmed(status)).length;
+expectEqual(prizePool.calculatePrizePool({ paidParticipants: nonVerifiedCount }).showBadge, false, "Failed, cancelled, refunded, pending, and unverified payments do not make the prize pool visible.");
 
 expectEqual(levels.getNextLevelRequirement(1), 17, "Internal level 1 next requirement is 17.");
 expectEqual(levels.getNextLevelRequirement(2), 27, "Internal level 2 next requirement is 27.");
