@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 
 import crypto from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
@@ -40,22 +40,22 @@ expectEqual(
 
 const rawWebhookBody = JSON.stringify({
   event: "payment.captured",
-  payload: { payment: { entity: { id: paymentId, order_id: orderId, amount: 19999, currency: "INR", status: "captured" } } }
+  payload: { payment: { entity: { id: paymentId, order_id: orderId, amount: 9999, currency: "INR", status: "captured" } } }
 });
 const webhookSignature = sign(process.env.RAZORPAY_WEBHOOK_SECRET, rawWebhookBody);
 
 expectEqual(payments.verifyRazorpayWebhookSignature(rawWebhookBody, webhookSignature), true, "Valid webhook signature verifies.");
 expectEqual(payments.verifyRazorpayWebhookSignature(rawWebhookBody, webhookSignature.replace(/.$/, "0")), false, "Tampered webhook signature is rejected.");
-expectEqual(payments.formatAmount(19999), "INR 199.99", "Payment amounts display as INR.");
-expectEqual(paymentAmounts.formatPaiseAsInr(19999), "INR 199.99", "Shared payment amount display formats 19999 paise as INR 199.99.");
+expectEqual(payments.formatAmount(9999), "INR 99.99", "Payment amounts display as INR.");
+expectEqual(paymentAmounts.formatPaiseAsInr(9999), "INR 99.99", "Shared payment amount display formats 9999 paise as INR 99.99.");
 
 const corruptedLaunchAmount = paymentAmounts.resolvePayableAmountPaise({
   registration: { payment_amount: 8, amount_due: 800, payment_status: "pending", payment_currency: "INR" },
   competition: { fee_amount: 800 },
   competitionSlug: "story-talks"
 });
-expectEqual(corruptedLaunchAmount.amountPaise, 19999, "Corrupted launch amounts like 8/800 repair to INR 199.99.");
-expectEqual(corruptedLaunchAmount.source, "launch_fallback", "Corrupted launch amount uses launch fallback source.");
+expectEqual(corruptedLaunchAmount.amountPaise, 9999, "Corrupted launch amounts like 8/800 repair to INR 99.99.");
+expectEqual(corruptedLaunchAmount.source, "competition_fee_amount", "Corrupted launch amount uses the server-side competition amount source.");
 expectEqual(corruptedLaunchAmount.shouldRepairRegistration, true, "Corrupted unpaid registration amount is marked for repair.");
 
 const validRegistrationPaymentAmount = paymentAmounts.resolvePayableAmountPaise({
@@ -63,23 +63,36 @@ const validRegistrationPaymentAmount = paymentAmounts.resolvePayableAmountPaise(
   competition: { fee_amount: 800 },
   competitionSlug: "story-talks"
 });
-expectEqual(validRegistrationPaymentAmount.amountPaise, 19999, "Launch checkout repairs stale 19900 registration amounts to INR 199.99.");
-expectEqual(validRegistrationPaymentAmount.source, "launch_fallback", "Launch competition defaults override stale registration amounts.");
+expectEqual(validRegistrationPaymentAmount.amountPaise, 9999, "Launch checkout repairs stale 19900 registration amounts to INR 99.99.");
+expectEqual(validRegistrationPaymentAmount.source, "competition_fee_amount", "Competition amount overrides stale registration amounts.");
 
 const validRegistrationDueAmount = paymentAmounts.resolvePayableAmountPaise({
   registration: { payment_amount: 8, amount_due: 19900, payment_status: "failed", payment_currency: "INR" },
   competition: { fee_amount: 800 },
   competitionSlug: "idol-talk"
 });
-expectEqual(validRegistrationDueAmount.amountPaise, 19999, "Launch checkout repairs stale 19900 amount_due values to INR 199.99.");
-expectEqual(validRegistrationDueAmount.source, "launch_fallback", "Launch competition defaults override stale amount_due values.");
+expectEqual(validRegistrationDueAmount.amountPaise, 9999, "Launch checkout repairs stale 19900 amount_due values to INR 99.99.");
+expectEqual(validRegistrationDueAmount.source, "competition_fee_amount", "Competition amount overrides stale amount_due values.");
 
 const validDifferentCompetitionAmount = paymentAmounts.resolvePayableAmountPaise({
   competition: { fee_amount: 24900 },
   competitionSlug: "power-talk"
 });
-expectEqual(validDifferentCompetitionAmount.amountPaise, 19999, "Power Talk launch checkout always resolves to INR 199.99.");
-expectEqual(validDifferentCompetitionAmount.source, "launch_fallback", "Power Talk launch default overrides Supabase fee_amount drift.");
+expectEqual(validDifferentCompetitionAmount.amountPaise, 9999, "Power Talk launch checkout resolves to INR 99.99 for stale launch rows.");
+expectEqual(validDifferentCompetitionAmount.source, "competition_fee_amount", "Power Talk uses the server-side competition amount source.");
+
+const belowMinimumOrderAmount = paymentAmounts.resolvePayableAmountPaise({
+  competition: { fee_amount: 99 },
+  competitionSlug: "custom-talk"
+});
+expectEqual(belowMinimumOrderAmount.amountPaise, 0, "Amounts below Razorpay's 100 paise minimum are rejected.");
+
+const minimumOrderAmount = paymentAmounts.resolvePayableAmountPaise({
+  competition: { fee_amount: 100 },
+  competitionSlug: "custom-talk"
+});
+expectEqual(minimumOrderAmount.amountPaise, 100, "Razorpay's 100 paise minimum amount is accepted.");
+
 expectEqual(Boolean(paymentAmounts.getRegistrationAmountRepairPatch(corruptedLaunchAmount, "pending")), true, "Unpaid corrupted registration gets a repair patch.");
 expectEqual(paymentAmounts.getRegistrationAmountRepairPatch(corruptedLaunchAmount, "captured"), null, "Captured registrations are not repaired automatically.");
 expectEqual(rewardsFeature.areLockInPointsEnabled(), false, "LockIn Points feature is disabled by default, so checkout discounts stay off.");
@@ -238,7 +251,7 @@ for (const slug of ["story-talks", "idol-talk", "power-talk"]) {
     competitionSlug: slug
   });
   expectEqual(acceptedPayload.ok, true, `${slug} register checkout payload validates before order creation.`);
-  expectEqual(resolvedLaunchAmount.amountPaise, 19999, `${slug} launch checkout amount resolves to 19999 paise even if Supabase has 19900.`);
+  expectEqual(resolvedLaunchAmount.amountPaise, 9999, `${slug} launch checkout amount resolves to 9999 paise when Supabase has stale 19900.`);
 }
 
 const envStatus = razorpayEnv.getRazorpayEnvStatus();
@@ -293,15 +306,9 @@ expectMatch(registrationRouteSource, /payment_amount:\s*feeAmount/, "Registratio
 expectMatch(registrationRouteSource, /amount_due:\s*feeAmount/, "Registration creation stores amount_due before payment.");
 expectMatch(registrationRouteSource, /resolvePayableAmountPaise/, "Registration creation resolves amount through the shared backend amount utility.");
 expectMatch(registrationRouteSource, /repairRegistrationAmountIfNeeded/, "Registration creation repairs bad unpaid duplicate amount fields.");
-expectBefore(
-  amountResolverSource,
-  "if (launchDefault?.feeAmount",
-  "const candidates =",
-  "Payment amount resolver checks launch defaults before stale registration or competition amounts."
-);
-expectMatch(amountResolverSource, /return amountPaise === launchDefault\.feeAmount/, "Launch payment amounts must exactly match the launch default.");
-expectMatch(competitionsSource, /usesLaunchFeeDefault \? launchDefault\?\.feeAmount/, "Public competition fee amount uses launch defaults for launch slugs.");
-expectMatch(competitionsSource, /usesLaunchFeeDefault \? launchDefault\?\.feeLabel/, "Public competition fee label uses launch defaults for launch slugs.");
+expectMatch(amountResolverSource, /normalizeCompetitionPricing/, "Payment amount resolver uses normalized server-side competition pricing.");
+expectMatch(competitionsSource, /prize_pool_contribution_paise/, "Public competitions read admin-configurable prize pool contribution.");
+expectMatch(competitionsSource, /publicOfferLabel/, "Public competitions expose the admin-configurable public offer label.");
 expectMatch(registrationRouteSource, /buildPaymentUrl\(\{\s*registrationId:\s*data\.id,\s*competitionSlug:\s*competition\.slug\s*\}\)/, "New registrations return a payment URL containing the exact registration id.");
 expectMatch(registrationRouteSource, /buildPaymentUrl\(\{\s*registrationId:\s*existingRegistration\.id,\s*competitionSlug:\s*competition\.slug\s*\}\)/, "Pending duplicate registrations return their existing registration id.");
 expectMatch(registrationRouteSource, /redirectTo:\s*alreadyPaid\s*\?\s*"\/dashboard"\s*:\s*paymentUrl/, "Paid duplicate registrations redirect away from duplicate payment.");

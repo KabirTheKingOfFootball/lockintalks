@@ -31,6 +31,10 @@ create table if not exists public.competitions (
   max_participants integer not null default 50 check (max_participants > 0),
   fee_label text not null,
   fee_amount integer not null default 0,
+  fee_amount_paise integer not null default 9999,
+  entry_fee_label text,
+  prize_pool_contribution_paise integer not null default 9999,
+  public_offer_label text,
   summary text not null,
   description text not null,
   image_url text,
@@ -51,7 +55,46 @@ add column if not exists event_time text not null default 'TBA',
 add column if not exists timezone text not null default 'IST',
 add column if not exists registration_deadline text,
 add column if not exists max_participants integer not null default 50,
-add column if not exists criteria text[] not null default '{}';
+add column if not exists criteria text[] not null default '{}',
+add column if not exists fee_amount_paise integer not null default 9999,
+add column if not exists entry_fee_label text,
+add column if not exists prize_pool_contribution_paise integer not null default 9999,
+add column if not exists public_offer_label text;
+
+update public.competitions
+set
+  fee_amount_paise = coalesce(nullif(fee_amount_paise, 0), nullif(fee_amount, 0), 9999),
+  entry_fee_label = coalesce(nullif(entry_fee_label, ''), nullif(fee_label, ''), '₹99.99'),
+  prize_pool_contribution_paise = least(
+    coalesce(nullif(prize_pool_contribution_paise, 0), nullif(fee_amount_paise, 0), nullif(fee_amount, 0), 9999),
+    coalesce(nullif(fee_amount_paise, 0), nullif(fee_amount, 0), 9999)
+  ),
+  public_offer_label = coalesce(nullif(public_offer_label, ''), 'Founder''s Discount');
+
+update public.competitions
+set
+  fee_amount_paise = 9999,
+  entry_fee_label = '₹99.99',
+  fee_label = '₹99.99',
+  fee_amount = 9999,
+  prize_pool_contribution_paise = 9999,
+  public_offer_label = 'Founder''s Discount'
+where slug in ('story-talks', 'idol-talk', 'power-talk')
+  and fee_amount in (8, 800, 9900, 19900, 19999, 24900);
+
+alter table public.competitions
+drop constraint if exists competitions_fee_amount_paise_check;
+
+alter table public.competitions
+add constraint competitions_fee_amount_paise_check
+check (fee_amount_paise >= 100);
+
+alter table public.competitions
+drop constraint if exists competitions_prize_pool_contribution_check;
+
+alter table public.competitions
+add constraint competitions_prize_pool_contribution_check
+check (prize_pool_contribution_paise >= 0 and prize_pool_contribution_paise <= fee_amount_paise);
 
 alter table public.competitions
 drop constraint if exists competitions_max_participants_check;

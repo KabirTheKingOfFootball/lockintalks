@@ -8,7 +8,7 @@ import { MotionShell } from "@/components/motion-shell";
 import { Countdown } from "@/components/countdown";
 import { PosterBackdrop, PrizePoolPill } from "@/components/brand-visuals";
 import { getLiveCompetitionBySlug } from "@/lib/competitions";
-import { formatInr, formatPrizePoolBadge } from "@/lib/rewards/prize-pool";
+import { formatPrizePoolBadge } from "@/lib/rewards/prize-pool";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +52,7 @@ export default async function CompetitionDetailsPage({ params }: { params: Promi
             <p className="mt-10 text-sm font-black uppercase tracking-[0.3em]">{competition.category}</p>
             <h1 className="mt-2 text-4xl font-black sm:text-6xl">{competition.name}</h1>
             <div className="mt-5 flex items-center gap-3 text-sm font-black uppercase tracking-[0.18em]">
-              <span>Speak. Perform. Inspire.</span>
+              <span>{competition.publicOfferLabel}</span>
             </div>
             </div>
           </div>
@@ -74,21 +74,20 @@ export default async function CompetitionDetailsPage({ params }: { params: Promi
               <p><span className="font-bold text-white">Date:</span> {competition.date}</p>
               <p><span className="font-bold text-white">Time:</span> {competition.time} {competition.timezone}</p>
               {competition.registrationDeadline && <p><span className="font-bold text-white">Registration Deadline:</span> {competition.registrationDeadline}</p>}
+              <p><span className="font-bold text-white">Offer:</span> {competition.publicOfferLabel}</p>
               <p><span className="font-bold text-white">Entry Fee:</span> {competition.fee}</p>
               <p className="flex items-center gap-2"><Clock3 size={16} className="text-[#d4af37]" /> Slots Remaining: {competition.slotsRemaining} / {competition.maxParticipants}</p>
               <p className="flex items-center gap-2"><Trophy size={16} className="text-[#d4af37]" /> Top Performers Win Cash Awards</p>
+              <p className="flex items-center gap-2"><Trophy size={16} className="text-[#d4af37]" /> More participants = bigger prize pool</p>
+            </div>
+            <div className="mt-4 rounded-[8px] border border-white/10 bg-white/[0.045] p-4 text-xs leading-6 text-white/62">
+              <p>{competition.prizePoolContributionCopy}</p>
+              <p>Only successfully verified payments count toward the prize pool.</p>
             </div>
             {competition.prizePool.showBadge && (
-              <>
-                <PrizePoolPill className="mt-5 w-full justify-center px-3 py-3 text-sm font-black uppercase tracking-[0.12em]">
-                  {formatPrizePoolBadge(competition.prizePool.amount)}
-                </PrizePoolPill>
-                <div className="mt-4 rounded-[8px] border border-white/10 bg-white/[0.045] p-4 text-xs leading-6 text-white/62">
-                  <p>The prize pool increases by {formatInr(competition.prizePool.perPaidParticipant * 5)} for every 5 verified contestants.</p>
-                  <p>Only successfully verified payments count toward the prize pool.</p>
-                  <p>1st Place: 45%, 2nd Place: 30%, 3rd Place: 25%. Prizes may be given as cash or Amazon gift cards.</p>
-                </div>
-              </>
+              <PrizePoolPill className="mt-5 w-full justify-center px-3 py-3 text-sm font-black uppercase tracking-[0.12em]">
+                {formatPrizePoolBadge(competition.prizePool.amount)}
+              </PrizePoolPill>
             )}
             <div className="mt-5"><Countdown targetIso={competition.dateIso} /></div>
             <ButtonLink href={`/register/${competition.slug}`} className="mt-7 w-full">Register for This Competition</ButtonLink>

@@ -5,27 +5,35 @@ export const launchCompetitionDefaults: Record<
   {
     feeLabel: string;
     feeAmount: number;
+    prizePoolContributionPaise: number;
+    publicOfferLabel: string;
     maxParticipants: number;
     judges: string[];
   }
 > = {
   "story-talks": {
-    feeLabel: "INR 199.99",
-    feeAmount: 19999,
+    feeLabel: "₹99.99",
+    feeAmount: 9999,
+    prizePoolContributionPaise: 9999,
+    publicOfferLabel: "Founder's Discount",
     maxParticipants: 777,
-    judges: ["Arti Sharma"]
+    judges: ["To Be Announced"]
   },
   "idol-talk": {
-    feeLabel: "INR 199.99",
-    feeAmount: 19999,
+    feeLabel: "₹99.99",
+    feeAmount: 9999,
+    prizePoolContributionPaise: 9999,
+    publicOfferLabel: "Founder's Discount",
     maxParticipants: 777,
-    judges: ["Arti Sharma"]
+    judges: ["To Be Announced"]
   },
   "power-talk": {
-    feeLabel: "INR 199.99",
-    feeAmount: 19999,
+    feeLabel: "₹99.99",
+    feeAmount: 9999,
+    prizePoolContributionPaise: 9999,
+    publicOfferLabel: "Founder's Discount",
     maxParticipants: 777,
-    judges: ["Arti Sharma"]
+    judges: ["To Be Announced"]
   }
 };
 

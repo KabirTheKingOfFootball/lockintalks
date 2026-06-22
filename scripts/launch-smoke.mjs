@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -23,22 +23,21 @@ expectEqual(rewardsFeature.areLockInPointsEnabled(), false, "LockIn Points are d
 
 for (const [paidParticipants, expectedAmount] of [
   [0, 0],
-  [4, 400],
-  [5, 500],
-  [9, 900],
-  [10, 1000]
+  [1, 9999],
+  [5, 49995],
+  [10, 99990]
 ]) {
   expectEqual(
     prizePool.calculatePrizePool({ paidParticipants }).amount,
     expectedAmount,
-    `${paidParticipants} paid participants maps to INR ${expectedAmount} prize pool.`
+    `${paidParticipants} paid participants maps to ${expectedAmount} paise prize pool.`
   );
 }
 expectEqual(prizePool.calculatePrizePool({ paidParticipants: 0 }).showBadge, false, "Prize pool display hides at INR 0.");
 expectEqual(prizePool.calculatePrizePool({ paidParticipants: 1 }).showBadge, true, "Prize pool display appears above INR 0.");
-expectEqual(prizePool.formatPrizePoolBadge(100), "Current Prize Pool: ₹100", "Prize pool display shows INR 100 exactly.");
-expectEqual(prizePool.formatPrizePoolBadge(900), "Current Prize Pool: ₹900", "Prize pool display does not use old INR 1,000 threshold logic.");
-
+expectEqual(prizePool.calculatePrizePool({ paidParticipants: 1, perPaidParticipant: 5000 }).amount, 5000, "Admin-configured INR 50 contribution is used for prize pool math.");
+expectEqual(prizePool.formatPrizePoolBadge(9999), "Current Prize Pool: ₹99.99", "Prize pool display shows INR 99.99 exactly.");
+expectEqual(prizePool.formatPrizePoolBadge(99990), "Current Prize Pool: ₹999.90", "Prize pool display does not use old INR 1,000 threshold logic.");
 expectEqual(paymentStatus.isSeatConfirmed("captured"), true, "Captured payments confirm seats.");
 expectEqual(paymentStatus.isSeatConfirmed("paid"), true, "Paid payments confirm seats.");
 expectEqual(paymentStatus.isSeatConfirmed("failed"), false, "Failed payments do not confirm seats.");
@@ -54,7 +53,7 @@ expectAtLeast(essayKnowledge.chunks.length, 20, "FAQ essay produces enough safe 
 for (const question of [
   "My child is 7. Can they join?",
   "Can I speak about football or my role model?",
-  "How does the prize pool increase every five paid participants?",
+  "How does the prize pool work for verified paid participants?",
   "What details do I need for registration?",
   "What happens if payment is pending?",
   "Is LockInTalks safe for parents?"
@@ -100,7 +99,7 @@ function scanSourceForBadLaunchCopy() {
     /!FUN!/i,
     /!PRIZES!/i,
     /!STAKES!/i,
-    /₍|ₑₓ/i,
+    /â‚|â‚‘â‚“/i,
     /examples are/i,
     /lorem ipsum/i,
     /support@lockintalks/i,
@@ -183,7 +182,7 @@ async function smokePublicRoutes(origin) {
     }
 
     const html = await response.text();
-    if (/!PEOPLE!|!FUN!|!PRIZES!|!STAKES!|₍|ₑₓ|examples are/i.test(html)) {
+    if (/!PEOPLE!|!FUN!|!PRIZES!|!STAKES!|â‚|â‚‘â‚“|examples are/i.test(html)) {
       failures.push(`${route} renders old unprofessional prize copy.`);
     }
 
@@ -208,12 +207,16 @@ async function smokePublicRoutes(origin) {
         continue;
       }
 
-      if (/Current Prize Pool:\s*₹0/i.test(html)) {
+      if (/Current Prize Pool:\s*(?:₹|â‚¹)0/i.test(html)) {
         failures.push(`${route} publicly shows Current Prize Pool: ₹0.`);
       }
 
-      if (/Current Prize Pool:/i.test(html) && !/The prize pool increases by[\s\S]{0,120}INR 500[\s\S]{0,120}for every 5 verified contestants\./i.test(html)) {
-        failures.push(`${route} renders a current prize pool without the verified-contestants prize pool wording.`);
+      if (/INR 199\.99|₹199\.99/i.test(html)) {
+        failures.push(`${route} still shows old public INR 199.99 launch pricing.`);
+      }
+
+      if (/Entry Fee/i.test(html) && !/More participants = bigger prize pool/i.test(html)) {
+        failures.push(`${route} shows entry fee copy without the bigger-prize-pool explanation.`);
       }
     }
   }

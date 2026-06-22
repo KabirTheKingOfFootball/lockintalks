@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { normalizeCompetitionPricing } from "@/lib/competition-pricing";
 import { calculatePrizePool, type PrizePoolSummary } from "@/lib/rewards/prize-pool";
 
 export type AdminCompetition = {
@@ -14,6 +15,10 @@ export type AdminCompetition = {
   max_participants: number | null;
   fee_label: string;
   fee_amount: number;
+  fee_amount_paise?: number | null;
+  entry_fee_label?: string | null;
+  prize_pool_contribution_paise?: number | null;
+  public_offer_label?: string | null;
   summary: string;
   description: string;
   image_url: string | null;
@@ -44,11 +49,19 @@ export async function getAdminCompetitions() {
     return {
       competitions: competitions.map((competition) => {
         const verifiedPaidParticipants = paidCounts.get(competition.slug) || 0;
+        const pricing = normalizeCompetitionPricing(competition, competition.slug);
         return {
           ...competition,
+          fee_amount_paise: pricing.feeAmountPaise,
+          entry_fee_label: pricing.entryFeeLabel,
+          prize_pool_contribution_paise: pricing.prizePoolContributionPaise,
+          public_offer_label: pricing.publicOfferLabel,
+          fee_amount: pricing.feeAmountPaise,
+          fee_label: pricing.entryFeeLabel,
           verified_paid_participants: verifiedPaidParticipants,
           calculated_prize_pool: calculatePrizePool({
-            paidParticipants: verifiedPaidParticipants
+            paidParticipants: verifiedPaidParticipants,
+            perPaidParticipant: pricing.prizePoolContributionPaise
           })
         };
       }),

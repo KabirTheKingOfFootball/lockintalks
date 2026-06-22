@@ -15,7 +15,7 @@ export type PrizePoolSummary = {
 export function calculatePrizePool({
   enabled = true,
   paidParticipants,
-  perPaidParticipant = 100,
+  perPaidParticipant = 9999,
   displayThreshold = 0
 }: {
   enabled?: boolean | null;
@@ -24,7 +24,7 @@ export function calculatePrizePool({
   displayThreshold?: number | null;
 }): PrizePoolSummary {
   const safePaidParticipants = Math.max(0, Math.floor(Number(paidParticipants) || 0));
-  const safePerParticipant = Math.max(0, Math.floor(Number(perPaidParticipant) || 100));
+  const safePerParticipant = Math.max(0, Math.floor(Number(perPaidParticipant) || 9999));
   const safeThreshold = Math.max(0, Math.floor(Number(displayThreshold) || 0));
   const amount = enabled === false ? 0 : safePaidParticipants * safePerParticipant;
 
@@ -48,10 +48,19 @@ export function getPrizeDistribution(amount: number) {
   return { first, second, third };
 }
 
-export function formatInr(amount: number) {
-  return `INR ${Math.max(0, Math.floor(Number(amount) || 0)).toLocaleString("en-IN")}`;
+export function formatInr(amountPaise: number) {
+  return `INR ${formatPaiseAsRupees(amountPaise).replace("₹", "")}`;
 }
 
-export function formatPrizePoolBadge(amount: number) {
-  return `Current Prize Pool: ₹${Math.max(0, Math.floor(Number(amount) || 0)).toLocaleString("en-IN")}`;
+export function formatPrizePoolBadge(amountPaise: number) {
+  return `Current Prize Pool: ${formatPaiseAsRupees(amountPaise)}`;
+}
+
+export function formatPaiseAsRupees(amountPaise: number) {
+  const amount = Math.max(0, Math.floor(Number(amountPaise) || 0));
+  const hasPaise = amount % 100 !== 0;
+  return `₹${(amount / 100).toLocaleString("en-IN", {
+    minimumFractionDigits: hasPaise ? 2 : 0,
+    maximumFractionDigits: hasPaise ? 2 : 0
+  })}`;
 }

@@ -1,4 +1,4 @@
-import { getLaunchCompetitionDefault } from "@/lib/competition-defaults";
+import { normalizeCompetitionPricing } from "@/lib/competition-pricing";
 import { isSeatConfirmed } from "@/lib/payment/status";
 
 export type PaymentAmountInput = {
@@ -9,7 +9,12 @@ export type PaymentAmountInput = {
     payment_status?: string | null;
   } | null;
   competition?: {
+    fee_amount_paise?: number | null;
     fee_amount?: number | null;
+    entry_fee_label?: string | null;
+    fee_label?: string | null;
+    prize_pool_contribution_paise?: number | null;
+    public_offer_label?: string | null;
   } | null;
   competitionSlug?: string | null;
 };
@@ -17,7 +22,7 @@ export type PaymentAmountInput = {
 export type ResolvedPaymentAmount = {
   amountPaise: number;
   currency: "INR";
-  source: "registration_payment_amount" | "registration_amount_due" | "competition_fee_amount" | "launch_fallback";
+  source: "registration_payment_amount" | "registration_amount_due" | "competition_fee_amount";
   usedLaunchFallback: boolean;
   shouldRepairRegistration: boolean;
   repairReason: string | null;
@@ -27,21 +32,19 @@ const maxReasonableAmountPaise = 10000000;
 
 export function resolvePayableAmountPaise({ registration, competition, competitionSlug }: PaymentAmountInput): ResolvedPaymentAmount {
   const slug = String(competitionSlug || "").trim();
-  const launchDefault = getLaunchCompetitionDefault(slug);
-
-  if (launchDefault?.feeAmount && isValidAmountForCompetition(launchDefault.feeAmount, slug)) {
+  if (competition) {
+    const pricing = normalizeCompetitionPricing(competition, slug);
     return buildResult({
-      amountPaise: launchDefault.feeAmount,
-      source: "launch_fallback",
-      usedLaunchFallback: true,
+      amountPaise: isValidAmountForCompetition(pricing.feeAmountPaise, slug) ? pricing.feeAmountPaise : 0,
+      source: "competition_fee_amount",
+      usedLaunchFallback: false,
       registration
     });
   }
 
   const candidates = [
     { source: "registration_payment_amount" as const, value: registration?.payment_amount },
-    { source: "registration_amount_due" as const, value: registration?.amount_due },
-    { source: "competition_fee_amount" as const, value: competition?.fee_amount }
+    { source: "registration_amount_due" as const, value: registration?.amount_due }
   ];
 
   for (const candidate of candidates) {
@@ -58,8 +61,8 @@ export function resolvePayableAmountPaise({ registration, competition, competiti
 
   return buildResult({
     amountPaise: 0,
-    source: "launch_fallback",
-    usedLaunchFallback: true,
+    source: "competition_fee_amount",
+    usedLaunchFallback: false,
     registration
   });
 }
@@ -131,11 +134,7 @@ function formatRupeeAmount(amountPaise: number) {
   });
 }
 
-function isValidAmountForCompetition(amountPaise: number, slug: string) {
-  if (!Number.isInteger(amountPaise) || amountPaise <= 0 || amountPaise > maxReasonableAmountPaise) return false;
-
-  const launchDefault = getLaunchCompetitionDefault(slug);
-  if (!launchDefault) return true;
-
-  return amountPaise === launchDefault.feeAmount;
+function isValidAmountForCompetition(amountPaise: number, _slug: string) {
+  if (!Number.isInteger(amountPaise) || amountPaise < 100 || amountPaise > maxReasonableAmountPaise) return false;
+  return true;
 }

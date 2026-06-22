@@ -22,6 +22,10 @@ const emptyForm = {
   max_participants: 50,
   fee_label: "",
   fee_amount: 0,
+  fee_amount_paise: 9999,
+  entry_fee_label: "₹99.99",
+  prize_pool_contribution_paise: 9999,
+  public_offer_label: "Founder's Discount",
   summary: "",
   description: "",
   image_url: "",
@@ -63,6 +67,10 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
       max_participants: competition.max_participants || 50,
       fee_label: competition.fee_label,
       fee_amount: competition.fee_amount,
+      fee_amount_paise: competition.fee_amount_paise ?? competition.fee_amount ?? 9999,
+      entry_fee_label: competition.entry_fee_label || competition.fee_label || "",
+      prize_pool_contribution_paise: competition.prize_pool_contribution_paise ?? competition.fee_amount_paise ?? competition.fee_amount ?? 9999,
+      public_offer_label: competition.public_offer_label || "",
       summary: competition.summary,
       description: competition.description,
       image_url: competition.image_url || "",
@@ -209,8 +217,10 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
             <Input placeholder="Timezone, e.g. IST" value={form.timezone} onChange={(event) => setForm({ ...form, timezone: event.target.value })} />
             <Input placeholder="Registration Deadline" value={form.registration_deadline} onChange={(event) => setForm({ ...form, registration_deadline: event.target.value })} />
             <Input placeholder="Maximum Participants" type="number" value={form.max_participants} onChange={(event) => setForm({ ...form, max_participants: Number(event.target.value) })} />
-            <Input placeholder="Entry Fee Label, e.g. INR 499" value={form.fee_label} onChange={(event) => setForm({ ...form, fee_label: event.target.value })} />
-            <Input placeholder="Fee Amount in Paise" type="number" value={form.fee_amount} onChange={(event) => setForm({ ...form, fee_amount: Number(event.target.value) })} />
+            <Input placeholder="Entry Fee Amount in Paise" type="number" min={100} value={form.fee_amount_paise} onChange={(event) => setForm({ ...form, fee_amount_paise: Number(event.target.value), fee_amount: Number(event.target.value) })} />
+            <Input placeholder="Entry Fee Label, e.g. ₹99.99" value={form.entry_fee_label} onChange={(event) => setForm({ ...form, entry_fee_label: event.target.value, fee_label: event.target.value })} />
+            <Input placeholder="Prize Pool Contribution in Paise" type="number" min={0} value={form.prize_pool_contribution_paise} onChange={(event) => setForm({ ...form, prize_pool_contribution_paise: Number(event.target.value) })} />
+            <Input placeholder="Public Offer Label, e.g. Founder’s Discount" value={form.public_offer_label} onChange={(event) => setForm({ ...form, public_offer_label: event.target.value })} />
             <label className="grid gap-2 text-sm font-bold text-white/70">
               Visibility
             <select className="focus-ring min-h-12 rounded-[8px] border border-white/15 bg-[#071b3b] px-4 text-sm text-white" value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
@@ -254,9 +264,9 @@ export function CompetitionManager({ initialCompetitions }: { initialCompetition
                   <span className="rounded-full border border-[#d4af37]/30 px-3 py-1 text-xs font-bold uppercase text-[#d4af37]">{formatStatus(competition.status)}</span>
                 </div>
                 <p className="mt-2 text-sm text-white/58">{competition.category} | {competition.age_group} | {competition.event_date} {competition.event_time || ""} {competition.timezone || "IST"} | Maximum Participants: {competition.max_participants || 50}</p>
-                <p className="mt-1 text-sm font-bold text-[#d4af37]">{competition.fee_label} | Cash Prize Details Included</p>
+                <p className="mt-1 text-sm font-bold text-[#d4af37]">{competition.public_offer_label || "Offer"} | Entry Fee: {competition.entry_fee_label || competition.fee_label} | Cash Prize Details Included</p>
                 <p className="mt-1 text-sm text-white/58">
-                  Verified Paid Participants: {competition.verified_paid_participants || 0} | Calculated Prize Pool: {formatInr(competition.calculated_prize_pool?.amount || 0)}
+                  Verified Paid Participants: {competition.verified_paid_participants || 0} | Contribution Per Paid Entry: {formatInr(competition.prize_pool_contribution_paise || 0)} | Calculated Prize Pool: {formatInr(competition.calculated_prize_pool?.amount || 0)}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-white/65">{competition.summary}</p>
                 <div className="mt-4 flex flex-wrap gap-2">

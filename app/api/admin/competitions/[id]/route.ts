@@ -38,6 +38,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     return NextResponse.json({ competition: data }, { headers: adminNoStoreHeaders });
   } catch (error) {
+    if (error instanceof Error && /Entry Fee|Prize Pool Contribution/.test(error.message)) {
+      return NextResponse.json({ error: error.message }, { status: 400, headers: adminNoStoreHeaders });
+    }
+
     console.error(`[LockInTalks admin competitions] Unexpected PUT error for ${id}:`, error);
     return NextResponse.json({ error: "Could not update competition." }, { status: 500, headers: adminNoStoreHeaders });
   }

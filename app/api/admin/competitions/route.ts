@@ -62,6 +62,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ competition: data }, { status: 201, headers: adminNoStoreHeaders });
   } catch (error) {
+    if (error instanceof Error && /Entry Fee|Prize Pool Contribution/.test(error.message)) {
+      return NextResponse.json({ error: error.message }, { status: 400, headers: adminNoStoreHeaders });
+    }
+
     console.error("[LockInTalks admin competitions] Unexpected POST error:", error);
     return NextResponse.json({ error: "Could not create competition." }, { status: 500, headers: adminNoStoreHeaders });
   }

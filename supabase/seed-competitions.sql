@@ -14,6 +14,10 @@ insert into public.competitions (
   max_participants,
   fee_label,
   fee_amount,
+  fee_amount_paise,
+  entry_fee_label,
+  prize_pool_contribution_paise,
+  public_offer_label,
   summary,
   description,
   status,
@@ -28,14 +32,18 @@ values
   'story-talks',
   'Story Talks',
   'Storytelling',
-  'Ages 5-12',
+  'Ages 6-12',
   '14 June 2026',
   '11:00 AM',
   'IST',
   '6 June 2026, 10:00 AM IST',
   777,
-  'INR 199.99',
-  19999,
+  '₹99.99',
+  9999,
+  9999,
+  '₹99.99',
+  9999,
+  'Founder''s Discount',
   'A beginner-friendly storytelling competition where young speakers build expression, structure, and confidence.',
   'Story Talks is an online storytelling competition where kids bring stories to life with imagination, expression, voice, and confidence. Participants may tell an original story or perform an existing story with proper credit.',
   'live',
@@ -54,16 +62,16 @@ values
     'Results will be announced after judging is complete.'
   ],
   array[
-    'The prize pool increases by INR 500 for every 5 verified contestants.',
+    'More participants = bigger prize pool.',
+    '100% of entry fees go into the prize pool for this launch batch.',
     'Prizes may be given as cash or Amazon gift cards.',
     '1st Place: 45% of the total prize pool.',
     '2nd Place: 30% of the total prize pool.',
     '3rd Place: 25% of the total prize pool.',
-    'All participants get precise and valuable feedback and participation certificates.',
-    'That is why more people means more fun, more prizes, and more stakes.'
+    'All participants may receive precise feedback and participation certificates after the event.'
   ],
   array['Confidence', 'Clarity', 'Creativity', 'Story Structure', 'Expression', 'Time Management'],
-  array['Arti Sharma']
+  array['To Be Announced']
 ),
 (
   'idol-talk',
@@ -75,8 +83,12 @@ values
   'IST',
   '6 June 2026, 12:00 PM IST',
   777,
-  'INR 199.99',
-  19999,
+  '₹99.99',
+  9999,
+  9999,
+  '₹99.99',
+  9999,
+  'Founder''s Discount',
   'An inspirational speaking event where participants talk about someone who motivates their mindset and growth.',
   'Idol Talk is an online speaking competition where participants explain how a sportsperson, creator, fictional character, public figure, or real-life role model inspires their discipline, confidence, and goals.',
   'live',
@@ -95,16 +107,16 @@ values
     'Results will be announced after judging is complete.'
   ],
   array[
-    'The prize pool increases by INR 500 for every 5 verified contestants.',
+    'More participants = bigger prize pool.',
+    '100% of entry fees go into the prize pool for this launch batch.',
     'Prizes may be given as cash or Amazon gift cards.',
     '1st Place: 45% of the total prize pool.',
     '2nd Place: 30% of the total prize pool.',
     '3rd Place: 25% of the total prize pool.',
-    'All participants get precise and valuable feedback and participation certificates.',
-    'That is why more people means more fun, more prizes, and more stakes.'
+    'All participants may receive precise feedback and participation certificates after the event.'
   ],
   array['Confidence', 'Clarity', 'Personal Connection', 'Speech Structure', 'Voice Modulation', 'Time Management'],
-  array['Arti Sharma']
+  array['To Be Announced']
 ),
 (
   'power-talk',
@@ -116,8 +128,12 @@ values
   'IST',
   '6 June 2026, 3:00 PM IST',
   777,
-  'INR 199.99',
-  19999,
+  '₹99.99',
+  9999,
+  9999,
+  '₹99.99',
+  9999,
+  'Founder''s Discount',
   'A motivational speaking competition for students who want to share strong ideas with confidence and purpose.',
   'Power Talk is an online motivational speaking competition where participants speak about dreams, discipline, confidence, pressure, leadership, student life, sports mindset, or never giving up.',
   'live',
@@ -136,16 +152,16 @@ values
     'Results will be announced after judging is complete.'
   ],
   array[
-    'The prize pool increases by INR 500 for every 5 verified contestants.',
+    'More participants = bigger prize pool.',
+    '100% of entry fees go into the prize pool for this launch batch.',
     'Prizes may be given as cash or Amazon gift cards.',
     '1st Place: 45% of the total prize pool.',
     '2nd Place: 30% of the total prize pool.',
     '3rd Place: 25% of the total prize pool.',
-    'All participants get precise and valuable feedback and participation certificates.',
-    'That is why more people means more fun, more prizes, and more stakes.'
+    'All participants may receive precise feedback and participation certificates after the event.'
   ],
   array['Confidence', 'Motivational Impact', 'Clarity', 'Speech Structure', 'Audience Connection', 'Time Management'],
-  array['Arti Sharma']
+  array['To Be Announced']
 )
 on conflict (slug) do update set
   name = excluded.name,
@@ -158,6 +174,10 @@ on conflict (slug) do update set
   max_participants = excluded.max_participants,
   fee_label = excluded.fee_label,
   fee_amount = excluded.fee_amount,
+  fee_amount_paise = excluded.fee_amount_paise,
+  entry_fee_label = excluded.entry_fee_label,
+  prize_pool_contribution_paise = excluded.prize_pool_contribution_paise,
+  public_offer_label = excluded.public_offer_label,
   summary = excluded.summary,
   description = excluded.description,
   status = excluded.status,

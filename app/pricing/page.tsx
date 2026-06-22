@@ -35,7 +35,7 @@ export default async function PricingPage() {
           <h2 className="text-2xl font-black">How Fees Work</h2>
           <ul className="mt-4 grid gap-3 text-sm leading-7 text-white/65">
             <li>Each competition has its own entry fee shown on the competition card and details page.</li>
-            <li>A common beta entry fee example is INR 199.99 where applicable, but the actual fee may vary by competition.</li>
+            <li>Launch competitions can use a public offer label such as Founder&apos;s Discount, controlled from the admin panel.</li>
             <li>Taxes, gateway charges, or other applicable charges should be shown before payment if they apply.</li>
             <li>Razorpay may show the final payable INR amount during Checkout before payment is completed.</li>
             <li>No physical shipping fee is charged for standard online competition registrations.</li>
@@ -45,7 +45,9 @@ export default async function PricingPage() {
         <Card>
           <h2 className="text-2xl font-black">Prize Pool and Rewards</h2>
           <ul className="mt-4 grid gap-3 text-sm leading-7 text-white/65">
-            <li>The prize pool may increase by INR 500 for every 5 verified contestants where prize pool logic is enabled.</li>
+            <li>Prize pool contribution is configured per competition by admin.</li>
+            <li>If the contribution equals the entry fee, 100% of entry fees go into the prize pool for that launch batch.</li>
+            <li>If the contribution is lower than the entry fee, the competition page shows how much from every verified entry goes into the prize pool.</li>
             <li>Prize pool calculations count only verified successful paid registrations.</li>
             <li>Failed, cancelled, pending, refunded, or unverified payments do not count toward prize pool calculations.</li>
             <li>Where enabled, prize distribution is 1st Place: 45%, 2nd Place: 30%, and 3rd Place: 25%.</li>
@@ -67,7 +69,8 @@ export default async function PricingPage() {
                     <span className="font-bold text-white">{competition.name}</span>
                     <span className="text-sm font-black text-[#f7dc83]">{competition.fee}</span>
                   </div>
-                  <p className="mt-1 text-xs text-white/50">{competition.ageGroup} | {competition.date} | {competition.time} {competition.timezone}</p>
+                  <p className="mt-1 text-xs text-white/50">{competition.publicOfferLabel} | {competition.ageGroup} | {competition.date} | {competition.time} {competition.timezone}</p>
+                  <p className="mt-2 text-xs text-white/45">{competition.prizePoolContributionCopy}</p>
                 </Link>
               ))}
             </div>

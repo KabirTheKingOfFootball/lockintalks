@@ -2,6 +2,7 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getLaunchCompetitionDefault } from "@/lib/competition-defaults";
+import { buildPrizePoolContributionCopy, normalizeCompetitionPricing } from "@/lib/competition-pricing";
 import { calculatePrizePool, type PrizePoolSummary } from "@/lib/rewards/prize-pool";
 
 export type CompetitionStatus = "draft" | "live" | "closed";
@@ -19,6 +20,10 @@ export type CompetitionRecord = {
   max_participants: number | null;
   fee_label: string;
   fee_amount: number;
+  fee_amount_paise?: number | null;
+  entry_fee_label?: string | null;
+  prize_pool_contribution_paise?: number | null;
+  public_offer_label?: string | null;
   summary: string;
   description: string;
   image_url: string | null;
@@ -45,6 +50,9 @@ export type PublicCompetition = {
   registrationDeadline: string | null;
   fee: string;
   feeAmount: number;
+  prizePoolContributionPaise: number;
+  prizePoolContributionCopy: string;
+  publicOfferLabel: string;
   prizePool: PrizePoolSummary;
   status: CompetitionStatus;
   slotsRemaining: number;
@@ -138,18 +146,26 @@ export function mapCompetitionRecord(record: CompetitionRecord, paidParticipants
   const dateIso = getDateIso(record.event_date, record.event_time || "");
   const accent = accents[Math.abs(hashString(record.slug)) % accents.length];
   const launchDefault = getLaunchCompetitionDefault(record.slug);
-  const rawFeeLabel = String(record.fee_label || "").trim();
-  const parsedFeeAmount = Number(record.fee_amount);
-  const rawFeeAmount = Number.isFinite(parsedFeeAmount) ? parsedFeeAmount : 0;
-  const usesLaunchFeeDefault = Boolean(launchDefault);
-  const feeAmount = usesLaunchFeeDefault ? launchDefault?.feeAmount || 0 : rawFeeAmount;
-  const feeLabel = usesLaunchFeeDefault ? launchDefault?.feeLabel || formatFeeLabel(feeAmount) : rawFeeLabel || formatFeeLabel(feeAmount);
+  const pricing = normalizeCompetitionPricing(
+    {
+      fee_amount_paise: record.fee_amount_paise ?? launchDefault?.feeAmount,
+      entry_fee_label: record.entry_fee_label ?? launchDefault?.feeLabel,
+      prize_pool_contribution_paise: record.prize_pool_contribution_paise ?? launchDefault?.prizePoolContributionPaise,
+      public_offer_label: record.public_offer_label ?? launchDefault?.publicOfferLabel,
+      fee_amount: record.fee_amount,
+      fee_label: record.fee_label
+    },
+    record.slug
+  );
+  const feeAmount = pricing.feeAmountPaise;
+  const feeLabel = pricing.entryFeeLabel;
   const parsedMaxParticipants = Number(record.max_participants);
   const rawMaxParticipants = Number.isFinite(parsedMaxParticipants) ? parsedMaxParticipants : 0;
-  const maxParticipants = usesLaunchFeeDefault && rawMaxParticipants <= 50 ? launchDefault?.maxParticipants || 50 : Number(record.max_participants || launchDefault?.maxParticipants || 50);
+  const maxParticipants = launchDefault && rawMaxParticipants <= 50 ? launchDefault.maxParticipants : Number(record.max_participants || launchDefault?.maxParticipants || 50);
   const slotsRemaining = Math.max(0, maxParticipants - paidParticipants);
   const prizePool = calculatePrizePool({
-    paidParticipants
+    paidParticipants,
+    perPaidParticipant: pricing.prizePoolContributionPaise
   });
 
   return {
@@ -165,6 +181,9 @@ export function mapCompetitionRecord(record: CompetitionRecord, paidParticipants
     registrationDeadline: record.registration_deadline || null,
     fee: feeLabel,
     feeAmount,
+    prizePoolContributionPaise: pricing.prizePoolContributionPaise,
+    prizePoolContributionCopy: buildPrizePoolContributionCopy(pricing),
+    publicOfferLabel: pricing.publicOfferLabel,
     prizePool,
     status: record.status,
     slotsRemaining,
@@ -183,16 +202,6 @@ export function mapCompetitionRecord(record: CompetitionRecord, paidParticipants
   };
 }
 
-function formatFeeLabel(feeAmountPaise: number) {
-  const amount = Math.max(0, Math.floor(Number(feeAmountPaise) || 0));
-  if (!amount) return "Fee To Be Announced";
-  const hasPaise = amount % 100 !== 0;
-  return `INR ${(amount / 100).toLocaleString("en-IN", {
-    minimumFractionDigits: hasPaise ? 2 : 0,
-    maximumFractionDigits: hasPaise ? 2 : 0
-  })}`;
-}
-
 function cleanTextItems(items: string[]) {
   return dedupe(items.map((item) => String(item || "").replace(/\s+/g, " ").trim()).filter(Boolean));
 }
@@ -208,7 +217,7 @@ function cleanPrizeItems(items: string[]) {
     .filter((item) => !hiddenPointsPrizePattern.test(item))
     .map((item) => {
       if (/prize pool.*INR\s*500.*5.*participants/i.test(item)) {
-        return "The prize pool increases by INR 500 for every 5 verified contestants.";
+        return "More participants = bigger prize pool.";
       }
 
       if (/all participants.*feedback|participation certificate|everyone get/i.test(item)) {

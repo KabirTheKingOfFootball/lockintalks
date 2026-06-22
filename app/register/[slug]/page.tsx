@@ -56,6 +56,15 @@ export default async function RegisterPage({
     <MotionShell className="relative overflow-hidden px-4 py-14 sm:px-6 lg:px-8">
       <PosterBackdrop compact />
       <div className="relative z-10 mx-auto max-w-4xl">
+        <Card className="mb-6">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#d4af37]">{competition.publicOfferLabel}</p>
+          <h1 className="mt-2 text-3xl font-black">{competition.name}</h1>
+          <div className="mt-4 grid gap-2 text-sm leading-6 text-white/68 sm:grid-cols-2">
+            <p><span className="font-bold text-white">Entry Fee:</span> {competition.fee}</p>
+            <p><span className="font-bold text-white">Prize Pool:</span> More participants = bigger prize pool</p>
+          </div>
+          <p className="mt-3 text-xs leading-5 text-white/50">{competition.prizePoolContributionCopy}</p>
+        </Card>
         <RegisterForm competition={competition} debug={debugEnabled} authenticated={isLoggedIn} />
       </div>
     </MotionShell>

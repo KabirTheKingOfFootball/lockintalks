@@ -7,7 +7,7 @@ import { MotionShell } from "@/components/motion-shell";
 import { Countdown } from "@/components/countdown";
 import { PosterBackdrop, PrizePoolPill } from "@/components/brand-visuals";
 import { getLiveCompetitions } from "@/lib/competitions";
-import { formatInr, formatPrizePoolBadge } from "@/lib/rewards/prize-pool";
+import { formatPrizePoolBadge } from "@/lib/rewards/prize-pool";
 
 export const metadata: Metadata = {
   title: "Competitions",
@@ -62,23 +62,23 @@ export default async function CompetitionsPage() {
             </div>
             <div className="p-6">
               <h2 className="text-2xl font-black">{competition.name}</h2>
+              <p className="mt-2 text-xs font-black uppercase tracking-[0.18em] text-[#d4af37]">{competition.publicOfferLabel}</p>
               <p className="mt-3 text-sm leading-6 text-white/62">{competition.summary}</p>
               <div className="mt-5 grid gap-3 text-sm text-white/68">
                 <span className="flex items-center gap-2"><Users size={16} className="text-[#d4af37]" /> {competition.ageGroup}</span>
                 <span className="flex items-center gap-2"><CalendarDays size={16} className="text-[#d4af37]" /> {competition.date} | {competition.time} {competition.timezone}</span>
-                <span className="flex items-center gap-2"><Wallet size={16} className="text-[#d4af37]" /> Entry Fee {competition.fee}</span>
+                <span className="flex items-center gap-2"><Wallet size={16} className="text-[#d4af37]" /> Entry Fee: {competition.fee}</span>
                 <span className="flex items-center gap-2"><Clock3 size={16} className="text-[#d4af37]" /> Slots Remaining: {competition.slotsRemaining} / {competition.maxParticipants}</span>
                 <span className="flex items-center gap-2"><Trophy size={16} className="text-[#d4af37]" /> Every Competition Includes Cash Prizes</span>
+                <span className="flex items-center gap-2"><Trophy size={16} className="text-[#d4af37]" /> More participants = bigger prize pool</span>
               </div>
+              <p className="mt-3 text-xs leading-5 text-white/45">
+                {competition.prizePoolContributionCopy}
+              </p>
               {competition.prizePool.showBadge && (
-                <>
-                  <PrizePoolPill className="mt-5 px-3 py-3 text-sm font-black uppercase tracking-[0.12em]">
-                    {formatPrizePoolBadge(competition.prizePool.amount)}
-                  </PrizePoolPill>
-                  <p className="mt-3 text-xs leading-5 text-white/45">
-                    The prize pool increases by {formatInr(competition.prizePool.perPaidParticipant * 5)} for every 5 verified contestants.
-                  </p>
-                </>
+                <PrizePoolPill className="mt-5 px-3 py-3 text-sm font-black uppercase tracking-[0.12em]">
+                  {formatPrizePoolBadge(competition.prizePool.amount)}
+                </PrizePoolPill>
               )}
               <div className="mt-5"><Countdown targetIso={competition.dateIso} /></div>
               <ButtonLink href={`/competitions/${competition.slug}`} className="mt-6 w-full">View Details</ButtonLink>

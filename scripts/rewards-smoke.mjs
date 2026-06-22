@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 
 import { readFileSync } from "node:fs";
 import Module from "node:module";
@@ -9,6 +9,7 @@ const checkout = loadTsModule("lib/rewards/checkout.ts");
 const feature = loadTsModule("lib/rewards/feature.ts");
 const levels = loadTsModule("lib/rewards/levels.ts");
 const prizePool = loadTsModule("lib/rewards/prize-pool.ts");
+const competitionPricing = loadTsModule("lib/competition-pricing.ts");
 const paymentStatus = loadTsModule("lib/payment/status.ts");
 const pointsSource = readFileSync("lib/rewards/points.ts", "utf8");
 
@@ -19,19 +20,19 @@ expectMatch(pointsSource, /second:\s*47/, "Internal second-place reward constant
 expectMatch(pointsSource, /third:\s*27/, "Internal third-place reward constant is preserved for future use.");
 
 const storyTalksCheckout = checkout.calculateLockInPointCheckout({
-  feeAmountPaise: 19999,
-  requestedPoints: 999,
+  feeAmountPaise: 9999,
+  requestedPoints: 499,
   availablePoints: 999
 });
 
-expectEqual(storyTalksCheckout.maxUsablePoints, 99, "Internal checkout math caps points at 99 for INR 199.99.");
-expectEqual(storyTalksCheckout.appliedPoints, 99, "Checkout applies no more than 50% of entry fee.");
-expectEqual(storyTalksCheckout.discountAmountPaise, 9900, "99 points creates INR 99 discount.");
-expectEqual(storyTalksCheckout.payableAmountPaise, 10099, "Final payable amount never goes negative.");
+expectEqual(storyTalksCheckout.maxUsablePoints, 49, "Internal checkout math caps points at 49 for INR 99.99.");
+expectEqual(storyTalksCheckout.appliedPoints, 49, "Checkout applies no more than roughly 50% of entry fee.");
+expectEqual(storyTalksCheckout.discountAmountPaise, 4900, "49 points creates INR 49 discount.");
+expectEqual(storyTalksCheckout.payableAmountPaise, 5099, "Final payable amount never goes negative.");
 
 const limitedBalanceCheckout = checkout.calculateLockInPointCheckout({
-  feeAmountPaise: 19999,
-  requestedPoints: 99,
+  feeAmountPaise: 9999,
+  requestedPoints: 49,
   availablePoints: 7
 });
 
@@ -39,27 +40,28 @@ expectEqual(limitedBalanceCheckout.appliedPoints, 7, "Checkout cannot apply more
 
 expectEqual(prizePool.calculatePrizePool({ paidParticipants: 0 }).amount, 0, "Zero verified contestants creates INR 0 prize pool.");
 expectEqual(prizePool.calculatePrizePool({ paidParticipants: 0 }).showBadge, false, "Zero verified contestants hides the public prize pool badge.");
-expectEqual(prizePool.calculatePrizePool({ paidParticipants: 1 }).amount, 100, "One verified contestant creates INR 100 prize pool.");
+expectEqual(prizePool.calculatePrizePool({ paidParticipants: 1 }).amount, 9999, "One verified contestant contributes 9999 paise to the prize pool.");
 expectEqual(prizePool.calculatePrizePool({ paidParticipants: 1 }).showBadge, true, "One verified contestant shows the public prize pool badge.");
-expectEqual(prizePool.calculatePrizePool({ paidParticipants: 4 }).amount, 400, "Four verified contestants creates INR 400 prize pool.");
-expectEqual(prizePool.calculatePrizePool({ paidParticipants: 5 }).amount, 500, "Five verified contestants creates INR 500 prize pool.");
-expectEqual(prizePool.calculatePrizePool({ paidParticipants: 9 }).amount, 900, "Nine verified contestants creates INR 900 prize pool.");
-expectEqual(prizePool.calculatePrizePool({ paidParticipants: 10 }).amount, 1000, "Ten verified contestants creates INR 1,000 prize pool.");
+expectEqual(prizePool.calculatePrizePool({ paidParticipants: 5 }).amount, 49995, "Five verified contestants creates INR 499.95 prize pool with 9999 paise contribution.");
+expectEqual(prizePool.calculatePrizePool({ paidParticipants: 10 }).amount, 99990, "Ten verified contestants creates INR 999.90 prize pool with 9999 paise contribution.");
 
-const belowThreshold = prizePool.calculatePrizePool({ paidParticipants: 9, perPaidParticipant: 100, displayThreshold: 1000 });
-expectEqual(belowThreshold.amount, 900, "Prize pool increases by INR 100 for each verified paid participant.");
+const lowerContribution = prizePool.calculatePrizePool({ paidParticipants: 1, perPaidParticipant: 5000 });
+expectEqual(lowerContribution.amount, 5000, "Prize pool can use an admin-configured INR 50 contribution.");
+expectEqual(competitionPricing.buildPrizePoolContributionCopy({ feeAmountPaise: 9999, prizePoolContributionPaise: 9999 }), "100% of entry fees go into the prize pool for this launch batch.", "Equal contribution shows 100% launch-batch wording.");
+expectEqual(competitionPricing.buildPrizePoolContributionCopy({ feeAmountPaise: 9999, prizePoolContributionPaise: 5000 }), "₹50 from every verified entry goes into the prize pool.", "Lower contribution shows exact rupee amount from each entry.");
+
+const belowThreshold = prizePool.calculatePrizePool({ paidParticipants: 9, perPaidParticipant: 9999, displayThreshold: 100000 });
+expectEqual(belowThreshold.amount, 89991, "Prize pool increases by the configured paise amount for each verified paid participant.");
 expectEqual(belowThreshold.showBadge, true, "Prize pool badge stays visible for any amount above INR 0.");
 
-const atThreshold = prizePool.calculatePrizePool({ paidParticipants: 10, perPaidParticipant: 100, displayThreshold: 1000 });
-expectEqual(atThreshold.amount, 1000, "Prize pool reaches INR 1,000 at 10 paid participants.");
-expectEqual(atThreshold.showBadge, true, "Prize pool badge appears at INR 1,000 or above.");
-expectEqual(atThreshold.distribution.first, 450, "1st place receives 45% of prize pool.");
-expectEqual(atThreshold.distribution.second, 300, "2nd place receives 30% of prize pool.");
-expectEqual(atThreshold.distribution.third, 250, "3rd place receives remaining 25% of prize pool.");
-expectEqual(prizePool.formatPrizePoolBadge(100), "Current Prize Pool: ₹100", "Prize pool badge shows INR 100 exactly.");
-expectEqual(prizePool.formatPrizePoolBadge(500), "Current Prize Pool: ₹500", "Prize pool badge shows INR 500 exactly.");
-expectEqual(prizePool.formatPrizePoolBadge(1000), "Current Prize Pool: ₹1,000", "Prize pool badge shows an exact INR amount without fake plus signs.");
-
+const atThreshold = prizePool.calculatePrizePool({ paidParticipants: 10, perPaidParticipant: 9999, displayThreshold: 100000 });
+expectEqual(atThreshold.showBadge, true, "Prize pool badge appears for any positive prize pool.");
+expectEqual(atThreshold.distribution.first, 44995, "1st place receives 45% of prize pool.");
+expectEqual(atThreshold.distribution.second, 29997, "2nd place receives 30% of prize pool.");
+expectEqual(atThreshold.distribution.third, 24998, "3rd place receives remaining 25% of prize pool.");
+expectEqual(prizePool.formatPrizePoolBadge(9999), "Current Prize Pool: ₹99.99", "Prize pool badge shows INR 99.99 exactly.");
+expectEqual(prizePool.formatPrizePoolBadge(49995), "Current Prize Pool: ₹499.95", "Prize pool badge shows exact paise-based amounts.");
+expectEqual(prizePool.formatPrizePoolBadge(99990), "Current Prize Pool: ₹999.90", "Prize pool badge shows an exact amount without fake plus signs.");
 expectEqual(paymentStatus.isSeatConfirmed("captured"), true, "Captured payments count as verified.");
 expectEqual(paymentStatus.isSeatConfirmed("paid"), true, "Paid payments count as verified.");
 expectEqual(paymentStatus.isSeatConfirmed("pending"), false, "Pending payments do not count as verified.");

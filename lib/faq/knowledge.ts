@@ -228,7 +228,7 @@ export const faqCorpus: FAQAnswer[] = [
     aliases: ["prize pool", "live prize pool", "how prize pool works", "500 every 5", "verified contestants"],
     keywords: ["prize", "pool", "live", "500", "5", "participants", "verified", "paid", "cash", "amazon", "gift", "cards"],
     answer:
-      "Where prize pool logic is enabled, the prize pool should count only verified successful paid registrations. Failed, cancelled, refunded, pending, or unverified payments should not increase the prize pool.\n\nFor the current launch format, public copy may explain that the prize pool increases by INR 500 for every 5 verified contestants. Final prize details should always be checked on the live competition page.",
+      "Where prize pool logic is enabled, the prize pool should count only verified successful paid registrations. Failed, cancelled, refunded, pending, or unverified payments should not increase the prize pool.\n\nFor the current launch format, each competition can have its own admin-configured entry fee and prize pool contribution. Public pages should explain that more verified participants can create a bigger prize pool, and final prize details should always be checked on the live competition page.",
     followUps: ["Do competitions have cash prizes?", "How are winners chosen?", "How do payments work?"]
   },
   {

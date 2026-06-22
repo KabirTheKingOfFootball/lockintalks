@@ -162,7 +162,10 @@ export default async function HomePage() {
                   </div>
                 </div>
                 <h3 className="text-lg font-black">{competition.name}</h3>
-                <p className="mt-2 text-sm text-white/58">{competition.ageGroup} | {competition.fee} | Cash Prizes</p>
+                <p className="mt-2 text-xs font-black uppercase tracking-[0.16em] text-[#d4af37]">{competition.publicOfferLabel}</p>
+                <p className="mt-2 text-sm text-white/58">{competition.ageGroup} | Entry Fee: {competition.fee} | Cash Prizes</p>
+                <p className="mt-2 text-xs leading-5 text-white/50">More participants = bigger prize pool</p>
+                <p className="mt-1 text-xs leading-5 text-white/45">{competition.prizePoolContributionCopy}</p>
                 {competition.prizePool.showBadge && (
                   <PrizePoolPill className="mt-3 px-3 py-2 text-xs font-black uppercase tracking-[0.12em]">
                     {formatPrizePoolBadge(competition.prizePool.amount)}
