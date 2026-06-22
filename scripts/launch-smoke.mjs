@@ -18,6 +18,7 @@ const paymentStatus = require(path.resolve("lib/payment/status.ts"));
 const faqKnowledge = require(path.resolve("lib/faq/knowledge.ts"));
 const faqEssay = require(path.resolve("lib/faq/essay-loader.ts"));
 const rewardsFeature = require(path.resolve("lib/rewards/feature.ts"));
+const competitionsModule = require(path.resolve("lib/competitions.ts"));
 
 expectEqual(rewardsFeature.areLockInPointsEnabled(), false, "LockIn Points are disabled by default for launch.");
 
@@ -38,6 +39,39 @@ expectEqual(prizePool.calculatePrizePool({ paidParticipants: 1 }).showBadge, tru
 expectEqual(prizePool.calculatePrizePool({ paidParticipants: 1, perPaidParticipant: 5000 }).amount, 5000, "Admin-configured INR 50 contribution is used for prize pool math.");
 expectEqual(prizePool.formatPrizePoolBadge(9999), "Current Prize Pool: ₹99.99", "Prize pool display shows INR 99.99 exactly.");
 expectEqual(prizePool.formatPrizePoolBadge(99990), "Current Prize Pool: ₹999.90", "Prize pool display does not use old INR 1,000 threshold logic.");
+const launchCompetitionWithAdminSlots = competitionsModule.mapCompetitionRecord(
+  {
+    id: "slot-smoke",
+    slug: "idol-talk",
+    name: "Idol Talk",
+    category: "Inspirational Speaking",
+    age_group: "Ages 9-16",
+    event_date: "2026-07-15",
+    event_time: "11:00 AM",
+    timezone: "IST",
+    registration_deadline: null,
+    max_participants: 27,
+    fee_label: "₹99.99",
+    fee_amount: 9999,
+    fee_amount_paise: 9999,
+    entry_fee_label: "₹99.99",
+    prize_pool_contribution_paise: 9999,
+    public_offer_label: "Founder's Discount",
+    summary: "Slot smoke test",
+    description: "Slot smoke test",
+    image_url: null,
+    status: "live",
+    rules: [],
+    schedule: [],
+    prizes: [],
+    criteria: [],
+    judges: [],
+    created_at: "2026-06-22T00:00:00.000Z"
+  },
+  0
+);
+expectEqual(launchCompetitionWithAdminSlots.maxParticipants, 27, "Launch competitions use the admin-entered Maximum Participants value.");
+expectEqual(launchCompetitionWithAdminSlots.slotsRemaining, 27, "Slots remaining reflects the admin-entered Maximum Participants value when there are no paid registrations.");
 expectEqual(paymentStatus.isSeatConfirmed("captured"), true, "Captured payments confirm seats.");
 expectEqual(paymentStatus.isSeatConfirmed("paid"), true, "Paid payments confirm seats.");
 expectEqual(paymentStatus.isSeatConfirmed("failed"), false, "Failed payments do not confirm seats.");

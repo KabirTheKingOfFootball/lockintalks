@@ -161,7 +161,7 @@ export function mapCompetitionRecord(record: CompetitionRecord, paidParticipants
   const feeLabel = pricing.entryFeeLabel;
   const parsedMaxParticipants = Number(record.max_participants);
   const rawMaxParticipants = Number.isFinite(parsedMaxParticipants) ? parsedMaxParticipants : 0;
-  const maxParticipants = launchDefault && rawMaxParticipants <= 50 ? launchDefault.maxParticipants : Number(record.max_participants || launchDefault?.maxParticipants || 50);
+  const maxParticipants = Math.max(1, rawMaxParticipants || launchDefault?.maxParticipants || 50);
   const slotsRemaining = Math.max(0, maxParticipants - paidParticipants);
   const prizePool = calculatePrizePool({
     paidParticipants,
