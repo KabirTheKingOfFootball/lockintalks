@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { MotionShell, Reveal } from "@/components/motion-shell";
 import { Section } from "@/components/section";
 import { PosterBackdrop, PosterHeroArt, PrizePoolPill } from "@/components/brand-visuals";
+import { FounderHeroVideo } from "@/components/founder-hero-video";
 import { getLiveCompetitions } from "@/lib/competitions";
 import { formatPrizePoolBadge } from "@/lib/rewards/prize-pool";
 
@@ -34,8 +35,11 @@ export default async function HomePage() {
     <MotionShell>
       <section className="relative overflow-hidden">
         <PosterBackdrop />
-        <div className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:px-8">
-          <div className="relative z-10">
+        <div className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[1.02fr_0.98fr] lg:px-8">
+          <div className="relative z-10 lg:order-1">
+            <FounderHeroVideo />
+          </div>
+          <div className="relative z-10 lg:order-2">
             <div className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-[#071b3b]/15 bg-white/80 px-4 py-2 text-[0.62rem] font-black uppercase tracking-[0.12em] text-[#071b3b] shadow-[0_14px_35px_rgba(7,27,59,0.14)] sm:text-xs sm:tracking-[0.22em]">
               <Trophy size={16} className="shrink-0 text-[#d49a22]" />
               <span className="min-w-0 truncate"><span className="hidden sm:inline">Global </span>Youth Speaking Competitions</span>
@@ -58,9 +62,6 @@ export default async function HomePage() {
                 <div key={item} className="poster-panel rounded-[8px] p-3 text-center text-sm font-black">{item}</div>
               ))}
             </div>
-          </div>
-          <div className="relative z-10">
-            <PosterHeroArt />
           </div>
         </div>
       </section>
@@ -97,18 +98,23 @@ export default async function HomePage() {
       </Section>
 
       <Section eyebrow="Why LockInTalks?" title="Built for First-Time Speakers and Growing Communicators">
-        <div className="grid gap-5 lg:grid-cols-3">
-          {[
-            ["Beginner-Friendly", "Students get a clear path from sign-up to stage, with simple steps and supportive guidance."],
-            ["Meaningful Recognition", "Certificates and event milestones help students see progress over time."],
-            ["Structured Energy", "Events feel exciting without becoming chaotic, with rules, schedules, and judging criteria upfront."]
-          ].map(([title, text]) => (
-            <Card key={title}>
-              <BadgeCheck className="mb-4 text-[#d4af37]" />
-              <h3 className="text-xl font-black">{title}</h3>
-              <p className="mt-3 text-sm leading-6 text-white/62">{text}</p>
-            </Card>
-          ))}
+        <div className="grid items-center gap-8 lg:grid-cols-[0.78fr_1fr]">
+          <Reveal>
+            <PosterHeroArt />
+          </Reveal>
+          <div className="grid gap-5 sm:grid-cols-3 lg:grid-cols-1">
+            {[
+              ["Beginner-Friendly", "Students get a clear path from sign-up to stage, with simple steps and supportive guidance."],
+              ["Meaningful Recognition", "Certificates and event milestones help students see progress over time."],
+              ["Structured Energy", "Events feel exciting without becoming chaotic, with rules, schedules, and judging criteria upfront."]
+            ].map(([title, text]) => (
+              <Card key={title}>
+                <BadgeCheck className="mb-4 text-[#d4af37]" />
+                <h3 className="text-xl font-black">{title}</h3>
+                <p className="mt-3 text-sm leading-6 text-white/62">{text}</p>
+              </Card>
+            ))}
+          </div>
         </div>
       </Section>
 

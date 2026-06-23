@@ -415,6 +415,104 @@ html[data-theme="dark"] .poster-hero-art {
   object-fit: cover;
 }
 
+.founder-video-card {
+  width: min(100%, 560px);
+  margin-inline: auto;
+}
+
+.founder-video-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+  padding: 0.55rem 0.9rem;
+  color: #071b3b;
+  font-size: 0.74rem;
+  font-weight: 1000;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  border: 1px solid rgba(7, 27, 59, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 14px 34px rgba(7, 27, 59, 0.14);
+}
+
+.founder-video-label::before {
+  content: none;
+}
+
+.founder-video-label svg {
+  flex: none;
+  color: #d4af37;
+}
+
+.founder-video-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 8px;
+  background: #071b3b;
+  box-shadow: 0 28px 90px rgba(4, 54, 126, 0.28);
+  transform: translateZ(0);
+}
+
+.founder-video-frame::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), inset 0 -90px 120px rgba(7, 27, 59, 0.16);
+}
+
+.founder-video-media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.founder-video-media::-webkit-media-controls,
+.founder-video-media::-webkit-media-controls-enclosure,
+.founder-video-media::-webkit-media-controls-panel,
+.founder-video-media::-webkit-media-controls-play-button,
+.founder-video-media::-webkit-media-controls-start-playback-button,
+.founder-video-media::-webkit-media-controls-current-time-display,
+.founder-video-media::-webkit-media-controls-time-remaining-display,
+.founder-video-media::-webkit-media-controls-timeline,
+.founder-video-media::-webkit-media-controls-volume-slider {
+  display: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.founder-video-copy {
+  margin-top: 1rem;
+  padding: 1rem;
+  color: rgba(7, 27, 59, 0.78);
+  font-size: 0.96rem;
+  font-weight: 700;
+  line-height: 1.7;
+  border: 1px solid rgba(7, 27, 59, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 14px 38px rgba(7, 27, 59, 0.12);
+}
+
+html[data-theme="dark"] .founder-video-label,
+html[data-theme="dark"] .founder-video-copy {
+  color: rgba(248, 251, 255, 0.88);
+  border-color: rgba(255, 227, 148, 0.22);
+  background: rgba(5, 15, 41, 0.84);
+}
+
+html[data-theme="dark"] .founder-video-frame {
+  border-color: rgba(255, 227, 148, 0.24);
+  box-shadow: 0 30px 95px rgba(0, 0, 0, 0.34), 0 0 45px rgba(126, 158, 255, 0.18);
+}
+
 .poster-hero-art::before {
   inset: 0;
   background:
