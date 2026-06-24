@@ -1,11 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { Mic2 } from "lucide-react";
+import { Mic2, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export function FounderHeroVideo() {
   const [videoFailed, setVideoFailed] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
@@ -31,6 +32,20 @@ export function FounderHeroVideo() {
     };
   }, [videoFailed]);
 
+  const toggleSound = () => {
+    const video = videoRef.current;
+    const shouldMute = !isMuted;
+
+    if (video) {
+      video.muted = shouldMute;
+      if (!shouldMute) {
+        void video.play().catch(() => {});
+      }
+    }
+
+    setIsMuted(shouldMute);
+  };
+
   return (
     <figure className="founder-video-card">
       <figcaption className="founder-video-label">
@@ -52,7 +67,7 @@ export function FounderHeroVideo() {
             ref={videoRef}
             className="founder-video-media"
             autoPlay
-            muted
+            muted={isMuted}
             loop
             playsInline
             preload="auto"
@@ -65,6 +80,18 @@ export function FounderHeroVideo() {
           >
             <source src="/lockintalks-founder-video.mp4" type="video/mp4" />
           </video>
+        )}
+        {!videoFailed && (
+          <button
+            className="founder-video-sound-button"
+            type="button"
+            aria-label={isMuted ? "Turn founder video sound on" : "Mute founder video"}
+            aria-pressed={!isMuted}
+            onClick={toggleSound}
+          >
+            {isMuted ? <VolumeX size={16} aria-hidden="true" /> : <Volume2 size={16} aria-hidden="true" />}
+            <span>{isMuted ? "Sound On" : "Mute"}</span>
+          </button>
         )}
       </div>
       <p className="founder-video-copy">
